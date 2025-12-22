@@ -1,0 +1,353 @@
+Crie um sistema web chamado “CRM de Projetos (Dev)” para controlar projetos de desenvolvimento com foco em Kanban, prazos e relatórios.
+
+1) Autenticação, cadastro de usuários e permissões
+
+Habilite autenticação e permita cadastro/gestão de usuários (CRUD).
+
+Perfis (roles):
+
+Admin: acesso total.
+
+Gestor: cria/edita projetos, configura formulários padrão, vê relatórios.
+
+Técnico: vê e atualiza apenas projetos/cards atribuídos a ele, preenche formulário do card, vê prazos dos seus projetos.
+
+Regras de acesso:
+
+Somente Admin e Gestor podem criar/editar projetos e modelos de formulário.
+
+Técnico não pode ver senhas/credenciais de clientes se não estiver autorizado (criar controle por “visível para: Admin/Gestor/Técnicos autorizados”).
+
+2) Estrutura de dados (tabelas e relacionamentos)
+
+Crie as seguintes tabelas com relacionamentos:
+
+Users
+
+name, email, role (Admin/Gestor/Técnico), ativo (boolean).
+
+Clients
+
+nome, cnpj/cpf (opcional), contato, telefone, email, observações.
+
+ClientDocs (Documentação / Credenciais)
+
+client_id (FK Clients)
+
+tipo (Senha / URL / Acesso / Observação)
+
+título
+
+url (opcional)
+
+login (opcional)
+
+senha (campo sensível/oculto; se existir “secret/encrypted field”, usar)
+
+observações
+
+visibilidade (Admin/Gestor/Atribuídos)
+
+allowed_users (lista de Users) (para liberar acesso a técnicos específicos)
+
+anexos (opcional, usando storage)
+
+FormTemplates (Modelos de Formulário Padrão)
+
+nome
+
+descrição
+
+ativo (boolean)
+
+criado_por (FK Users)
+
+versão (texto/inteiro)
+
+FormFields (Campos do Modelo)
+
+form_template_id (FK FormTemplates)
+
+ordem
+
+label
+
+tipo (Texto curto, Texto longo, Número, Data, Lista, Checkbox, Anexo)
+
+obrigatório (boolean)
+
+opções (texto/json para listas)
+
+placeholder (opcional)
+
+Projects
+
+client_id (FK Clients)
+
+nome
+
+descrição
+
+status (Ativo / Concluído / Pausado / Cancelado)
+
+tecnico_responsavel_id (FK Users) (principal)
+
+equipe (lista de Users) (opcional)
+
+data_inicio
+
+data_prevista_entrega (prazo)
+
+data_conclusao (opcional)
+
+prioridade (Baixa/Média/Alta)
+
+form_template_padrao_id (FK FormTemplates) (obrigatório)
+
+alerta_atraso_ativo (boolean)
+
+ProjectColumns (Colunas do Kanban por projeto)
+
+project_id (FK Projects)
+
+nome_coluna (Ex.: Backlog, Em andamento, Revisão, Concluído)
+
+ordem
+
+Cards (itens do kanban / tarefas do projeto)
+
+project_id (FK Projects)
+
+coluna_id (FK ProjectColumns)
+
+título
+
+descrição
+
+tecnico_atribuido_id (FK Users)
+
+prioridade
+
+data_inicio (opcional)
+
+data_prevista (opcional)
+
+data_conclusao (opcional)
+
+tags (opcional)
+
+criado_por (FK Users)
+
+CardFormResponses (Resposta do Formulário dentro do card)
+
+card_id (FK Cards)
+
+form_template_id (FK FormTemplates) (copiado do projeto)
+
+status_preenchimento (Não iniciado / Em preenchimento / Completo)
+
+CardFormAnswers (Respostas por campo)
+
+card_form_response_id (FK CardFormResponses)
+
+form_field_id (FK FormFields)
+
+valor_texto / valor_num / valor_data / valor_bool / valor_lista
+
+anexos (opcional)
+
+Alerts (Alertas do sistema)
+
+tipo (Projeto fora do prazo, Card fora do prazo, etc.)
+
+project_id (FK Projects)
+
+card_id (FK Cards, opcional)
+
+mensagem
+
+severidade (Info/Aviso/Crítico)
+
+resolvido (boolean)
+
+criado_em
+
+resolvido_em (opcional)
+
+destinatários (lista de Users)
+
+3) Regra principal (obrigatória)
+
+Todo projeto deve ter um Formulário Padrão.
+
+Na criação do projeto, exigir selecionar um FormTemplate existente ou criar um novo na hora (wizard).
+
+Não permitir criar projeto sem form_template_padrao_id.
+
+Ao criar um Card dentro de um projeto:
+
+criar automaticamente um CardFormResponses já vinculado ao form_template_padrao_id do projeto
+
+pré-criar registros de CardFormAnswers para cada campo do template (ou gerar sob demanda ao abrir o formulário)
+
+o formulário do card deve ser exibido como uma aba/seção “Formulário Padrão” dentro do card.
+
+4) Telas (UX) e navegação
+
+Crie um menu lateral com:
+
+Dashboard
+
+KPIs:
+
+total de projetos
+
+projetos dentro do prazo
+
+projetos fora do prazo
+
+projetos por técnico (ranking/tabela)
+
+Lista de alertas abertos (fora do prazo) com link direto para o projeto.
+
+Usuários (Admin/Gestor)
+
+CRUD de usuários
+
+filtro por role e ativo
+
+Clientes
+
+CRUD de clientes
+
+aba “Documentação / Credenciais” (ClientDocs):
+
+listagem com busca por título/tipo
+
+campos sensíveis ocultos por padrão (mostrar só ao clicar, se permitido)
+
+Modelos de Formulário
+
+CRUD FormTemplates
+
+Editor de campos (FormFields):
+
+adicionar campo, definir tipo, obrigatório, opções, ordem
+
+permitir duplicar um template (para versionar)
+
+Projetos
+
+Lista com filtros (cliente, técnico, status, dentro/fora do prazo)
+
+Ações: criar/editar projeto
+
+Dentro do projeto, duas visualizações principais:
+
+5) Visualização Kanban (principal)
+
+Para cada projeto, criar a página “Kanban do Projeto”:
+
+Colunas vindas de ProjectColumns (ordenadas).
+
+Cards arrastáveis entre colunas (drag & drop).
+
+Botão “Novo Card”:
+
+ao salvar, criar o card e automaticamente criar CardFormResponses + respostas do template do projeto.
+
+Ao clicar no card, abrir um painel/modal com:
+
+dados do card (título, descrição, responsável, datas, prioridade)
+
+aba “Formulário Padrão” para preencher os campos (com validação de obrigatórios)
+
+histórico básico (criado por, criado em, última atualização)
+
+6) Visualização estilo Project (prazos / timeline)
+
+Criar a página “Cronograma (Project)” por projeto e também uma visão geral:
+
+Exibir cards em formato de linha do tempo (tipo Gantt simples):
+
+eixo de datas
+
+cada card como barra (data_inicio → data_prevista)
+
+Também mostrar marcos do projeto: data_inicio e data_prevista_entrega.
+
+Permitir ordenar por técnico e prioridade.
+(Use uma visualização apropriada do Base44 para calendário/timeline/Gantt se disponível; se não, crie uma lista agrupada por semana/mês com barras de progresso.) 
+hackceleration.com
+
+7) Relatórios
+
+Criar a página “Relatórios” com:
+
+Quantidade de projetos por técnico (tabela + gráfico)
+
+Total de projetos
+
+Projetos dentro do prazo:
+
+regra: hoje <= data_prevista_entrega e status != Concluído (ou concluído antes do prazo)
+
+Projetos fora do prazo:
+
+regra: hoje > data_prevista_entrega e status != Concluído
+
+Filtros por período (data_inicio), cliente, técnico, status.
+
+8) Alertas automáticos (projeto fora do prazo)
+
+Criar automações/workflows:
+
+Ao abrir o sistema e/ou diariamente:
+
+identificar projetos com hoje > data_prevista_entrega e status != Concluído
+
+criar/atualizar registro em Alerts (se ainda não existir aberto)
+
+setar alerta_atraso_ativo = true
+
+notificar Gestor/Admin (e técnico responsável) dentro do app (e-mail/integração se existir)
+
+Quando o projeto for marcado como Concluído:
+
+resolver alerta aberto e setar alerta_atraso_ativo = false
+
+9) Dados iniciais (seed)
+
+Criar colunas padrão do Kanban para novos projetos:
+
+Backlog, Em andamento, Revisão, Concluído
+
+Criar um template inicial “Formulário Padrão - Desenvolvimento” com exemplos de campos:
+
+Link do repositório (texto)
+
+Ambiente (lista: Dev/Homolog/Prod)
+
+URL de homologação (texto)
+
+Data prevista do card (data)
+
+Checklist de validação (checkbox)
+
+Observações (texto longo)
+
+Anexo (arquivo)
+
+10) Requisitos de qualidade
+
+Interface limpa e responsiva.
+
+Busca e filtros nas listas.
+
+Validações claras e mensagens amigáveis.
+
+Garantir que NÃO exista projeto sem formulário padrão.
+
+Garantir que todo card tenha o formulário do projeto já vinculado automaticamente.
+
+Gere o app completo com essas entidades, telas, relações e automações.
