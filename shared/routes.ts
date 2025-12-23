@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { 
-  insertClientSchema, 
+import {
+  insertClientSchema,
   insertClientDocSchema,
   insertFormTemplateSchema,
   insertFormFieldSchema,
@@ -48,7 +48,14 @@ export const api = {
     update: {
       method: 'PATCH' as const,
       path: '/api/users/:id',
-      input: z.object({ role: z.string().optional(), isActive: z.boolean().optional() }),
+      input: z.object({
+        firstName: z.string().optional(),
+        lastName: z.string().optional(),
+        email: z.string().email().optional(),
+        password: z.string().min(6).optional(),
+        role: z.string().optional(),
+        isActive: z.boolean().optional()
+      }),
       responses: {
         200: z.custom<typeof users.$inferSelect>(),
       },
@@ -132,6 +139,18 @@ export const api = {
       responses: {
         200: z.custom<typeof formTemplates.$inferSelect & { fields: typeof formFields.$inferSelect[] }>(),
         404: errorSchemas.notFound,
+      },
+    },
+    update: {
+      method: 'PUT' as const,
+      path: '/api/form-templates/:id',
+      input: insertFormTemplateSchema.extend({
+        fields: z.array(insertFormFieldSchema).optional(),
+      }),
+      responses: {
+        200: z.custom<typeof formTemplates.$inferSelect>(),
+        404: errorSchemas.notFound,
+        400: errorSchemas.validation,
       },
     },
   },

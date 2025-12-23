@@ -9,18 +9,21 @@ import {
   Settings,
   LogOut,
   Bell,
-  Menu
+  Menu,
+  UserCog
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
+
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/" },
-  { label: "Projects", icon: FolderKanban, href: "/projects" },
-  { label: "Clients", icon: Users, href: "/clients" },
-  { label: "Templates", icon: FileText, href: "/templates" },
-  { label: "Alerts", icon: Bell, href: "/alerts" },
+  { label: "Projetos", icon: FolderKanban, href: "/projects" },
+  { label: "Clientes", icon: Users, href: "/clients" },
+  { label: "Usuários", icon: UserCog, href: "/users" },
+  { label: "Modelos de Formulário", icon: Settings, href: "/form-templates" },
+  { label: "Alertas", icon: Bell, href: "/alerts" },
 ];
 
 export function Sidebar() {
@@ -29,11 +32,15 @@ export function Sidebar() {
 
   const NavContent = () => (
     <div className="flex flex-col h-full">
-      <div className="p-6">
-        <h1 className="text-2xl font-display font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-          DevCRM
-        </h1>
-        <p className="text-xs text-muted-foreground mt-1">Project Management</p>
+      <div className="p-6 border-b border-border/50">
+        <div className="flex items-center gap-3">
+          <img
+            src="/LOGO PADRÃO POLO.png"
+            alt="Polo CRM"
+            className="h-12 w-auto object-contain"
+          />
+        </div>
+        <p className="text-xs text-muted-foreground mt-2">Gestão de Projetos</p>
       </div>
 
       <div className="flex-1 px-4 space-y-2">
@@ -68,7 +75,7 @@ export function Sidebar() {
             <p className="text-sm font-medium truncate">{user?.firstName} {user?.lastName}</p>
             <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
           </div>
-          <Button variant="ghost" size="icon" onClick={() => logout()} title="Logout">
+          <Button variant="ghost" size="icon" onClick={() => logout()} title="Sair">
             <LogOut className="w-5 h-5 text-muted-foreground hover:text-destructive transition-colors" />
           </Button>
         </div>

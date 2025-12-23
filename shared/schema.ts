@@ -13,6 +13,34 @@ export const clients = pgTable("clients", {
   phone: text("phone"),
   email: text("email"),
   notes: text("notes"),
+
+  // Client Description
+  description: text("description"),
+
+  // Contract Details
+  contractedProducts: jsonb("contracted_products").$type<string[]>(),
+  contractedAutomations: jsonb("contracted_automations").$type<string[]>(),
+  contractLimitUsers: integer("contract_limit_users"),
+  contractLimitAgents: integer("contract_limit_agents"),
+  contractLimitSupervisors: integer("contract_limit_supervisors"),
+  contractStartDate: date("contract_start_date"),
+
+  // Technical Information
+  accessUrl: text("access_url"),
+  apiUsed: text("api_used"),
+  credentials: text("credentials"), // Sensitive field
+  definedScope: text("defined_scope"),
+  outOfScope: text("out_of_scope"),
+  internalManagers: jsonb("internal_managers").$type<string[]>(),
+  knowledgeBase: text("knowledge_base"),
+  technicalSpecPath: text("technical_spec_path"),
+
+  // Quick History & Observations
+  risks: text("risks"),
+  currentPending: text("current_pending"),
+  relevantIncidents: text("relevant_incidents"),
+  technicalDecisions: text("technical_decisions"),
+
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -74,6 +102,8 @@ export const projectColumns = pgTable("project_columns", {
   projectId: integer("project_id").references(() => projects.id).notNull(),
   name: text("name").notNull(),
   order: integer("order").notNull(),
+  color: text("color").default("#6b7280"), // Default gray
+  status: text("status").default("Em aberto").notNull(), // Em aberto, Pausado, Concluído
 });
 
 export const cards = pgTable("cards", {

@@ -48,10 +48,10 @@ export function useCreateProject() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.projects.list.path] });
-      toast({ title: "Success", description: "Project created" });
+      toast({ title: "Sucesso", description: "Projeto criado" });
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
     },
   });
 }
@@ -101,7 +101,7 @@ export function useCreateCard(projectId: number) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.cards.list.path, projectId] });
-      toast({ title: "Success", description: "Card created" });
+      toast({ title: "Sucesso", description: "Cartão criado" });
     },
   });
 }
@@ -126,12 +126,12 @@ export function useMoveCard() {
   });
 }
 
-export function useSubmitCardForm() {
+export function useSubmitCardForm(cardId: number) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ cardId, answers, status }: { cardId: number; status: string; answers: any[] }) => {
+    mutationFn: async ({ answers, status }: { status: string; answers: any[] }) => {
       const url = buildUrl(api.cardForms.submit.path, { cardId });
       const res = await fetch(url, {
         method: "POST",
@@ -142,9 +142,86 @@ export function useSubmitCardForm() {
       if (!res.ok) throw new Error("Failed to submit form");
       return api.cardForms.submit.responses[200].parse(await res.json());
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: [api.cards.get.path, variables.cardId] });
-      toast({ title: "Success", description: "Form saved successfully" });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/cards/${cardId}`] });
+      queryClient.invalidateQueries({ queryKey: [api.cards.list.path] });
+      toast({ title: "Sucesso", description: "Formulário salvo com sucesso" });
+    },
+    onError: (error) => {
+      console.error("Error submitting form:", error);
+      toast({
+        title: "Erro",
+        description: "Falha ao salvar formulário. Tente novamente.",
+        variant: "destructive"
+      });
+    },
+  });
+}
+
+export function useUpdateCardBasicInfo(cardId: number) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (updates: {
+      description?: string;
+      priority?: string;
+      startDate?: string | null;
+      dueDate?: string | null;
+    }) => {
+      const res = await fetch(`/api/cards/${cardId}/basic-info`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to update card");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/cards/${cardId}`] });
+      queryClient.invalidateQueries({ queryKey: [api.cards.list.path] });
+      toast({ title: "Sucesso", description: "Card atualizado com sucesso" });
+    },
+    onError: (error) => {
+      console.error("Error updating card:", error);
+      toast({
+        title: "Erro",
+        description: "Falha ao atualizar card. Tente novamente.",
+        variant: "destructive"
+      });
+    },
+  });
+}
+
+export function useDeleteCard() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (cardId: number) => {
+      const res = await fetch(`/api/cards/${cardId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to delete card");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.cards.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.projects.list.path] });
+      toast({ title: "Sucesso", description: "Card deletado com sucesso" });
+    },
+    onError: (error) => {
+      console.error("Error deleting card:", error);
+      toast({
+        title: "Erro",
+        description: error.message || "Falha ao deletar card. Apenas Gerentes podem deletar cards.",
+        variant: "destructive"
+      });
     },
   });
 }

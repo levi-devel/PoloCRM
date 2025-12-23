@@ -1,7 +1,9 @@
+import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import { getSession, initializePredefinedUsers } from "./auth/local-auth";
 
 const app = express();
 const httpServer = createServer(app);
@@ -21,6 +23,10 @@ app.use(
 );
 
 app.use(express.urlencoded({ extended: false }));
+
+// Setup session middleware for authentication
+app.set("trust proxy", 1);
+app.use(getSession());
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -60,6 +66,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Initialize predefined users
+  await initializePredefinedUsers();
+
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

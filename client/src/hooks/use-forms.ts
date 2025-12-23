@@ -18,6 +18,19 @@ export function useFormTemplates() {
   });
 }
 
+export function useFormTemplate(templateId: number | undefined) {
+  return useQuery({
+    queryKey: ['/api/form-templates', templateId],
+    queryFn: async () => {
+      if (!templateId) throw new Error("Template ID is required");
+      const res = await fetch(`/api/form-templates/${templateId}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch template");
+      return res.json();
+    },
+    enabled: !!templateId,
+  });
+}
+
 export function useCreateFormTemplate() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -35,7 +48,38 @@ export function useCreateFormTemplate() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.formTemplates.list.path] });
-      toast({ title: "Success", description: "Template created" });
+      toast({ title: "Sucesso", description: "Modelo criado" });
+    },
+  });
+}
+
+export function useUpdateFormTemplate(templateId: number) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (data: FormTemplateInput & { fields?: FormFieldInput[] }) => {
+      const res = await fetch(`/api/form-templates/${templateId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to update template");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.formTemplates.list.path] });
+      queryClient.invalidateQueries({ queryKey: ['/api/form-templates', templateId] });
+      toast({ title: "Sucesso", description: "Modelo atualizado com sucesso" });
+    },
+    onError: (error) => {
+      console.error("Error updating template:", error);
+      toast({
+        title: "Erro",
+        description: "Falha ao atualizar modelo. Tente novamente.",
+        variant: "destructive"
+      });
     },
   });
 }
