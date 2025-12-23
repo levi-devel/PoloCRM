@@ -1,8 +1,10 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
-import { api } from "@shared/routes";
+import { registerAuthRoutes } from "./auth/auth-routes";
+import { isAuthenticated } from "./auth/local-auth";
+import { api } from "../shared/routes";
+import { users } from "../shared/models/auth";
 import { z } from "zod";
 
 export async function registerRoutes(
@@ -10,7 +12,7 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
 
-  await setupAuth(app);
+  // Register authentication routes (login, logout, get user)
   registerAuthRoutes(app);
 
   // Users
@@ -18,9 +20,29 @@ export async function registerRoutes(
     const users = await storage.getUsers();
     res.json(users);
   });
+  app.post("/api/users", async (req, res) => {
+    const newUser = await storage.upsertUser({
+      id: `user-${Date.now()}`,
+      ...req.body,
+    });
+    res.status(201).json(newUser);
+  });
   app.patch(api.users.update.path, async (req, res) => {
-    const updated = await storage.updateUser(req.params.id, req.body);
-    res.json(updated);
+    try {
+      const updates: Partial<typeof users.$inferSelect> = {};
+
+      if (req.body.firstName !== undefined) updates.firstName = req.body.firstName;
+      if (req.body.lastName !== undefined) updates.lastName = req.body.lastName;
+      if (req.body.email !== undefined) updates.email = req.body.email;
+      if (req.body.password !== undefined) updates.password = req.body.password; // Store plaintext for now (matching existing auth)
+      if (req.body.role !== undefined) updates.role = req.body.role;
+      if (req.body.isActive !== undefined) updates.isActive = req.body.isActive;
+
+      const updated = await storage.updateUser(req.params.id, updates);
+      res.json(updated);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to update user" });
+    }
   });
 
   // Clients
@@ -67,6 +89,20 @@ export async function registerRoutes(
     if (!template) return res.status(404).json({ message: "Not found" });
     res.json(template);
   });
+  app.put(api.formTemplates.update.path, async (req, res) => {
+    const templateId = Number(req.params.id);
+    const { fields, ...templateData } = req.body;
+
+    try {
+      const updatedTemplate = await storage.updateFormTemplate(templateId, templateData, fields || []);
+      res.json(updatedTemplate);
+    } catch (error: any) {
+      if (error.message === "Template not found") {
+        return res.status(404).json({ message: "Template not found" });
+      }
+      res.status(400).json({ message: error.message || "Failed to update template" });
+    }
+  });
 
   // Projects
   app.get(api.projects.list.path, async (req, res) => {
@@ -88,6 +124,12 @@ export async function registerRoutes(
   });
 
   // Cards
+  // Get all cards (for dashboard statistics)
+  app.get("/api/cards", async (req, res) => {
+    const cards = await storage.getAllCards();
+    res.json(cards);
+  });
+
   app.get(api.cards.list.path, async (req, res) => {
     const cards = await storage.getCards(Number(req.params.projectId));
     res.json(cards);
@@ -105,10 +147,66 @@ export async function registerRoutes(
     const card = await storage.updateCard(Number(req.params.id), req.body);
     res.json(card);
   });
+  app.patch("/api/cards/:id/basic-info", async (req, res) => {
+    const cardId = Number(req.params.id);
+    const { description, priority, startDate, dueDate } = req.body;
+
+    const updates: any = {};
+    if (description !== undefined) updates.description = description;
+    if (priority !== undefined) updates.priority = priority;
+    if (startDate !== undefined) updates.startDate = startDate ? new Date(startDate) : null;
+    if (dueDate !== undefined) updates.dueDate = dueDate ? new Date(dueDate) : null;
+
+    const card = await storage.updateCard(cardId, updates);
+    res.json(card);
+  });
   app.patch(api.cards.move.path, async (req, res) => {
     const card = await storage.updateCard(Number(req.params.id), { columnId: req.body.columnId });
     res.json(card);
   });
+
+  // Delete card (only for Gerente role)
+  app.delete("/api/cards/:id", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      await storage.deleteCard(Number(req.params.id), userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(403).json({ message: error.message || "Failed to delete card" });
+    }
+  });
+
+  // Project Columns
+  app.post("/api/projects/:projectId/columns", async (req, res) => {
+    try {
+      const column = await storage.createProjectColumn({
+        projectId: Number(req.params.projectId),
+        ...req.body,
+      });
+      res.status(201).json(column);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to create column" });
+    }
+  });
+
+  app.patch("/api/columns/:id", async (req, res) => {
+    try {
+      const column = await storage.updateProjectColumn(Number(req.params.id), req.body);
+      res.json(column);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to update column" });
+    }
+  });
+
+  app.delete("/api/columns/:id", async (req, res) => {
+    try {
+      await storage.deleteProjectColumn(Number(req.params.id));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to delete column" });
+    }
+  });
+
 
   // Card Form
   app.post(api.cardForms.submit.path, async (req, res) => {
@@ -122,29 +220,75 @@ export async function registerRoutes(
     res.json(alerts);
   });
 
-  // Seed Data
+  // Dashboard endpoints
+  app.get("/api/dashboard/stats", async (req, res) => {
+    try {
+      const projectId = req.query.projectId ? Number(req.query.projectId) : undefined;
+      const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
+      const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
+
+      const stats = await storage.getDashboardStats(projectId, startDate, endDate);
+      res.json(stats);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to get dashboard stats" });
+    }
+  });
+
+  app.get("/api/dashboard/completion-trend", async (req, res) => {
+    try {
+      const projectId = req.query.projectId ? Number(req.query.projectId) : undefined;
+      const period = (req.query.period as 'week' | 'month' | 'year') || 'week';
+
+      const trend = await storage.getCardCompletionTrend(projectId, period);
+      res.json(trend);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to get completion trend" });
+    }
+  });
+
+
+  // Seed Data - Create default client and form template
   try {
-      const templates = await storage.getFormTemplates();
-      if (templates.length === 0) {
-        console.log("Seeding default template...");
-        await storage.createFormTemplate({
-            name: "Formulário Padrão - Desenvolvimento",
-            description: "Template padrão para projetos de software",
-            version: "1.0",
-            isActive: true,
-        }, [
-            { order: 1, label: "Link do repositório", type: "text", required: true },
-            { order: 2, label: "Ambiente", type: "list", required: true, options: ["Dev", "Homolog", "Prod"] },
-            { order: 3, label: "URL de homologação", type: "text", required: false },
-            { order: 4, label: "Data prevista do card", type: "date", required: false },
-            { order: 5, label: "Checklist de validação", type: "checkbox", required: false },
-            { order: 6, label: "Observações", type: "long_text", required: false },
-            { order: 7, label: "Anexo", type: "file", required: false },
-        ]);
-        console.log("Seeded default template.");
-      }
+    // Create default client (PoloTelecom) if not exists
+    const clients = await storage.getClients();
+    const poloTelecomExists = clients.some(c => c.name === "PoloTelecom");
+
+    if (!poloTelecomExists) {
+      console.log("Seeding default client: PoloTelecom...");
+      await storage.createClient({
+        name: "PoloTelecom",
+        cnpj: "",
+        contact: "",
+        phone: "",
+        email: "",
+        notes: "Cliente padrão do sistema"
+      });
+      console.log("Seeded default client: PoloTelecom.");
+    }
+
+    // Create default form template if not exists
+    const templates = await storage.getFormTemplates();
+    const contractTemplateExists = templates.some(t => t.name === "Formulário de Contratos");
+
+    if (!contractTemplateExists) {
+      console.log("Seeding default form template: Formulário de Contratos...");
+      await storage.createFormTemplate({
+        name: "Formulário de Contratos",
+        description: "Template padrão para gestão de contratos",
+        version: "1.0",
+        isActive: true,
+      }, [
+        { order: 1, label: "Cliente", type: "text", required: true } as any,
+        { order: 2, label: "Produto", type: "text", required: true } as any,
+        { order: 3, label: "Fornecedor", type: "text", required: true } as any,
+        { order: 4, label: "Tipo de Contrato", type: "list", required: true, options: ["Novo", "Aditivo"] } as any,
+        { order: 5, label: "Descrição", type: "long_text", required: false } as any,
+        { order: 6, label: "Data de Assinatura", type: "date", required: true } as any,
+      ]);
+      console.log("Seeded default form template: Formulário de Contratos.");
+    }
   } catch (error) {
-      console.error("Error seeding data:", error);
+    console.error("Error seeding data:", error);
   }
 
   return httpServer;

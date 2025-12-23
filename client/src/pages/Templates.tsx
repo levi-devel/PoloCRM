@@ -19,17 +19,17 @@ export default function Templates() {
   const { data: templates, isLoading } = useFormTemplates();
   const createTemplate = useCreateFormTemplate();
   const [isOpen, setIsOpen] = useState(false);
-  
+
   // Simple builder state
   const [name, setName] = useState("");
   const [fields, setFields] = useState<any[]>([]);
 
   const addField = () => {
-    setFields([...fields, { 
-      label: "New Field", 
-      type: "text", 
-      required: false, 
-      order: fields.length 
+    setFields([...fields, {
+      label: "New Field",
+      type: "text",
+      required: false,
+      order: fields.length
     }]);
   };
 
@@ -62,34 +62,34 @@ export default function Templates() {
       <div className="space-y-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold font-display text-foreground">Form Templates</h1>
-            <p className="text-muted-foreground mt-2">Design custom forms for your project cards.</p>
+            <h1 className="text-3xl font-bold font-display text-foreground">Modelos de Formulário</h1>
+            <p className="text-muted-foreground mt-2">Crie formulários personalizados para seus cartões de projeto.</p>
           </div>
           <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
               <Button>
-                <Plus className="w-4 h-4 mr-2" /> New Template
+                <Plus className="w-4 h-4 mr-2" /> Novo Modelo
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Template Builder</DialogTitle>
+                <DialogTitle>Construtor de Modelos</DialogTitle>
               </DialogHeader>
               <div className="space-y-6 py-4">
                 <div className="space-y-2">
-                  <Label>Template Name</Label>
-                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Bug Report" />
+                  <Label>Nome do Modelo</Label>
+                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="ex: Relatório de Bug" />
                 </div>
 
                 <div className="space-y-4">
                   <div className="flex items-center justify-between border-b pb-2">
-                    <Label>Form Fields</Label>
-                    <Button variant="outline" size="sm" onClick={addField}>+ Add Field</Button>
+                    <Label>Campos do Formulário</Label>
+                    <Button variant="outline" size="sm" onClick={addField}>+ Adicionar Campo</Button>
                   </div>
-                  
+
                   {fields.length === 0 && (
                     <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
-                      No fields added yet.
+                      Nenhum campo adicionado ainda.
                     </div>
                   )}
 
@@ -98,31 +98,31 @@ export default function Templates() {
                       <div key={idx} className="flex gap-4 items-start p-4 bg-muted/30 rounded-lg border border-border/50">
                         <div className="flex-1 space-y-3">
                           <div className="grid grid-cols-2 gap-4">
-                            <Input 
-                              placeholder="Field Label" 
-                              value={field.label} 
-                              onChange={(e) => updateField(idx, 'label', e.target.value)} 
+                            <Input
+                              placeholder="Rótulo do Campo"
+                              value={field.label}
+                              onChange={(e) => updateField(idx, 'label', e.target.value)}
                             />
-                            <Select 
-                              value={field.type} 
+                            <Select
+                              value={field.type}
                               onValueChange={(val) => updateField(idx, 'type', val)}
                             >
                               <SelectTrigger><SelectValue /></SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="text">Text Input</SelectItem>
-                                <SelectItem value="long_text">Text Area</SelectItem>
-                                <SelectItem value="number">Number</SelectItem>
-                                <SelectItem value="date">Date</SelectItem>
-                                <SelectItem value="boolean">Checkbox</SelectItem>
+                                <SelectItem value="text">Texto Curto</SelectItem>
+                                <SelectItem value="long_text">Texto Longo</SelectItem>
+                                <SelectItem value="number">Número</SelectItem>
+                                <SelectItem value="date">Data</SelectItem>
+                                <SelectItem value="boolean">Caixa de Seleção</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Checkbox 
-                              checked={field.required} 
-                              onCheckedChange={(checked) => updateField(idx, 'required', checked)} 
+                            <Checkbox
+                              checked={field.required}
+                              onCheckedChange={(checked) => updateField(idx, 'required', checked)}
                             />
-                            <span className="text-sm text-muted-foreground">Required field</span>
+                            <span className="text-sm text-muted-foreground">Campo obrigatório</span>
                           </div>
                         </div>
                         <Button variant="ghost" size="icon" onClick={() => removeField(idx)} className="text-muted-foreground hover:text-destructive">
@@ -134,7 +134,7 @@ export default function Templates() {
                 </div>
 
                 <Button className="w-full" onClick={handleSave} disabled={createTemplate.isPending || !name}>
-                  {createTemplate.isPending ? "Saving..." : "Save Template"}
+                  {createTemplate.isPending ? "Salvando..." : "Salvar Modelo"}
                 </Button>
               </div>
             </DialogContent>
@@ -155,7 +155,7 @@ export default function Templates() {
                 </div>
                 <h3 className="text-lg font-bold font-display mt-4">{template.name}</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {template.description || "No description"}
+                  {template.description || "Sem descrição"}
                 </p>
               </div>
             ))

@@ -48,10 +48,37 @@ export function useCreateClient() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.clients.list.path] });
-      toast({ title: "Success", description: "Client created successfully" });
+      toast({ title: "Sucesso", description: "Cliente criado com sucesso" });
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    },
+  });
+}
+
+export function useUpdateClient(id: number) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (data: Partial<ClientInput>) => {
+      const url = buildUrl(api.clients.update.path, { id });
+      const res = await fetch(url, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to update client");
+      return api.clients.update.responses[200].parse(await res.json());
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.clients.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.clients.get.path, id] });
+      toast({ title: "Sucesso", description: "Cliente atualizado com sucesso" });
+    },
+    onError: (error) => {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
     },
   });
 }
@@ -87,10 +114,10 @@ export function useCreateClientDoc(clientId: number) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.clientDocs.list.path, clientId] });
-      toast({ title: "Success", description: "Document added" });
+      toast({ title: "Sucesso", description: "Documento adicionado" });
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
     },
   });
 }
