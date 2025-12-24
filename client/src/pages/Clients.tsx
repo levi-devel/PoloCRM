@@ -5,6 +5,7 @@ import { Plus, Search, Building2, Phone, Mail, Users, Edit, X } from "lucide-rea
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
+import { dateToInputValue, inputValueToDate } from "@/lib/date-utils";
 import {
   Dialog,
   DialogContent,
@@ -354,8 +355,8 @@ function ClientFormDialog({
                     <FormControl>
                       <Input
                         type="date"
-                        {...field}
-                        value={field.value || ""}
+                        value={dateToInputValue(field.value)}
+                        onChange={(e) => field.onChange(inputValueToDate(e.target.value))}
                       />
                     </FormControl>
                     <FormMessage />

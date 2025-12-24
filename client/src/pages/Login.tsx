@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function Login() {
     const [email, setEmail] = useState("");
@@ -14,6 +15,7 @@ export default function Login() {
     const [currentImage, setCurrentImage] = useState(0);
     const [, setLocation] = useLocation();
     const { toast } = useToast();
+    const queryClient = useQueryClient();
 
     const carouselImages = [
         "/Imagem1.png",
@@ -54,7 +56,11 @@ export default function Login() {
                 description: `Bem-vindo, ${data.user.firstName}!`,
             });
 
-            // Redirect to home page
+            // Invalidate and refetch the user data to ensure the session is up-to-date
+            await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+            await queryClient.refetchQueries({ queryKey: ["/api/auth/user"] });
+
+            // Redirect to home page after user data is refreshed
             setLocation("/");
         } catch (error: any) {
             toast({

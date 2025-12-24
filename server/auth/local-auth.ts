@@ -6,6 +6,14 @@ import type { User } from "../../shared/models/auth";
 // Predefined users - these will be initialized on server start
 export const PREDEFINED_USERS = [
     {
+        id: "user-admin",
+        email: "admin@polo.com",
+        password: "senha123",
+        firstName: "Admin",
+        lastName: "Polo",
+        role: "Gerente",
+    },
+    {
         id: "user-1",
         email: "carlos@polotelecom.com.br",
         password: "Mudar@123",

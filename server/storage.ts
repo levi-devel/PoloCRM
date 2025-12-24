@@ -1,5 +1,5 @@
 
-import { users, clients, clientDocs, formTemplates, formFields, projects, projectColumns, cards, cardFormResponses, cardFormAnswers, alerts, type User, type UpsertUser, type InsertClient, type InsertClientDoc, type InsertFormTemplate, type InsertFormField, type InsertProject, type InsertCard, type InsertCardFormAnswer } from "../shared/schema";
+import { users, clients, clientDocs, formTemplates, formFields, projects, projectColumns, cards, cardFormResponses, cardFormAnswers, alerts, poloProjects, poloProjectStages, salesFunnelColumns, salesFunnelCards, type User, type UpsertUser, type InsertClient, type InsertClientDoc, type InsertFormTemplate, type InsertFormField, type InsertProject, type InsertCard, type InsertCardFormAnswer, type InsertPoloProject, type InsertPoloProjectStage, type InsertSalesFunnelColumn, type InsertSalesFunnelCard } from "../shared/schema";
 
 export interface IStorage {
   // Users
@@ -48,16 +48,46 @@ export interface IStorage {
   getAlerts(): Promise<typeof alerts.$inferSelect[]>;
 
   // Dashboard stats
-  getDashboardStats(projectId?: number, startDate?: Date, endDate?: Date): Promise<{
+  getDashboardStats(projectId?: number, startDate?: Date, endDate?: Date, technicianId?: string): Promise<{
     totalCards: number;
     completedThisMonth: number;
     completedThisYear: number;
     overdueSLA: number;
   }>;
-  getCardCompletionTrend(projectId?: number, period?: 'week' | 'month' | 'year'): Promise<{
+  getCardCompletionTrend(projectId?: number, period?: 'week' | 'month' | 'year', technicianId?: string): Promise<{
     period: string;
     completed: number;
   }[]>;
+
+  // Polo Projects
+  getPoloProjects(): Promise<(typeof poloProjects.$inferSelect & { stages?: typeof poloProjectStages.$inferSelect[] })[]>;
+  getPoloProject(id: number): Promise<typeof poloProjects.$inferSelect & { stages: typeof poloProjectStages.$inferSelect[] } | undefined>;
+  createPoloProject(project: InsertPoloProject, stages?: InsertPoloProjectStage[]): Promise<typeof poloProjects.$inferSelect>;
+  updatePoloProject(id: number, updates: Partial<InsertPoloProject>): Promise<typeof poloProjects.$inferSelect>;
+  createPoloProjectStage(stage: InsertPoloProjectStage): Promise<typeof poloProjectStages.$inferSelect>;
+  updatePoloProjectStage(id: number, updates: Partial<InsertPoloProjectStage>): Promise<typeof poloProjectStages.$inferSelect>;
+  deletePoloProjectStage(id: number): Promise<void>;
+  getPoloProjectDashboardStats(): Promise<{
+    activeProjects: number;
+    upcomingDeadlines: { stageName: string; projectName: string; endDate: string; daysUntil: number; }[];
+    overallProgress: number;
+  }>;
+  getPoloProjectGanttData(id: number): Promise<{
+    project: typeof poloProjects.$inferSelect;
+    stages: typeof poloProjectStages.$inferSelect[];
+    timelineStart: string;
+    timelineEnd: string;
+  }>;
+
+  // Sales Funnel
+  getSalesFunnelColumns(): Promise<typeof salesFunnelColumns.$inferSelect[]>;
+  createSalesFunnelColumn(column: InsertSalesFunnelColumn): Promise<typeof salesFunnelColumns.$inferSelect>;
+  getSalesFunnelCards(): Promise<typeof salesFunnelCards.$inferSelect[]>;
+  getSalesFunnelCard(id: number): Promise<typeof salesFunnelCards.$inferSelect | undefined>;
+  createSalesFunnelCard(card: InsertSalesFunnelCard): Promise<typeof salesFunnelCards.$inferSelect>;
+  updateSalesFunnelCard(id: number, updates: Partial<InsertSalesFunnelCard>): Promise<typeof salesFunnelCards.$inferSelect>;
+  moveSalesFunnelCard(id: number, columnId: number): Promise<typeof salesFunnelCards.$inferSelect>;
+  deleteSalesFunnelCard(id: number): Promise<void>;
 }
 
 
@@ -73,6 +103,10 @@ export class MemStorage implements IStorage {
   private cardFormResponses: Map<number, typeof cardFormResponses.$inferSelect>;
   private cardFormAnswers: Map<number, typeof cardFormAnswers.$inferSelect>;
   private alerts: Map<number, typeof alerts.$inferSelect>;
+  private poloProjects: Map<number, typeof poloProjects.$inferSelect>;
+  private poloProjectStages: Map<number, typeof poloProjectStages.$inferSelect>;
+  private salesFunnelColumns: Map<number, typeof salesFunnelColumns.$inferSelect>;
+  private salesFunnelCards: Map<number, typeof salesFunnelCards.$inferSelect>;
 
   private clientCurrentId = 1;
   private clientDocCurrentId = 1;
@@ -84,6 +118,10 @@ export class MemStorage implements IStorage {
   private cardFormResponseCurrentId = 1;
   private cardFormAnswerCurrentId = 1;
   private alertCurrentId = 1;
+  private poloProjectCurrentId = 1;
+  private poloProjectStageCurrentId = 1;
+  private salesFunnelColumnCurrentId = 1;
+  private salesFunnelCardCurrentId = 1;
 
   constructor() {
     this.users = new Map();
@@ -97,6 +135,32 @@ export class MemStorage implements IStorage {
     this.cardFormResponses = new Map();
     this.cardFormAnswers = new Map();
     this.alerts = new Map();
+    this.poloProjects = new Map();
+    this.poloProjectStages = new Map();
+    this.salesFunnelColumns = new Map();
+    this.salesFunnelCards = new Map();
+
+    // Initialize default sales funnel columns
+    this.initializeSalesFunnelColumns();
+  }
+
+  private initializeSalesFunnelColumns() {
+    const defaultColumns = [
+      { name: "Envio de Proposta", order: 0, color: "#3b82f6" },
+      { name: "Contrato Fechado", order: 1, color: "#10b981" },
+      { name: "Contrato Recusado", order: 2, color: "#f59e0b" },
+      { name: "Cancelamento", order: 3, color: "#ef4444" }
+    ];
+
+    defaultColumns.forEach((col) => {
+      const id = this.salesFunnelColumnCurrentId++;
+      this.salesFunnelColumns.set(id, {
+        id,
+        name: col.name,
+        order: col.order,
+        color: col.color
+      });
+    });
   }
 
   // Users
@@ -305,7 +369,22 @@ export class MemStorage implements IStorage {
   }
   async createCard(card: InsertCard) {
     const id = this.cardCurrentId++;
-    const newCard = { ...card, id, createdAt: new Date() } as typeof cards.$inferSelect;
+    // Ensure all fields have explicit values (even if null) so they persist correctly
+    const newCard: typeof cards.$inferSelect = {
+      id,
+      projectId: card.projectId,
+      columnId: card.columnId,
+      title: card.title,
+      description: card.description ?? null,
+      priority: card.priority ?? "Média",
+      startDate: card.startDate ?? null,
+      dueDate: card.dueDate ?? null,
+      completionDate: card.completionDate ?? null,
+      assignedTechId: card.assignedTechId ?? null,
+      tags: (card.tags ?? null) as string[] | null,
+      createdBy: card.createdBy ?? null,
+      createdAt: new Date(),
+    };
     this.cards.set(id, newCard);
 
     // Auto-create form response
@@ -327,10 +406,27 @@ export class MemStorage implements IStorage {
     const card = this.cards.get(id);
     if (!card) throw new Error("Card not found");
 
+    // Normalize legacy cards - ensure all fields exist with defaults
+    const normalizedCard: typeof cards.$inferSelect = {
+      id: card.id,
+      projectId: card.projectId,
+      columnId: card.columnId,
+      title: card.title,
+      description: card.description ?? null,
+      priority: card.priority ?? "Média",
+      startDate: card.startDate ?? null,
+      dueDate: card.dueDate ?? null,
+      completionDate: card.completionDate ?? null,
+      assignedTechId: card.assignedTechId ?? null,
+      tags: (card.tags ?? null) as string[] | null,
+      createdBy: card.createdBy ?? null,
+      createdAt: card.createdAt ?? null,
+    };
+
     // If columnId is being updated, check if we need to set/clear completionDate
     if (updates.columnId !== undefined) {
       const newColumn = this.projectColumns.get(updates.columnId);
-      const oldColumn = this.projectColumns.get(card.columnId);
+      const oldColumn = this.projectColumns.get(normalizedCard.columnId);
 
       // Moving TO a completed column - set completionDate if not already set
       if (newColumn?.status === "Concluído" && !updates.completionDate) {
@@ -343,8 +439,9 @@ export class MemStorage implements IStorage {
       }
     }
 
-    const updatedCard = { ...card, ...updates };
+    const updatedCard = { ...normalizedCard, ...updates };
     this.cards.set(id, updatedCard);
+
     return updatedCard;
   }
 
@@ -425,13 +522,20 @@ export class MemStorage implements IStorage {
   }
 
   // Dashboard Stats
-  async getDashboardStats(projectId?: number, startDate?: Date, endDate?: Date) {
-    const allCards = Array.from(this.cards.values());
+  async getDashboardStats(projectId?: number, startDate?: Date, endDate?: Date, technicianId?: string) {
+    let allCards = Array.from(this.cards.values());
 
     // Filter by project if specified
-    const filteredCards = projectId
-      ? allCards.filter(c => c.projectId === projectId)
-      : allCards;
+    if (projectId) {
+      allCards = allCards.filter(c => c.projectId === projectId);
+    }
+
+    // Filter by technician if specified
+    if (technicianId) {
+      allCards = allCards.filter(c => c.assignedTechId === technicianId);
+    }
+
+    const filteredCards = allCards;
 
     // Get all columns to identify "completed" columns (by status)
     const allColumns = Array.from(this.projectColumns.values());
@@ -481,13 +585,20 @@ export class MemStorage implements IStorage {
     };
   }
 
-  async getCardCompletionTrend(projectId?: number, period: 'week' | 'month' | 'year' = 'week') {
-    const allCards = Array.from(this.cards.values());
+  async getCardCompletionTrend(projectId?: number, period: 'week' | 'month' | 'year' = 'week', technicianId?: string) {
+    let allCards = Array.from(this.cards.values());
 
     // Filter by project if specified
-    const filteredCards = projectId
-      ? allCards.filter(c => c.projectId === projectId)
-      : allCards;
+    if (projectId) {
+      allCards = allCards.filter(c => c.projectId === projectId);
+    }
+
+    // Filter by technician if specified
+    if (technicianId) {
+      allCards = allCards.filter(c => c.assignedTechId === technicianId);
+    }
+
+    const filteredCards = allCards;
 
     // Get completed column IDs (by status)
     const allColumns = Array.from(this.projectColumns.values());
@@ -560,6 +671,258 @@ export class MemStorage implements IStorage {
     }
 
     return trends;
+  }
+
+  // Polo Projects
+  async getPoloProjects() {
+    const projects = Array.from(this.poloProjects.values()).sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+    return projects.map(project => {
+      const stages = Array.from(this.poloProjectStages.values())
+        .filter(s => s.poloProjectId === project.id)
+        .sort((a, b) => a.order - b.order);
+      return { ...project, stages };
+    });
+  }
+
+  async getPoloProject(id: number) {
+    const project = this.poloProjects.get(id);
+    if (!project) return undefined;
+    const stages = Array.from(this.poloProjectStages.values())
+      .filter(s => s.poloProjectId === id)
+      .sort((a, b) => a.order - b.order);
+    return { ...project, stages };
+  }
+
+  async createPoloProject(project: InsertPoloProject, stages?: InsertPoloProjectStage[]) {
+    const id = this.poloProjectCurrentId++;
+    const newProject = { ...project, id, createdAt: new Date() } as typeof poloProjects.$inferSelect;
+    this.poloProjects.set(id, newProject);
+
+    if (stages && stages.length > 0) {
+      stages.forEach((stage, index) => {
+        const stageId = this.poloProjectStageCurrentId++;
+        this.poloProjectStages.set(stageId, {
+          ...stage,
+          id: stageId,
+          poloProjectId: id,
+          order: stage.order ?? index,
+          createdAt: new Date()
+        } as typeof poloProjectStages.$inferSelect);
+      });
+    }
+
+    return newProject;
+  }
+
+  async updatePoloProject(id: number, updates: Partial<InsertPoloProject>) {
+    const project = this.poloProjects.get(id);
+    if (!project) throw new Error("Polo Project not found");
+    const updatedProject = { ...project, ...updates };
+    this.poloProjects.set(id, updatedProject);
+    return updatedProject;
+  }
+
+  async createPoloProjectStage(stage: InsertPoloProjectStage) {
+    // Validações de hierarquia
+    if (stage.level === 2) {
+      // Sub-etapa DEVE ter parentStageId
+      if (!stage.parentStageId) {
+        throw new Error("Sub-etapas (2º nível) devem estar vinculadas a uma etapa principal");
+      }
+
+      // Verificar se a etapa principal existe e é de 1º nível
+      const parentStage = this.poloProjectStages.get(stage.parentStageId);
+      if (!parentStage) {
+        throw new Error("Etapa principal não encontrada");
+      }
+      if (parentStage.level !== 1) {
+        throw new Error("O parentStageId deve referenciar uma etapa de 1º nível");
+      }
+    } else if (stage.level === 1) {
+      // Etapa principal NÃO deve ter parentStageId
+      if (stage.parentStageId) {
+        throw new Error("Etapas principais (1º nível) não podem ter etapa pai");
+      }
+    } else {
+      throw new Error("O nível da etapa deve ser 1 ou 2");
+    }
+
+    const id = this.poloProjectStageCurrentId++;
+    const newStage = { ...stage, id, createdAt: new Date() } as typeof poloProjectStages.$inferSelect;
+    this.poloProjectStages.set(id, newStage);
+    return newStage;
+  }
+
+  async updatePoloProjectStage(id: number, updates: Partial<InsertPoloProjectStage>) {
+    const stage = this.poloProjectStages.get(id);
+    if (!stage) throw new Error("Polo Project Stage not found");
+    const updatedStage = { ...stage, ...updates };
+    this.poloProjectStages.set(id, updatedStage);
+
+    // Recalculate project progress if isCompleted changed
+    const projectId = updatedStage.poloProjectId;
+    const allStages = Array.from(this.poloProjectStages.values())
+      .filter(s => s.poloProjectId === projectId);
+
+    if (allStages.length > 0) {
+      const completedStages = allStages.filter(s => s.isCompleted).length;
+      const overallProgress = Math.round((completedStages / allStages.length) * 100);
+
+      const project = this.poloProjects.get(projectId);
+      if (project) {
+        const updatedProject = { ...project, overallProgress };
+        this.poloProjects.set(projectId, updatedProject);
+      }
+    }
+
+    return updatedStage;
+  }
+
+  async deletePoloProjectStage(id: number) {
+    const stage = this.poloProjectStages.get(id);
+    if (!stage) throw new Error("Polo Project Stage not found");
+
+    // Se for etapa de 1º nível, verificar se possui sub-etapas vinculadas
+    if (stage.level === 1) {
+      const subStages = Array.from(this.poloProjectStages.values())
+        .filter(s => s.parentStageId === id);
+
+      if (subStages.length > 0) {
+        throw new Error("Esta etapa possui sub-etapas vinculadas. Exclua primeiro as sub-etapas ou desvincule-as.");
+      }
+    }
+
+    this.poloProjectStages.delete(id);
+  }
+
+  async getPoloProjectDashboardStats() {
+    const allProjects = Array.from(this.poloProjects.values());
+    const activeProjects = allProjects.filter(p => p.status === "Ativo").length;
+
+    // Get all stages with upcoming deadlines
+    const allStages = Array.from(this.poloProjectStages.values());
+    const now = new Date();
+
+    const upcomingStages = allStages
+      .filter(s => {
+        const stage = s as typeof poloProjectStages.$inferSelect;
+        if (stage.isCompleted) return false;
+        const endDate = stage.endDate ? new Date(stage.endDate) : null;
+        return endDate && endDate >= now;
+      })
+      .map(s => {
+        const stage = s as typeof poloProjectStages.$inferSelect;
+        const project = this.poloProjects.get(stage.poloProjectId);
+        const endDate = stage.endDate ? new Date(stage.endDate) : new Date();
+        const daysUntil = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        return {
+          stageName: stage.name,
+          projectName: project?.name || "Unknown",
+          endDate: stage.endDate || "",
+          daysUntil
+        };
+      })
+      .sort((a, b) => a.daysUntil - b.daysUntil)
+      .slice(0, 5); // Top 5 upcoming deadlines
+
+    // Calculate overall progress
+    let totalProgress = 0;
+    if (allProjects.length > 0) {
+      totalProgress = allProjects.reduce((sum, p) => sum + (p.overallProgress || 0), 0) / allProjects.length;
+    }
+
+    return {
+      activeProjects,
+      upcomingDeadlines: upcomingStages,
+      overallProgress: Math.round(totalProgress)
+    };
+  }
+
+  async getPoloProjectGanttData(id: number) {
+    const project = this.poloProjects.get(id);
+    if (!project) throw new Error("Polo Project not found");
+
+    const stages = Array.from(this.poloProjectStages.values())
+      .filter(s => s.poloProjectId === id)
+      .sort((a, b) => a.order - b.order);
+
+    let timelineStart = "";
+    let timelineEnd = "";
+
+    if (stages.length > 0) {
+      // Find earliest start date and latest end date
+      const dates = stages.map(s => ({
+        start: s.startDate ? new Date(s.startDate) : null,
+        end: s.endDate ? new Date(s.endDate) : null
+      })).filter(d => d.start && d.end);
+
+      if (dates.length > 0) {
+        const minDate = new Date(Math.min(...dates.map(d => d.start!.getTime())));
+        const maxDate = new Date(Math.max(...dates.map(d => d.end!.getTime())));
+        timelineStart = minDate.toISOString().split('T')[0];
+        timelineEnd = maxDate.toISOString().split('T')[0];
+      }
+    }
+
+    return {
+      project,
+      stages,
+      timelineStart,
+      timelineEnd
+    };
+  }
+
+  // Sales Funnel Methods
+  async getSalesFunnelColumns() {
+    return Array.from(this.salesFunnelColumns.values()).sort((a, b) => a.order - b.order);
+  }
+
+  async createSalesFunnelColumn(column: InsertSalesFunnelColumn) {
+    const id = this.salesFunnelColumnCurrentId++;
+    const newColumn = { ...column, id } as typeof salesFunnelColumns.$inferSelect;
+    this.salesFunnelColumns.set(id, newColumn);
+    return newColumn;
+  }
+
+  async getSalesFunnelCards() {
+    return Array.from(this.salesFunnelCards.values()).sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+  }
+
+  async getSalesFunnelCard(id: number) {
+    return this.salesFunnelCards.get(id);
+  }
+
+  async createSalesFunnelCard(card: InsertSalesFunnelCard) {
+    const id = this.salesFunnelCardCurrentId++;
+    const newCard = {
+      ...card,
+      id,
+      createdAt: new Date()
+    } as typeof salesFunnelCards.$inferSelect;
+    this.salesFunnelCards.set(id, newCard);
+    return newCard;
+  }
+
+  async updateSalesFunnelCard(id: number, updates: Partial<InsertSalesFunnelCard>) {
+    const card = this.salesFunnelCards.get(id);
+    if (!card) throw new Error("Sales funnel card not found");
+    const updatedCard = { ...card, ...updates };
+    this.salesFunnelCards.set(id, updatedCard);
+    return updatedCard;
+  }
+
+  async moveSalesFunnelCard(id: number, columnId: number) {
+    const card = this.salesFunnelCards.get(id);
+    if (!card) throw new Error("Sales funnel card not found");
+    const updatedCard = { ...card, columnId };
+    this.salesFunnelCards.set(id, updatedCard);
+    return updatedCard;
+  }
+
+  async deleteSalesFunnelCard(id: number) {
+    const card = this.salesFunnelCards.get(id);
+    if (!card) throw new Error("Sales funnel card not found");
+    this.salesFunnelCards.delete(id);
   }
 }
 
