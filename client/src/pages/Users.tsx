@@ -25,7 +25,7 @@ const createUserSchema = z.object({
     email: z.string().email("Email inválido"),
     firstName: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
     lastName: z.string().min(2, "Sobrenome deve ter pelo menos 2 caracteres"),
-    role: z.enum(["Admin", "Gestor", "Técnico"]),
+    role: z.enum(["Admin", "Gerente Comercial", "Gerente Supervisor", "Técnico"]),
     isActive: z.boolean().default(true),
 });
 
@@ -35,7 +35,7 @@ const editUserSchema = z.object({
     firstName: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
     lastName: z.string().min(2, "Sobrenome deve ter pelo menos 2 caracteres"),
     password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres").optional().or(z.literal("")),
-    role: z.enum(["Admin", "Gestor", "Técnico"]),
+    role: z.enum(["Admin", "Gerente Comercial", "Gerente Supervisor", "Técnico"]),
     isActive: z.boolean(),
 });
 
@@ -176,7 +176,7 @@ export default function Users() {
             firstName: user.firstName,
             lastName: user.lastName,
             password: "",
-            role: user.role as "Admin" | "Gestor" | "Técnico",
+            role: user.role as "Admin" | "Gerente Comercial" | "Gerente Supervisor" | "Técnico",
             isActive: user.isActive,
         });
         setEditDialogOpen(true);
@@ -271,7 +271,8 @@ export default function Users() {
                                                     </FormControl>
                                                     <SelectContent>
                                                         <SelectItem value="Técnico">Técnico</SelectItem>
-                                                        <SelectItem value="Gestor">Gestor</SelectItem>
+                                                        <SelectItem value="Gerente Supervisor">Gerente Supervisor</SelectItem>
+                                                        <SelectItem value="Gerente Comercial">Gerente Comercial</SelectItem>
                                                         <SelectItem value="Admin">Admin</SelectItem>
                                                     </SelectContent>
                                                 </Select>
@@ -396,7 +397,8 @@ export default function Users() {
                                                     </FormControl>
                                                     <SelectContent>
                                                         <SelectItem value="Técnico">Técnico</SelectItem>
-                                                        <SelectItem value="Gestor">Gestor</SelectItem>
+                                                        <SelectItem value="Gerente Supervisor">Gerente Supervisor</SelectItem>
+                                                        <SelectItem value="Gerente Comercial">Gerente Comercial</SelectItem>
                                                         <SelectItem value="Admin">Admin</SelectItem>
                                                     </SelectContent>
                                                 </Select>

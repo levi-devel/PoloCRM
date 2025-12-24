@@ -11,7 +11,7 @@ export const PREDEFINED_USERS = [
         password: "senha123",
         firstName: "Admin",
         lastName: "Polo",
-        role: "Gerente",
+        role: "Admin",
     },
     {
         id: "user-1",

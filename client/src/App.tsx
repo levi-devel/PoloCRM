@@ -16,6 +16,7 @@ import Login from "@/pages/Login";
 import PoloProject from "@/pages/PoloProject";
 import PoloProjectGantt from "@/pages/PoloProjectGantt";
 import SalesFunnel from "@/pages/SalesFunnel";
+import SalesFunnelDashboard from "@/pages/SalesFunnelDashboard";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -85,6 +86,9 @@ function Router() {
       </Route>
       <Route path="/sales-funnel">
         <ProtectedRoute component={SalesFunnel} />
+      </Route>
+      <Route path="/sales-funnel/dashboard">
+        <ProtectedRoute component={SalesFunnelDashboard} />
       </Route>
 
       <Route component={NotFound} />

@@ -18,7 +18,7 @@ export const users = pgTable("users", {
   lastName: varchar("last_name"),
   password: varchar("password"), // Hashed password
   profileImageUrl: varchar("profile_image_url"),
-  role: text("role").default("Técnico").notNull(), // Admin, Gestor, Técnico
+  role: text("role").default("Técnico").notNull(), // Admin, Gerente Comercial, Gerente Supervisor, Técnico
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

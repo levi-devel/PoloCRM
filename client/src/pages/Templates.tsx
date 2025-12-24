@@ -148,7 +148,7 @@ export default function Templates() {
             templates?.map((template) => (
               <div key={template.id} className="bg-card border border-border rounded-xl p-6 hover:shadow-md transition-all">
                 <div className="flex items-start justify-between">
-                  <div className="p-3 bg-indigo-50 text-indigo-600 rounded-lg">
+                  <div className="p-3 bg-red-50 text-red-600 rounded-lg">
                     <FileJson className="w-6 h-6" />
                   </div>
                   <span className="text-xs font-mono bg-muted px-2 py-1 rounded">v{template.version}</span>

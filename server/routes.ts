@@ -392,6 +392,14 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/sales-funnel/stats", async (req, res) => {
+    try {
+      const stats = await storage.getSalesFunnelStats();
+      res.json(stats);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to get sales funnel stats" });
+    }
+  });
 
   // Seed Data - Create default client and form template
   try {
