@@ -10,7 +10,8 @@ import {
   LogOut,
   Bell,
   Menu,
-  UserCog
+  UserCog,
+  TrendingUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -20,6 +21,8 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/" },
   { label: "Projetos", icon: FolderKanban, href: "/projects" },
+  { label: "Polo Project", iconImage: "/Ícones/project-management.png", href: "/polo-project" },
+  { label: "Funil de Vendas", icon: TrendingUp, href: "/sales-funnel" },
   { label: "Clientes", icon: Users, href: "/clients" },
   { label: "Usuários", icon: UserCog, href: "/users" },
   { label: "Modelos de Formulário", icon: Settings, href: "/form-templates" },
@@ -56,7 +59,15 @@ export function Sidebar() {
                     : "hover:bg-muted text-muted-foreground hover:text-foreground"
                 )}
               >
-                <item.icon className={cn("w-5 h-5", isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground")} />
+                {item.iconImage ? (
+                  <img
+                    src={item.iconImage}
+                    alt={item.label}
+                    className={cn("w-5 h-5 object-contain", isActive ? "opacity-100" : "opacity-70 group-hover:opacity-100")}
+                  />
+                ) : item.icon ? (
+                  <item.icon className={cn("w-5 h-5", isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground")} />
+                ) : null}
                 <span className="font-medium">{item.label}</span>
               </div>
             </Link>

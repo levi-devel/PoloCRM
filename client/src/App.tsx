@@ -13,6 +13,9 @@ import Clients from "@/pages/Clients";
 import FormTemplates from "@/pages/FormTemplates";
 import Users from "@/pages/Users";
 import Login from "@/pages/Login";
+import PoloProject from "@/pages/PoloProject";
+import PoloProjectGantt from "@/pages/PoloProjectGantt";
+import SalesFunnel from "@/pages/SalesFunnel";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -73,6 +76,15 @@ function Router() {
       </Route>
       <Route path="/users">
         <ProtectedRoute component={Users} />
+      </Route>
+      <Route path="/polo-project">
+        <ProtectedRoute component={PoloProject} />
+      </Route>
+      <Route path="/polo-project/:id">
+        <ProtectedRoute component={PoloProjectGantt} />
+      </Route>
+      <Route path="/sales-funnel">
+        <ProtectedRoute component={SalesFunnel} />
       </Route>
 
       <Route component={NotFound} />

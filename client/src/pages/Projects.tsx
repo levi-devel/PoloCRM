@@ -9,6 +9,7 @@ import { Link } from "wouter";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
+import { dateToInputValue, inputValueToDate } from "@/lib/date-utils";
 import {
   Dialog,
   DialogContent,
@@ -190,7 +191,11 @@ export default function Projects() {
                         <FormItem>
                           <FormLabel>Data de Início</FormLabel>
                           <FormControl>
-                            <Input type="date" {...field} value={field.value ? new Date(field.value).toISOString().split('T')[0] : ""} onChange={e => field.onChange(new Date(e.target.value))} />
+                            <Input
+                              type="date"
+                              value={dateToInputValue(field.value)}
+                              onChange={e => field.onChange(inputValueToDate(e.target.value))}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -203,7 +208,11 @@ export default function Projects() {
                         <FormItem>
                           <FormLabel>Data de Término</FormLabel>
                           <FormControl>
-                            <Input type="date" {...field} value={field.value ? new Date(field.value).toISOString().split('T')[0] : ""} onChange={e => field.onChange(new Date(e.target.value))} />
+                            <Input
+                              type="date"
+                              value={dateToInputValue(field.value)}
+                              onChange={e => field.onChange(inputValueToDate(e.target.value))}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

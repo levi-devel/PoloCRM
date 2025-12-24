@@ -155,6 +155,34 @@ export const alerts = pgTable("alerts", {
   recipients: jsonb("recipients").$type<string[]>(), // User IDs
 });
 
+// Polo Project Tables
+export const poloProjects = pgTable("polo_projects", {
+  id: serial("id").primaryKey(),
+  cardId: integer("card_id").references(() => cards.id).notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  status: text("status").default("Ativo").notNull(), // Ativo, Concluído, Pausado, Cancelado
+  overallProgress: integer("overall_progress").default(0), // 0-100
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const poloProjectStages = pgTable("polo_project_stages", {
+  id: serial("id").primaryKey(),
+  poloProjectId: integer("polo_project_id").references(() => poloProjects.id).notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  order: integer("order").notNull(),
+  level: integer("level").notNull().default(1), // 1 = Etapa Principal, 2 = Sub-Etapa
+  parentStageId: integer("parent_stage_id"), // Referência à etapa principal (apenas para level 2)
+  color: text("color").default("#3b82f6"), // Default blue
+  isCompleted: boolean("is_completed").default(false),
+  assignedTechId: varchar("assigned_tech_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   projects: many(projects, { relationName: "techLead" }),
@@ -244,6 +272,37 @@ export const cardFormAnswersRelations = relations(cardFormAnswers, ({ one }) => 
   }),
 }));
 
+export const poloProjectsRelations = relations(poloProjects, ({ one, many }) => ({
+  card: one(cards, {
+    fields: [poloProjects.cardId],
+    references: [cards.id],
+  }),
+  createdBy: one(users, {
+    fields: [poloProjects.createdBy],
+    references: [users.id],
+  }),
+  stages: many(poloProjectStages),
+}));
+
+export const poloProjectStagesRelations = relations(poloProjectStages, ({ one, many }) => ({
+  poloProject: one(poloProjects, {
+    fields: [poloProjectStages.poloProjectId],
+    references: [poloProjects.id],
+  }),
+  assignedTech: one(users, {
+    fields: [poloProjectStages.assignedTechId],
+    references: [users.id],
+  }),
+  parentStage: one(poloProjectStages, {
+    fields: [poloProjectStages.parentStageId],
+    references: [poloProjectStages.id],
+    relationName: "subStages",
+  }),
+  subStages: many(poloProjectStages, {
+    relationName: "subStages",
+  }),
+}));
+
 export const formTemplatesRelations = relations(formTemplates, ({ many }) => ({
   fields: many(formFields),
 }));
@@ -265,6 +324,8 @@ export const insertCardSchema = createInsertSchema(cards).omit({ id: true, creat
 export const insertCardFormResponseSchema = createInsertSchema(cardFormResponses).omit({ id: true, updatedAt: true });
 export const insertCardFormAnswerSchema = createInsertSchema(cardFormAnswers).omit({ id: true });
 export const insertAlertSchema = createInsertSchema(alerts).omit({ id: true, createdAt: true, resolvedAt: true });
+export const insertPoloProjectSchema = createInsertSchema(poloProjects).omit({ id: true, createdAt: true });
+export const insertPoloProjectStageSchema = createInsertSchema(poloProjectStages).omit({ id: true, createdAt: true });
 
 export type Client = typeof clients.$inferSelect;
 export type InsertClient = z.infer<typeof insertClientSchema>;
@@ -286,3 +347,54 @@ export type CardFormAnswer = typeof cardFormAnswers.$inferSelect;
 export type InsertCardFormAnswer = z.infer<typeof insertCardFormAnswerSchema>;
 export type Alert = typeof alerts.$inferSelect;
 export type InsertAlert = z.infer<typeof insertAlertSchema>;
+export type PoloProject = typeof poloProjects.$inferSelect;
+export type InsertPoloProject = z.infer<typeof insertPoloProjectSchema>;
+export type PoloProjectStage = typeof poloProjectStages.$inferSelect;
+export type InsertPoloProjectStage = z.infer<typeof insertPoloProjectStageSchema>;
+
+// Sales Funnel Tables
+export const salesFunnelColumns = pgTable("sales_funnel_columns", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  order: integer("order").notNull(),
+  color: text("color").default("#3b82f6"), // Default blue
+});
+
+export const salesFunnelCards = pgTable("sales_funnel_cards", {
+  id: serial("id").primaryKey(),
+  columnId: integer("column_id").references(() => salesFunnelColumns.id).notNull(),
+  clientName: text("client_name").notNull(),
+  cnpj: text("cnpj"),
+  contactName: text("contact_name"),
+  phone: text("phone"),
+  proposalNumber: text("proposal_number"),
+  sendDate: date("send_date"),
+  value: integer("value"), // Valor em centavos
+  notes: text("notes"),
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Sales Funnel Relations
+export const salesFunnelColumnsRelations = relations(salesFunnelColumns, ({ many }) => ({
+  cards: many(salesFunnelCards),
+}));
+
+export const salesFunnelCardsRelations = relations(salesFunnelCards, ({ one }) => ({
+  column: one(salesFunnelColumns, {
+    fields: [salesFunnelCards.columnId],
+    references: [salesFunnelColumns.id],
+  }),
+  createdBy: one(users, {
+    fields: [salesFunnelCards.createdBy],
+    references: [users.id],
+  }),
+}));
+
+export const insertSalesFunnelColumnSchema = createInsertSchema(salesFunnelColumns).omit({ id: true });
+export const insertSalesFunnelCardSchema = createInsertSchema(salesFunnelCards).omit({ id: true, createdAt: true });
+
+export type SalesFunnelColumn = typeof salesFunnelColumns.$inferSelect;
+export type InsertSalesFunnelColumn = z.infer<typeof insertSalesFunnelColumnSchema>;
+export type SalesFunnelCard = typeof salesFunnelCards.$inferSelect;
+export type InsertSalesFunnelCard = z.infer<typeof insertSalesFunnelCardSchema>;

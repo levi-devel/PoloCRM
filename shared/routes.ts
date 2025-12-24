@@ -10,6 +10,10 @@ import {
   insertCardFormResponseSchema,
   insertCardFormAnswerSchema,
   insertAlertSchema,
+  insertPoloProjectSchema,
+  insertPoloProjectStageSchema,
+  insertSalesFunnelColumnSchema,
+  insertSalesFunnelCardSchema,
   clients,
   clientDocs,
   formTemplates,
@@ -20,6 +24,10 @@ import {
   cardFormResponses,
   cardFormAnswers,
   alerts,
+  poloProjects,
+  poloProjectStages,
+  salesFunnelColumns,
+  salesFunnelCards,
   users
 } from './schema';
 
@@ -251,6 +259,164 @@ export const api = {
       path: '/api/alerts',
       responses: {
         200: z.array(z.custom<typeof alerts.$inferSelect>()),
+      },
+    },
+  },
+  poloProjects: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/polo-projects',
+      responses: {
+        200: z.array(z.custom<typeof poloProjects.$inferSelect & { stages?: typeof poloProjectStages.$inferSelect[] }>()),
+      },
+    },
+    create: {
+      method: 'POST' as const,
+      path: '/api/polo-projects',
+      input: insertPoloProjectSchema.extend({
+        stages: z.array(insertPoloProjectStageSchema).optional(),
+      }),
+      responses: {
+        201: z.custom<typeof poloProjects.$inferSelect>(),
+        400: errorSchemas.validation,
+      },
+    },
+    get: {
+      method: 'GET' as const,
+      path: '/api/polo-projects/:id',
+      responses: {
+        200: z.custom<typeof poloProjects.$inferSelect & { stages: typeof poloProjectStages.$inferSelect[] }>(),
+        404: errorSchemas.notFound,
+      },
+    },
+    update: {
+      method: 'PUT' as const,
+      path: '/api/polo-projects/:id',
+      input: insertPoloProjectSchema.partial(),
+      responses: {
+        200: z.custom<typeof poloProjects.$inferSelect>(),
+        404: errorSchemas.notFound,
+        400: errorSchemas.validation,
+      },
+    },
+    dashboard: {
+      method: 'GET' as const,
+      path: '/api/polo-projects/dashboard',
+      responses: {
+        200: z.object({
+          activeProjects: z.number(),
+          upcomingDeadlines: z.array(z.object({
+            stageName: z.string(),
+            projectName: z.string(),
+            endDate: z.string(),
+            daysUntil: z.number(),
+          })),
+          overallProgress: z.number(),
+        }),
+      },
+    },
+    gantt: {
+      method: 'GET' as const,
+      path: '/api/polo-projects/:id/gantt',
+      responses: {
+        200: z.object({
+          project: z.custom<typeof poloProjects.$inferSelect>(),
+          stages: z.array(z.custom<typeof poloProjectStages.$inferSelect>()),
+          timelineStart: z.string(),
+          timelineEnd: z.string(),
+        }),
+        404: errorSchemas.notFound,
+      },
+    },
+  },
+  poloProjectStages: {
+    create: {
+      method: 'POST' as const,
+      path: '/api/polo-projects/:projectId/stages',
+      input: insertPoloProjectStageSchema,
+      responses: {
+        201: z.custom<typeof poloProjectStages.$inferSelect>(),
+        400: errorSchemas.validation,
+      },
+    },
+    update: {
+      method: 'PUT' as const,
+      path: '/api/polo-projects/:projectId/stages/:stageId',
+      input: insertPoloProjectStageSchema.partial(),
+      responses: {
+        200: z.custom<typeof poloProjectStages.$inferSelect>(),
+        404: errorSchemas.notFound,
+        400: errorSchemas.validation,
+      },
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/polo-projects/:projectId/stages/:stageId',
+      responses: {
+        204: z.void(),
+        404: errorSchemas.notFound,
+      },
+    },
+  },
+  salesFunnel: {
+    columns: {
+      list: {
+        method: 'GET' as const,
+        path: '/api/sales-funnel/columns',
+        responses: {
+          200: z.array(z.custom<typeof salesFunnelColumns.$inferSelect>()),
+        },
+      },
+    },
+    cards: {
+      list: {
+        method: 'GET' as const,
+        path: '/api/sales-funnel/cards',
+        responses: {
+          200: z.array(z.custom<typeof salesFunnelCards.$inferSelect>()),
+        },
+      },
+      create: {
+        method: 'POST' as const,
+        path: '/api/sales-funnel/cards',
+        input: insertSalesFunnelCardSchema,
+        responses: {
+          201: z.custom<typeof salesFunnelCards.$inferSelect>(),
+          400: errorSchemas.validation,
+        },
+      },
+      update: {
+        method: 'PUT' as const,
+        path: '/api/sales-funnel/cards/:id',
+        input: insertSalesFunnelCardSchema.partial(),
+        responses: {
+          200: z.custom<typeof salesFunnelCards.$inferSelect>(),
+          404: errorSchemas.notFound,
+        },
+      },
+      move: {
+        method: 'PATCH' as const,
+        path: '/api/sales-funnel/cards/:id/move',
+        input: z.object({ columnId: z.number() }),
+        responses: {
+          200: z.custom<typeof salesFunnelCards.$inferSelect>(),
+        },
+      },
+      delete: {
+        method: 'DELETE' as const,
+        path: '/api/sales-funnel/cards/:id',
+        responses: {
+          204: z.void(),
+          404: errorSchemas.notFound,
+        },
+      },
+      get: {
+        method: 'GET' as const,
+        path: '/api/sales-funnel/cards/:id',
+        responses: {
+          200: z.custom<typeof salesFunnelCards.$inferSelect>(),
+          404: errorSchemas.notFound,
+        },
       },
     },
   },

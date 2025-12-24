@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, MoreHorizontal, Calendar, FileText, Settings, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { dateToInputValue, inputValueToDate } from "@/lib/date-utils";
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
@@ -55,8 +56,89 @@ function ClientSelector({ value, onChange, required }: ClientSelectorProps) {
   );
 }
 
+// Delete Confirmation Dialog Component
+interface DeleteCardDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  cardTitle: string;
+  isDeleting: boolean;
+}
+
+function DeleteCardDialog({ isOpen, onClose, onConfirm, cardTitle, isDeleting }: DeleteCardDialogProps) {
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-display flex items-center gap-2 text-red-600">
+            <Trash2 className="w-5 h-5" />
+            Confirmar Exclusão
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Tem certeza que deseja excluir o card <strong className="text-foreground">'{cardTitle}'</strong>?
+          </p>
+          <p className="text-sm text-red-600 font-medium">
+            Esta ação não pode ser desfeita.
+          </p>
+          <div className="flex gap-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="flex-1"
+              disabled={isDeleting}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={onConfirm}
+              className="flex-1"
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Excluindo..." : "Excluir"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // Kanban Column Component
-function KanbanColumn({ title, id, cards, onAddCard, onCardClick, color }: any) {
+function KanbanColumn({ title, id, cards, onAddCard, onCardClick, onDeleteCard, color, users }: any) {
+  // Helper to get assigned user for a card
+  const getAssignedUser = (card: any) => {
+    // Priority 1: Get from card.assignedTechId (server data)
+    if (card.assignedTechId && users) {
+      const user = users.find((u: any) => u.id === card.assignedTechId);
+      if (user) {
+        return `${user.firstName} ${user.lastName}`;
+      }
+    }
+
+    // Priority 2: Fallback to localStorage (legacy/unsaved data)
+    try {
+      const savedData = localStorage.getItem(`card_${card.id}`);
+      if (savedData) {
+        const parsed = JSON.parse(savedData);
+        const userId = parsed.selectedUserId;
+        if (userId && users) {
+          const user = users.find((u: any) => u.id === userId);
+          if (user) {
+            return `${user.firstName} ${user.lastName}`;
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Error getting assigned user:', e);
+    }
+    return null;
+  };
+
   return (
     <div className="w-80 flex-shrink-0 flex flex-col bg-muted/30 rounded-xl border border-border/50 h-[calc(100vh-12rem)]">
       <div
@@ -76,62 +158,87 @@ function KanbanColumn({ title, id, cards, onAddCard, onCardClick, color }: any) 
             ref={provided.innerRef}
             className="flex-1 p-2 overflow-y-auto custom-scrollbar space-y-3"
           >
-            {cards.map((card: any, index: number) => (
-              <Draggable key={card.id} draggableId={card.id.toString()} index={index}>
-                {(provided, snapshot) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.draggableProps}
-                    {...provided.dragHandleProps}
-                    onClick={() => onCardClick(card)}
-                    style={{ ...provided.draggableProps.style }}
-                    className={`bg-card p-4 rounded-lg border shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md hover:border-primary/50 transition-all ${snapshot.isDragging ? "shadow-xl ring-2 ring-primary/20 rotate-2" : ""
-                      }`}
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${card.priority === 'Alta' ? 'bg-red-500/10 text-red-600' :
-                        card.priority === 'Média' ? 'bg-yellow-500/10 text-yellow-600' :
-                          'bg-blue-500/10 text-blue-600'
-                        }`}>
-                        {card.priority}
-                      </span>
-                      <Button variant="ghost" size="icon" className="h-6 w-6 -mt-1 -mr-2">
-                        <MoreHorizontal className="w-3 h-3" />
-                      </Button>
-                    </div>
-                    <h4 className="font-medium text-sm mb-1">{card.title}</h4>
-                    <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{card.description}</p>
+            {cards.map((card: any, index: number) => {
+              const assignedUserName = getAssignedUser(card);
 
-                    {/* Dates Section */}
-                    <div className="space-y-1 mb-3">
-                      {card.startDate && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Calendar className="w-3 h-3" />
-                          <span className="font-medium">Início:</span>
-                          <span>{format(new Date(card.startDate), 'dd/MM/yyyy')}</span>
+              return (
+                <Draggable key={card.id} draggableId={card.id.toString()} index={index}>
+                  {(provided, snapshot) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      {...provided.dragHandleProps}
+                      onClick={() => onCardClick(card)}
+                      style={{ ...provided.draggableProps.style }}
+                      className={`bg-card p-4 rounded-lg border shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md hover:border-primary/50 transition-all ${snapshot.isDragging ? "shadow-xl ring-2 ring-primary/20 rotate-2" : ""
+                        }`}
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${card.priority === 'Alta' ? 'bg-red-500/10 text-red-600' :
+                          card.priority === 'Média' ? 'bg-yellow-500/10 text-yellow-600' :
+                            'bg-blue-500/10 text-blue-600'
+                          }`}>
+                          {card.priority}
+                        </span>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 -mt-1 hover:bg-red-500/10 hover:text-red-600"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeleteCard(card);
+                            }}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 -mt-1 -mr-2">
+                            <MoreHorizontal className="w-3 h-3" />
+                          </Button>
                         </div>
-                      )}
-                      {card.dueDate && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Calendar className="w-3 h-3" />
-                          <span className="font-medium">Entrega:</span>
-                          <span>{format(new Date(card.dueDate), 'dd/MM/yyyy')}</span>
-                        </div>
-                      )}
-                    </div>
+                      </div>
+                      <h4 className="font-medium text-sm mb-1">{card.title}</h4>
+                      <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{card.description}</p>
 
-                    <div className="flex items-center justify-between text-xs text-muted-foreground pt-3 border-t border-border/50">
-                      <div className="flex items-center gap-1">
-                        <span className="text-[10px]">#{card.id}</span>
+                      {/* Dates Section */}
+                      <div className="space-y-1 mb-3">
+                        {card.startDate && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Calendar className="w-3 h-3" />
+                            <span className="font-medium">Início:</span>
+                            <span>{format(new Date(card.startDate), 'dd/MM/yyyy')}</span>
+                          </div>
+                        )}
+                        {card.dueDate && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Calendar className="w-3 h-3" />
+                            <span className="font-medium">Entrega:</span>
+                            <span>{format(new Date(card.dueDate), 'dd/MM/yyyy')}</span>
+                          </div>
+                        )}
                       </div>
-                      <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
-                        U1
+
+                      <div className="flex items-center justify-between text-xs text-muted-foreground pt-3 border-t border-border/50">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px]">#{card.id}</span>
+                          {assignedUserName && (
+                            <>
+                              <span className="text-[10px] text-muted-foreground/50">•</span>
+                              <span className="text-[10px] font-medium text-primary">{assignedUserName}</span>
+                            </>
+                          )}
+                        </div>
+                        {assignedUserName && (
+                          <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
+                            {assignedUserName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </div>
-                )}
-              </Draggable>
-            ))}
+                  )}
+                </Draggable>
+              );
+            })}
             {provided.placeholder}
           </div>
         )}
@@ -159,8 +266,21 @@ export default function ProjectBoard() {
   const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [cardToDelete, setCardToDelete] = useState<any | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const { data: selectedCard } = useCard(selectedCardId || 0);
+  const deleteCard = useDeleteCard();
+
+  // Fetch users for displaying assigned technician names
+  const { data: users } = useQuery({
+    queryKey: ['/api/users'],
+    queryFn: async () => {
+      const res = await fetch('/api/users', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch users');
+      return res.json();
+    },
+  });
 
   // New card form
   const form = useForm({
@@ -198,6 +318,24 @@ export default function ProjectBoard() {
   const handleCardClick = (card: any) => {
     setSelectedCardId(card.id);
     setIsCardModalOpen(true);
+  };
+
+  const handleDeleteCard = (card: any) => {
+    setCardToDelete(card);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteCard = async () => {
+    if (!cardToDelete) return;
+
+    try {
+      await deleteCard.mutateAsync(cardToDelete.id);
+      setIsDeleteDialogOpen(false);
+      setCardToDelete(null);
+    } catch (error) {
+      console.error('Error deleting card:', error);
+      // Error toast is handled by the hook
+    }
   };
 
   const onSubmit = (data: any) => {
@@ -252,7 +390,9 @@ export default function ProjectBoard() {
                   cards={getCardsForColumn(col.id)}
                   onAddCard={handleAddCard}
                   onCardClick={handleCardClick}
+                  onDeleteCard={handleDeleteCard}
                   color={col.color || "#6b7280"}
+                  users={users}
                 />
               ))}
             </div>
@@ -314,7 +454,11 @@ export default function ProjectBoard() {
                       <FormItem>
                         <FormLabel>Data de Início</FormLabel>
                         <FormControl>
-                          <Input type="date" {...field} value={field.value || ''} />
+                          <Input
+                            type="date"
+                            value={dateToInputValue(field.value)}
+                            onChange={(e) => field.onChange(inputValueToDate(e.target.value))}
+                          />
                         </FormControl>
                       </FormItem>
                     )}
@@ -327,7 +471,11 @@ export default function ProjectBoard() {
                       <FormItem>
                         <FormLabel>Data de Entrega</FormLabel>
                         <FormControl>
-                          <Input type="date" {...field} value={field.value || ''} />
+                          <Input
+                            type="date"
+                            value={dateToInputValue(field.value)}
+                            onChange={(e) => field.onChange(inputValueToDate(e.target.value))}
+                          />
                         </FormControl>
                       </FormItem>
                     )}
@@ -404,16 +552,30 @@ export default function ProjectBoard() {
         </Dialog>
 
         {/* Kanban Settings Modal */}
-        {project && (
-          <KanbanSettings
-            isOpen={isSettingsOpen}
-            onClose={() => setIsSettingsOpen(false)}
-            projectId={projectId}
-            columns={columns}
-          />
-        )}
-      </div>
-    </Layout>
+        {
+          project && (
+            <KanbanSettings
+              isOpen={isSettingsOpen}
+              onClose={() => setIsSettingsOpen(false)}
+              projectId={projectId}
+              columns={columns}
+            />
+          )
+        }
+
+        {/* Delete Card Confirmation Dialog */}
+        <DeleteCardDialog
+          isOpen={isDeleteDialogOpen}
+          onClose={() => {
+            setIsDeleteDialogOpen(false);
+            setCardToDelete(null);
+          }}
+          onConfirm={confirmDeleteCard}
+          cardTitle={cardToDelete?.title || ''}
+          isDeleting={deleteCard.isPending}
+        />
+      </div >
+    </Layout >
   );
 }
 
@@ -444,10 +606,10 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
   const [editableDescription, setEditableDescription] = React.useState(card.description || '');
   const [editablePriority, setEditablePriority] = React.useState(card.priority || 'Média');
   const [editableStartDate, setEditableStartDate] = React.useState(
-    card.startDate ? new Date(card.startDate).toISOString().split('T')[0] : ''
+    dateToInputValue(card.startDate)
   );
   const [editableDueDate, setEditableDueDate] = React.useState(
-    card.dueDate ? new Date(card.dueDate).toISOString().split('T')[0] : ''
+    dateToInputValue(card.dueDate)
   );
 
   // Load from localStorage on mount
@@ -467,21 +629,41 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
       } catch (e) {
         console.error('Error loading from localStorage:', e);
       }
-    } else if (card.formAnswers && card.formAnswers.length > 0) {
+    } else {
       // Initialize from server data if no localStorage
-      const initialValues: Record<string, any> = {};
-      card.formAnswers.forEach((answer: any) => {
-        if (answer.fieldId) {
-          if (answer.valueText) initialValues[`field_${answer.fieldId}`] = answer.valueText;
-          if (answer.valueNum) initialValues[`field_${answer.fieldId}`] = answer.valueNum;
-          if (answer.valueDate) initialValues[`field_${answer.fieldId}`] = answer.valueDate;
-          if (answer.valueBool !== null && answer.valueBool !== undefined) initialValues[`field_${answer.fieldId}`] = answer.valueBool;
-          if (answer.valueList) initialValues[`field_${answer.fieldId}`] = answer.valueList;
-        }
-      });
-      setFormValues(initialValues);
+      // Load assignedTechId from the card data
+      if (card.assignedTechId) {
+        setSelectedUserId(card.assignedTechId);
+      }
+
+      if (card.formAnswers && card.formAnswers.length > 0) {
+        const initialValues: Record<string, any> = {};
+        card.formAnswers.forEach((answer: any) => {
+          if (answer.fieldId) {
+            if (answer.valueText) initialValues[`field_${answer.fieldId}`] = answer.valueText;
+            if (answer.valueNum) initialValues[`field_${answer.fieldId}`] = answer.valueNum;
+            if (answer.valueDate) initialValues[`field_${answer.fieldId}`] = answer.valueDate;
+            if (answer.valueBool !== null && answer.valueBool !== undefined) initialValues[`field_${answer.fieldId}`] = answer.valueBool;
+            if (answer.valueList) initialValues[`field_${answer.fieldId}`] = answer.valueList;
+          }
+        });
+        setFormValues(initialValues);
+      }
     }
-  }, [card.id, card.formAnswers, card.description, card.priority, card.startDate, card.dueDate]);
+  }, [card.id, card.formAnswers, card.description, card.priority, card.startDate, card.dueDate, card.assignedTechId]);
+
+  // Auto-save assignedTechId when it changes
+  React.useEffect(() => {
+    const currentAssignedTechId = card.assignedTechId || null;
+    if (selectedUserId !== currentAssignedTechId) {
+      // Only auto-save if the value has actually changed from what's in the server
+      updateCardBasicInfo.mutateAsync({
+        assignedTechId: selectedUserId,
+      }).catch(error => {
+        console.error('Failed to auto-save assignedTechId:', error);
+      });
+    }
+  }, [selectedUserId]);
 
   // Save to localStorage whenever values change
   React.useEffect(() => {
@@ -642,8 +824,9 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
             await updateCardBasicInfo.mutateAsync({
               description: editableDescription,
               priority: editablePriority,
-              startDate: editableStartDate || null,
-              dueDate: editableDueDate || null,
+              startDate: inputValueToDate(editableStartDate),
+              dueDate: inputValueToDate(editableDueDate),
+              assignedTechId: selectedUserId,
             });
             onUpdate();
           }}
@@ -732,8 +915,8 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
                 ) : field.type === 'date' ? (
                   <Input
                     type="date"
-                    value={formValues[`field_${field.id}`] || ''}
-                    onChange={(e) => handleInputChange(field.id, e.target.value)}
+                    value={dateToInputValue(formValues[`field_${field.id}`])}
+                    onChange={(e) => handleInputChange(field.id, inputValueToDate(e.target.value))}
                     required={field.required}
                   />
                 ) : field.type === 'checkbox' ? (

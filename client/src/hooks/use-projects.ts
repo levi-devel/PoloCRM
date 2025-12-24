@@ -168,6 +168,7 @@ export function useUpdateCardBasicInfo(cardId: number) {
       priority?: string;
       startDate?: string | null;
       dueDate?: string | null;
+      assignedTechId?: string | null;
     }) => {
       const res = await fetch(`/api/cards/${cardId}/basic-info`, {
         method: "PATCH",

@@ -3,6 +3,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { useProjects } from "@/hooks/use-projects";
 import { useClients } from "@/hooks/use-clients";
 import { useAlerts } from "@/hooks/use-alerts";
+import { useUsers } from "@/hooks/use-users";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import {
@@ -42,19 +43,24 @@ type TrendPeriod = 'week' | 'month' | 'year';
 export default function Dashboard() {
   const { data: projects } = useProjects();
   const { data: clients } = useClients();
+  const { data: users } = useUsers();
   const { data: alerts } = useAlerts();
 
   const [selectedProjectId, setSelectedProjectId] = useState<string>("all");
   const [selectedPeriod, setSelectedPeriod] = useState<string>("month");
+  const [selectedTechnicianId, setSelectedTechnicianId] = useState<string>("all");
   const [trendPeriod, setTrendPeriod] = useState<TrendPeriod>('week');
 
   // Fetch dashboard stats
   const { data: dashboardStats } = useQuery({
-    queryKey: ['/api/dashboard/stats', selectedProjectId],
+    queryKey: ['/api/dashboard/stats', selectedProjectId, selectedTechnicianId],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (selectedProjectId !== "all") {
         params.append("projectId", selectedProjectId);
+      }
+      if (selectedTechnicianId !== "all") {
+        params.append("technicianId", selectedTechnicianId);
       }
       const res = await fetch(`/api/dashboard/stats?${params}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch dashboard stats");
@@ -64,11 +70,14 @@ export default function Dashboard() {
 
   // Fetch completion trend
   const { data: completionTrend = [] } = useQuery({
-    queryKey: ['/api/dashboard/completion-trend', selectedProjectId, trendPeriod],
+    queryKey: ['/api/dashboard/completion-trend', selectedProjectId, selectedTechnicianId, trendPeriod],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (selectedProjectId !== "all") {
         params.append("projectId", selectedProjectId);
+      }
+      if (selectedTechnicianId !== "all") {
+        params.append("technicianId", selectedTechnicianId);
       }
       params.append("period", trendPeriod);
       const res = await fetch(`/api/dashboard/completion-trend?${params}`, { credentials: "include" });
@@ -102,7 +111,7 @@ export default function Dashboard() {
       <div className="space-y-8">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold font-display text-foreground">Dashboard de Entregas</h1>
+          <h1 className="text-3xl font-bold font-display text-foreground">Dashboard de Projetos</h1>
           <p className="text-muted-foreground mt-2">Veja volume de cards, concluídos no mês/ano, gargalos e alertas.</p>
         </div>
 
@@ -135,6 +144,23 @@ export default function Dashboard() {
                 <SelectItem value="month">Este mês</SelectItem>
                 <SelectItem value="year">Este ano</SelectItem>
                 <SelectItem value="custom">Personalizado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-foreground">Técnico</label>
+            <Select value={selectedTechnicianId} onValueChange={setSelectedTechnicianId}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Selecione técnico" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {users?.map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.firstName} {user.lastName}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
