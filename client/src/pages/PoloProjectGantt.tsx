@@ -516,7 +516,7 @@ export default function PoloProjectGantt() {
                                                             </div>
                                                             {/* Stage bar */}
                                                             <div
-                                                                className={`absolute h-full rounded cursor-pointer hover:opacity-80 transition-all ${stage.isCompleted ? 'bg-green-500' : isSubStage ? 'bg-indigo-500' : 'bg-blue-600'}`}
+                                                                className={`absolute h-full rounded cursor-pointer hover:opacity-80 transition-all ${stage.isCompleted ? 'bg-green-500' : isSubStage ? 'bg-red-500' : 'bg-blue-600'}`}
                                                                 style={position}
                                                                 onClick={() => handleEdit(stage)}
                                                                 title="Clique para editar"

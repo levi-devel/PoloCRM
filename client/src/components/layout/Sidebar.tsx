@@ -11,11 +11,13 @@ import {
   Bell,
   Menu,
   UserCog,
-  TrendingUp
+  TrendingUp,
+  BarChart3
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { canViewMenu, type UserRole } from "@/lib/permission-utils";
 
 
 const navItems = [
@@ -23,6 +25,7 @@ const navItems = [
   { label: "Projetos", icon: FolderKanban, href: "/projects" },
   { label: "Polo Project", iconImage: "/Ícones/project-management.png", href: "/polo-project" },
   { label: "Funil de Vendas", icon: TrendingUp, href: "/sales-funnel" },
+  { label: "Dashboard Funil", icon: BarChart3, href: "/sales-funnel/dashboard" },
   { label: "Clientes", icon: Users, href: "/clients" },
   { label: "Usuários", icon: UserCog, href: "/users" },
   { label: "Modelos de Formulário", icon: Settings, href: "/form-templates" },
@@ -32,6 +35,11 @@ const navItems = [
 export function Sidebar() {
   const [location] = useLocation();
   const { logout, user } = useAuth();
+
+  // Filter menu items based on user role
+  const visibleNavItems = navItems.filter(item =>
+    canViewMenu(user?.role as UserRole, item.label)
+  );
 
   const NavContent = () => (
     <div className="flex flex-col h-full">
@@ -47,7 +55,7 @@ export function Sidebar() {
       </div>
 
       <div className="flex-1 px-4 space-y-2">
-        {navItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const isActive = location === item.href;
           return (
             <Link key={item.href} href={item.href}>

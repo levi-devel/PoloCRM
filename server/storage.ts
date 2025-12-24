@@ -88,6 +88,14 @@ export interface IStorage {
   updateSalesFunnelCard(id: number, updates: Partial<InsertSalesFunnelCard>): Promise<typeof salesFunnelCards.$inferSelect>;
   moveSalesFunnelCard(id: number, columnId: number): Promise<typeof salesFunnelCards.$inferSelect>;
   deleteSalesFunnelCard(id: number): Promise<void>;
+  getSalesFunnelStats(): Promise<{
+    columnStats: { columnId: number; columnName: string; color: string; count: number; totalValue: number }[];
+    totalDeals: number;
+    totalValue: number;
+    conversionRate: number;
+    averageValue: number;
+    allCards: (typeof salesFunnelCards.$inferSelect)[];
+  }>;
 }
 
 
@@ -446,10 +454,13 @@ export class MemStorage implements IStorage {
   }
 
   async deleteCard(id: number, userId: string) {
-    // Check if user has "Gerente" role
-    const user = this.users.get(userId);
+    // Check if user has permission to delete (Admin, Gerente Comercial, or Gerente Supervisor)
+    const user = await this.getUser(userId);
     if (!user) throw new Error("User not found");
-    if (user.role !== "Gerente") {
+
+    const allowedRoles = ["Admin", "Gerente Comercial", "Gerente Supervisor"];
+
+    if (!allowedRoles.includes(user.role)) {
       throw new Error("Only users with 'Gerente' role can delete cards");
     }
 
@@ -923,6 +934,46 @@ export class MemStorage implements IStorage {
     const card = this.salesFunnelCards.get(id);
     if (!card) throw new Error("Sales funnel card not found");
     this.salesFunnelCards.delete(id);
+  }
+
+  async getSalesFunnelStats() {
+    const allCards = Array.from(this.salesFunnelCards.values());
+    const allColumns = Array.from(this.salesFunnelColumns.values()).sort((a, b) => a.order - b.order);
+
+    // Calculate stats per column
+    const columnStats = allColumns.map(column => {
+      const cardsInColumn = allCards.filter(card => card.columnId === column.id);
+      const totalValue = cardsInColumn.reduce((sum, card) => sum + (card.value || 0), 0);
+
+      return {
+        columnId: column.id,
+        columnName: column.name,
+        color: column.color || '#6b7280',
+        count: cardsInColumn.length,
+        totalValue
+      };
+    });
+
+    // Calculate aggregate metrics
+    const totalDeals = allCards.length;
+    const totalValue = allCards.reduce((sum, card) => sum + (card.value || 0), 0);
+
+    // Conversion rate: (cards in "Contrato Fechado" / total cards) * 100
+    // Assuming second column (index 1) is "Contrato Fechado"
+    const closedColumn = allColumns[1]; // Contrato Fechado
+    const closedDeals = closedColumn ? allCards.filter(card => card.columnId === closedColumn.id).length : 0;
+    const conversionRate = totalDeals > 0 ? (closedDeals / totalDeals) * 100 : 0;
+
+    const averageValue = totalDeals > 0 ? totalValue / totalDeals : 0;
+
+    return {
+      columnStats,
+      totalDeals,
+      totalValue,
+      conversionRate,
+      averageValue,
+      allCards
+    };
   }
 }
 

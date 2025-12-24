@@ -130,6 +130,7 @@ export default function SalesFunnel() {
     const { data: cards } = useSalesFunnelCards();
     const moveSalesFunnelCard = useMoveSalesFunnelCard();
     const createSalesFunnelCard = useCreateSalesFunnelCard();
+    const updateSalesFunnelCard = useUpdateSalesFunnelCard();
 
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [selectedColumn, setSelectedColumn] = useState<number | null>(null);
@@ -376,78 +377,186 @@ export default function SalesFunnel() {
                     </DialogContent>
                 </Dialog>
 
-                {/* Card Detail Modal */}
+                {/* Card Detail Modal - Editable */}
                 <Dialog open={isCardModalOpen} onOpenChange={setIsCardModalOpen}>
-                    <DialogContent>
+                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
-                            <DialogTitle>{selectedCard?.clientName || "Detalhes do Negócio"}</DialogTitle>
+                            <DialogTitle className="text-2xl font-display">
+                                {selectedCard?.clientName || "Editar Negócio"}
+                            </DialogTitle>
                         </DialogHeader>
 
                         {selectedCard && (
-                            <div className="space-y-4">
-                                <div>
-                                    <h3 className="text-sm font-semibold text-muted-foreground mb-1">Cliente</h3>
-                                    <p className="text-sm">{selectedCard.clientName}</p>
-                                </div>
-
-                                {selectedCard.cnpj && (
-                                    <div>
-                                        <h3 className="text-sm font-semibold text-muted-foreground mb-1">CNPJ</h3>
-                                        <p className="text-sm">{selectedCard.cnpj}</p>
-                                    </div>
-                                )}
-
-                                {selectedCard.contactName && (
-                                    <div>
-                                        <h3 className="text-sm font-semibold text-muted-foreground mb-1">Contato</h3>
-                                        <p className="text-sm">{selectedCard.contactName}</p>
-                                    </div>
-                                )}
-
-                                {selectedCard.phone && (
-                                    <div>
-                                        <h3 className="text-sm font-semibold text-muted-foreground mb-1">Telefone</h3>
-                                        <p className="text-sm">{selectedCard.phone}</p>
-                                    </div>
-                                )}
-
-                                {selectedCard.proposalNumber && (
-                                    <div>
-                                        <h3 className="text-sm font-semibold text-muted-foreground mb-1">Proposta</h3>
-                                        <p className="text-sm">#{selectedCard.proposalNumber}</p>
-                                    </div>
-                                )}
-
-                                {selectedCard.value && (
-                                    <div>
-                                        <h3 className="text-sm font-semibold text-muted-foreground mb-1">Valor</h3>
-                                        <p className="text-lg font-bold text-green-600">
-                                            {new Intl.NumberFormat('pt-BR', {
-                                                style: 'currency',
-                                                currency: 'BRL'
-                                            }).format(selectedCard.value / 100)}
-                                        </p>
-                                    </div>
-                                )}
-
-                                {selectedCard.sendDate && (
-                                    <div>
-                                        <h3 className="text-sm font-semibold text-muted-foreground mb-1">Data do Envio</h3>
-                                        <p className="text-sm">{format(new Date(selectedCard.sendDate), 'dd/MM/yyyy')}</p>
-                                    </div>
-                                )}
-
-                                {selectedCard.notes && (
-                                    <div>
-                                        <h3 className="text-sm font-semibold text-muted-foreground mb-1">Observações</h3>
-                                        <p className="text-sm">{selectedCard.notes}</p>
-                                    </div>
-                                )}
-                            </div>
+                            <CardEditForm
+                                card={selectedCard}
+                                onClose={() => setIsCardModalOpen(false)}
+                                onUpdate={() => {
+                                    setIsCardModalOpen(false);
+                                }}
+                            />
                         )}
                     </DialogContent>
                 </Dialog>
             </div>
         </Layout>
+    );
+}
+
+// Separate component for the card edit form
+interface CardEditFormProps {
+    card: any;
+    onClose: () => void;
+    onUpdate: () => void;
+}
+
+function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
+    const updateSalesFunnelCard = useUpdateSalesFunnelCard();
+
+    // State for editable fields
+    const [editableClientName, setEditableClientName] = React.useState(card.clientName || '');
+    const [editableCnpj, setEditableCnpj] = React.useState(card.cnpj || '');
+    const [editableContactName, setEditableContactName] = React.useState(card.contactName || '');
+    const [editablePhone, setEditablePhone] = React.useState(card.phone || '');
+    const [editableProposalNumber, setEditableProposalNumber] = React.useState(card.proposalNumber || '');
+    const [editableValue, setEditableValue] = React.useState(
+        card.value ? (card.value / 100).toFixed(2).replace('.', ',') : ''
+    );
+    const [editableSendDate, setEditableSendDate] = React.useState(
+        card.sendDate ? format(new Date(card.sendDate), 'yyyy-MM-dd') : ''
+    );
+    const [editableNotes, setEditableNotes] = React.useState(card.notes || '');
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        // Convert value to cents
+        const valueInCents = editableValue
+            ? Math.round(parseFloat(editableValue.replace(/[^\d,]/g, '').replace(',', '.')) * 100)
+            : null;
+
+        try {
+            await updateSalesFunnelCard.mutateAsync({
+                id: card.id,
+                updates: {
+                    clientName: editableClientName,
+                    cnpj: editableCnpj || null,
+                    contactName: editableContactName || null,
+                    phone: editablePhone || null,
+                    proposalNumber: editableProposalNumber || null,
+                    value: valueInCents,
+                    sendDate: editableSendDate || null,
+                    notes: editableNotes || null,
+                },
+            });
+            onUpdate();
+        } catch (error) {
+            console.error("Error updating sales funnel card:", error);
+            alert("Erro ao salvar as alterações. Verifique o console.");
+        }
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                    <label className="text-sm font-semibold text-muted-foreground mb-2 block">
+                        Nome do Cliente *
+                    </label>
+                    <Input
+                        value={editableClientName}
+                        onChange={(e) => setEditableClientName(e.target.value)}
+                        placeholder="Nome do cliente"
+                        required
+                    />
+                </div>
+
+                <div>
+                    <label className="text-sm font-semibold text-muted-foreground mb-2 block">
+                        CNPJ
+                    </label>
+                    <Input
+                        value={editableCnpj}
+                        onChange={(e) => setEditableCnpj(e.target.value)}
+                        placeholder="00.000.000/0000-00"
+                    />
+                </div>
+
+                <div>
+                    <label className="text-sm font-semibold text-muted-foreground mb-2 block">
+                        Número da Proposta
+                    </label>
+                    <Input
+                        value={editableProposalNumber}
+                        onChange={(e) => setEditableProposalNumber(e.target.value)}
+                        placeholder="Ex: 2024001"
+                    />
+                </div>
+
+                <div>
+                    <label className="text-sm font-semibold text-muted-foreground mb-2 block">
+                        Nome do Contato
+                    </label>
+                    <Input
+                        value={editableContactName}
+                        onChange={(e) => setEditableContactName(e.target.value)}
+                        placeholder="Nome do contato"
+                    />
+                </div>
+
+                <div>
+                    <label className="text-sm font-semibold text-muted-foreground mb-2 block">
+                        Telefone
+                    </label>
+                    <Input
+                        value={editablePhone}
+                        onChange={(e) => setEditablePhone(e.target.value)}
+                        placeholder="(00) 00000-0000"
+                    />
+                </div>
+
+                <div>
+                    <label className="text-sm font-semibold text-muted-foreground mb-2 block">
+                        Valor da Proposta
+                    </label>
+                    <Input
+                        value={editableValue}
+                        onChange={(e) => setEditableValue(e.target.value)}
+                        placeholder="0,00"
+                    />
+                </div>
+
+                <div>
+                    <label className="text-sm font-semibold text-muted-foreground mb-2 block">
+                        Data do Envio
+                    </label>
+                    <Input
+                        type="date"
+                        value={editableSendDate}
+                        onChange={(e) => setEditableSendDate(e.target.value)}
+                    />
+                </div>
+
+                <div className="col-span-2">
+                    <label className="text-sm font-semibold text-muted-foreground mb-2 block">
+                        Observações
+                    </label>
+                    <Textarea
+                        value={editableNotes}
+                        onChange={(e) => setEditableNotes(e.target.value)}
+                        placeholder="Observações sobre o negócio"
+                        rows={3}
+                    />
+                </div>
+            </div>
+
+            <div className="flex gap-3 pt-4 border-t">
+                <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+                    Cancelar
+                </Button>
+                <Button type="submit" className="flex-1" disabled={updateSalesFunnelCard.isPending}>
+                    {updateSalesFunnelCard.isPending ? "Salvando..." : "Salvar Alterações"}
+                </Button>
+            </div>
+        </form>
     );
 }

@@ -205,7 +205,7 @@ export default function PoloProject() {
                         </div>
                         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                             <DialogTrigger asChild>
-                                <Button className="bg-blue-600 hover:bg-blue-700">
+                                <Button>
                                     <Plus className="w-4 h-4 mr-2" />
                                     Novo Projeto
                                 </Button>
@@ -271,7 +271,6 @@ export default function PoloProject() {
                                         </Button>
                                         <Button
                                             type="submit"
-                                            className="bg-blue-600 hover:bg-blue-700"
                                             disabled={createPoloProjectMutation.isPending}
                                         >
                                             {createPoloProjectMutation.isPending ? "Criando..." : "Criar Projeto"}
@@ -406,8 +405,6 @@ export default function PoloProject() {
                                 <div className="text-center py-12">
                                     <p className=" text-gray-500 mb-4">Nenhum projeto criado ainda</p>
                                     <Button
-                                        variant="outline"
-                                        className="border-blue-600 text-blue-600 hover:bg-blue-50"
                                         onClick={() => setDialogOpen(true)}
                                     >
                                         <Plus className="w-4 h-4 mr-2" />
