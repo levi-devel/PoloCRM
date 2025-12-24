@@ -1,12 +1,12 @@
 export * from "./models/auth";
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb, date, varchar } from "drizzle-orm/pg-core";
+import { mysqlTable, text, int, boolean, timestamp, json, date, varchar } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { users } from "./models/auth";
 
-export const clients = pgTable("clients", {
-  id: serial("id").primaryKey(),
+export const clients = mysqlTable("clients", {
+  id: int("id").primaryKey().autoincrement(),
   name: text("name").notNull(),
   cnpj: text("cnpj"),
   contact: text("contact"),
@@ -18,11 +18,11 @@ export const clients = pgTable("clients", {
   description: text("description"),
 
   // Contract Details
-  contractedProducts: jsonb("contracted_products").$type<string[]>(),
-  contractedAutomations: jsonb("contracted_automations").$type<string[]>(),
-  contractLimitUsers: integer("contract_limit_users"),
-  contractLimitAgents: integer("contract_limit_agents"),
-  contractLimitSupervisors: integer("contract_limit_supervisors"),
+  contractedProducts: json("contracted_products").$type<string[]>(),
+  contractedAutomations: json("contracted_automations").$type<string[]>(),
+  contractLimitUsers: int("contract_limit_users"),
+  contractLimitAgents: int("contract_limit_agents"),
+  contractLimitSupervisors: int("contract_limit_supervisors"),
   contractStartDate: date("contract_start_date"),
 
   // Technical Information
@@ -31,7 +31,7 @@ export const clients = pgTable("clients", {
   credentials: text("credentials"), // Sensitive field
   definedScope: text("defined_scope"),
   outOfScope: text("out_of_scope"),
-  internalManagers: jsonb("internal_managers").$type<string[]>(),
+  internalManagers: json("internal_managers").$type<string[]>(),
   knowledgeBase: text("knowledge_base"),
   technicalSpecPath: text("technical_spec_path"),
 
@@ -44,9 +44,9 @@ export const clients = pgTable("clients", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const clientDocs = pgTable("client_docs", {
-  id: serial("id").primaryKey(),
-  clientId: integer("client_id").references(() => clients.id).notNull(),
+export const clientDocs = mysqlTable("client_docs", {
+  id: int("id").primaryKey().autoincrement(),
+  clientId: int("client_id").references(() => clients.id).notNull(),
   type: text("type").notNull(), // Senha, URL, Acesso, Observação
   title: text("title").notNull(),
   url: text("url"),
@@ -54,132 +54,132 @@ export const clientDocs = pgTable("client_docs", {
   password: text("password"), // Sensitive
   notes: text("notes"),
   visibility: text("visibility").default("Admin"), // Admin, Gestor, Atribuídos
-  allowedUsers: jsonb("allowed_users").$type<string[]>(), // Array of user IDs
-  attachments: jsonb("attachments").$type<string[]>(),
+  allowedUsers: json("allowed_users").$type<string[]>(), // Array of user IDs
+  attachments: json("attachments").$type<string[]>(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const formTemplates = pgTable("form_templates", {
-  id: serial("id").primaryKey(),
+export const formTemplates = mysqlTable("form_templates", {
+  id: int("id").primaryKey().autoincrement(),
   name: text("name").notNull(),
   description: text("description"),
   isActive: boolean("is_active").default(true).notNull(),
-  createdBy: varchar("created_by").references(() => users.id),
+  createdBy: varchar("created_by", { length: 255 }).references(() => users.id),
   version: text("version").default("1.0"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const formFields = pgTable("form_fields", {
-  id: serial("id").primaryKey(),
-  templateId: integer("template_id").references(() => formTemplates.id).notNull(),
-  order: integer("order").notNull(),
+export const formFields = mysqlTable("form_fields", {
+  id: int("id").primaryKey().autoincrement(),
+  templateId: int("template_id").references(() => formTemplates.id).notNull(),
+  order: int("order").notNull(),
   label: text("label").notNull(),
   type: text("type").notNull(), // text, long_text, number, date, list, checkbox, file
   required: boolean("required").default(false).notNull(),
-  options: jsonb("options").$type<string[]>(), // For lists
+  options: json("options").$type<string[]>(), // For lists
   placeholder: text("placeholder"),
 });
 
-export const projects = pgTable("projects", {
-  id: serial("id").primaryKey(),
-  clientId: integer("client_id").references(() => clients.id).notNull(),
+export const projects = mysqlTable("projects", {
+  id: int("id").primaryKey().autoincrement(),
+  clientId: int("client_id").references(() => clients.id).notNull(),
   name: text("name").notNull(),
   description: text("description"),
   status: text("status").default("Ativo").notNull(), // Ativo, Concluído, Pausado, Cancelado
-  techLeadId: varchar("tech_lead_id").references(() => users.id).notNull(),
-  team: jsonb("team").$type<string[]>(), // Array of user IDs
+  techLeadId: varchar("tech_lead_id", { length: 255 }).references(() => users.id).notNull(),
+  team: json("team").$type<string[]>(), // Array of user IDs
   startDate: timestamp("start_date"),
   dueDate: timestamp("due_date"), // Prazo
   completionDate: timestamp("completion_date"),
   priority: text("priority").default("Média"), // Baixa, Média, Alta
-  defaultTemplateId: integer("default_template_id").references(() => formTemplates.id).notNull(),
+  defaultTemplateId: int("default_template_id").references(() => formTemplates.id).notNull(),
   overdueAlertActive: boolean("overdue_alert_active").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const projectColumns = pgTable("project_columns", {
-  id: serial("id").primaryKey(),
-  projectId: integer("project_id").references(() => projects.id).notNull(),
+export const projectColumns = mysqlTable("project_columns", {
+  id: int("id").primaryKey().autoincrement(),
+  projectId: int("project_id").references(() => projects.id).notNull(),
   name: text("name").notNull(),
-  order: integer("order").notNull(),
+  order: int("order").notNull(),
   color: text("color").default("#6b7280"), // Default gray
   status: text("status").default("Em aberto").notNull(), // Em aberto, Pausado, Concluído
 });
 
-export const cards = pgTable("cards", {
-  id: serial("id").primaryKey(),
-  projectId: integer("project_id").references(() => projects.id).notNull(),
-  columnId: integer("column_id").references(() => projectColumns.id).notNull(),
+export const cards = mysqlTable("cards", {
+  id: int("id").primaryKey().autoincrement(),
+  projectId: int("project_id").references(() => projects.id).notNull(),
+  columnId: int("column_id").references(() => projectColumns.id).notNull(),
   title: text("title").notNull(),
   description: text("description"),
-  assignedTechId: varchar("assigned_tech_id").references(() => users.id),
+  assignedTechId: varchar("assigned_tech_id", { length: 255 }).references(() => users.id),
   priority: text("priority").default("Média"),
   startDate: timestamp("start_date"),
   dueDate: timestamp("due_date"),
   completionDate: timestamp("completion_date"),
-  tags: jsonb("tags").$type<string[]>(),
-  createdBy: varchar("created_by").references(() => users.id),
+  tags: json("tags").$type<string[]>(),
+  createdBy: varchar("created_by", { length: 255 }).references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const cardFormResponses = pgTable("card_form_responses", {
-  id: serial("id").primaryKey(),
-  cardId: integer("card_id").references(() => cards.id).notNull(),
-  templateId: integer("template_id").references(() => formTemplates.id).notNull(),
+export const cardFormResponses = mysqlTable("card_form_responses", {
+  id: int("id").primaryKey().autoincrement(),
+  cardId: int("card_id").references(() => cards.id).notNull(),
+  templateId: int("template_id").references(() => formTemplates.id).notNull(),
   status: text("status").default("Não iniciado"), // Não iniciado, Em preenchimento, Completo
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const cardFormAnswers = pgTable("card_form_answers", {
-  id: serial("id").primaryKey(),
-  responseId: integer("response_id").references(() => cardFormResponses.id).notNull(),
-  fieldId: integer("field_id").references(() => formFields.id).notNull(),
+export const cardFormAnswers = mysqlTable("card_form_answers", {
+  id: int("id").primaryKey().autoincrement(),
+  responseId: int("response_id").references(() => cardFormResponses.id).notNull(),
+  fieldId: int("field_id").references(() => formFields.id).notNull(),
   valueText: text("value_text"),
-  valueNum: integer("value_num"),
+  valueNum: int("value_num"),
   valueDate: timestamp("value_date"),
   valueBool: boolean("value_bool"),
   valueList: text("value_list"),
-  attachments: jsonb("attachments").$type<string[]>(),
+  attachments: json("attachments").$type<string[]>(),
 });
 
-export const alerts = pgTable("alerts", {
-  id: serial("id").primaryKey(),
+export const alerts = mysqlTable("alerts", {
+  id: int("id").primaryKey().autoincrement(),
   type: text("type").notNull(),
-  projectId: integer("project_id").references(() => projects.id).notNull(),
-  cardId: integer("card_id").references(() => cards.id),
+  projectId: int("project_id").references(() => projects.id).notNull(),
+  cardId: int("card_id").references(() => cards.id),
   message: text("message").notNull(),
   severity: text("severity").default("Info"), // Info, Aviso, Crítico
   resolved: boolean("resolved").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   resolvedAt: timestamp("resolved_at"),
-  recipients: jsonb("recipients").$type<string[]>(), // User IDs
+  recipients: json("recipients").$type<string[]>(), // User IDs
 });
 
 // Polo Project Tables
-export const poloProjects = pgTable("polo_projects", {
-  id: serial("id").primaryKey(),
-  cardId: integer("card_id").references(() => cards.id).notNull(),
+export const poloProjects = mysqlTable("polo_projects", {
+  id: int("id").primaryKey().autoincrement(),
+  cardId: int("card_id").references(() => cards.id).notNull(),
   name: text("name").notNull(),
   description: text("description"),
   status: text("status").default("Ativo").notNull(), // Ativo, Concluído, Pausado, Cancelado
-  overallProgress: integer("overall_progress").default(0), // 0-100
-  createdBy: varchar("created_by").references(() => users.id),
+  overallProgress: int("overall_progress").default(0), // 0-100
+  createdBy: varchar("created_by", { length: 255 }).references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const poloProjectStages = pgTable("polo_project_stages", {
-  id: serial("id").primaryKey(),
-  poloProjectId: integer("polo_project_id").references(() => poloProjects.id).notNull(),
+export const poloProjectStages = mysqlTable("polo_project_stages", {
+  id: int("id").primaryKey().autoincrement(),
+  poloProjectId: int("polo_project_id").references(() => poloProjects.id).notNull(),
   name: text("name").notNull(),
   description: text("description"),
   startDate: date("start_date").notNull(),
   endDate: date("end_date").notNull(),
-  order: integer("order").notNull(),
-  level: integer("level").notNull().default(1), // 1 = Etapa Principal, 2 = Sub-Etapa
-  parentStageId: integer("parent_stage_id"), // Referência à etapa principal (apenas para level 2)
+  order: int("order").notNull(),
+  level: int("level").notNull().default(1), // 1 = Etapa Principal, 2 = Sub-Etapa
+  parentStageId: int("parent_stage_id"), // Referência à etapa principal (apenas para level 2)
   color: text("color").default("#3b82f6"), // Default blue
   isCompleted: boolean("is_completed").default(false),
-  assignedTechId: varchar("assigned_tech_id").references(() => users.id),
+  assignedTechId: varchar("assigned_tech_id", { length: 255 }).references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -353,25 +353,25 @@ export type PoloProjectStage = typeof poloProjectStages.$inferSelect;
 export type InsertPoloProjectStage = z.infer<typeof insertPoloProjectStageSchema>;
 
 // Sales Funnel Tables
-export const salesFunnelColumns = pgTable("sales_funnel_columns", {
-  id: serial("id").primaryKey(),
+export const salesFunnelColumns = mysqlTable("sales_funnel_columns", {
+  id: int("id").primaryKey().autoincrement(),
   name: text("name").notNull(),
-  order: integer("order").notNull(),
+  order: int("order").notNull(),
   color: text("color").default("#3b82f6"), // Default blue
 });
 
-export const salesFunnelCards = pgTable("sales_funnel_cards", {
-  id: serial("id").primaryKey(),
-  columnId: integer("column_id").references(() => salesFunnelColumns.id).notNull(),
+export const salesFunnelCards = mysqlTable("sales_funnel_cards", {
+  id: int("id").primaryKey().autoincrement(),
+  columnId: int("column_id").references(() => salesFunnelColumns.id).notNull(),
   clientName: text("client_name").notNull(),
   cnpj: text("cnpj"),
   contactName: text("contact_name"),
   phone: text("phone"),
   proposalNumber: text("proposal_number"),
   sendDate: date("send_date"),
-  value: integer("value"), // Valor em centavos
+  value: int("value"), // Valor em centavos
   notes: text("notes"),
-  createdBy: varchar("created_by").references(() => users.id),
+  createdBy: varchar("created_by", { length: 255 }).references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

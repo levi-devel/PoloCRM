@@ -1,7 +1,10 @@
 import type { Express, RequestHandler } from "express";
 import session from "express-session";
+import bcrypt from "bcrypt";
 import { storage } from "../storage";
 import type { User } from "../../shared/models/auth";
+
+const SALT_ROUNDS = 10;
 
 // Predefined users - these will be initialized on server start
 export const PREDEFINED_USERS = [
@@ -62,19 +65,28 @@ export function getSession() {
     });
 }
 
+// Hash password using bcrypt
+export async function hashPassword(password: string): Promise<string> {
+    return bcrypt.hash(password, SALT_ROUNDS);
+}
+
 // Initialize predefined users in storage
 export async function initializePredefinedUsers() {
     console.log("🔐 Initializing predefined users...");
 
     for (const userData of PREDEFINED_USERS) {
+        // Hash the password before storing
+        const hashedPassword = await hashPassword(userData.password);
+
         await storage.upsertUser({
             ...userData,
+            password: hashedPassword,
             isActive: true,
             profileImageUrl: undefined,
         });
     }
 
-    console.log(`✅ Initialized ${PREDEFINED_USERS.length} users`);
+    console.log(`✅ Initialized ${PREDEFINED_USERS.length} users with encrypted passwords`);
 }
 
 // Validate user credentials
@@ -85,12 +97,21 @@ export async function validateCredentials(
     // Get all users from storage
     const users = await storage.getUsers();
 
-    // Find user by email and password
-    const user = users.find(
-        (u) => u.email === email && u.password === password
-    );
+    // Find user by email
+    const user = users.find((u) => u.email === email);
 
-    return user || null;
+    if (!user || !user.password) {
+        return null;
+    }
+
+    // Compare provided password with hashed password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+        return null;
+    }
+
+    return user;
 }
 
 // Middleware to check if user is authenticated
