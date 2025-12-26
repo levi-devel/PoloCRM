@@ -74,6 +74,41 @@ export async function registerRoutes(
     res.status(201).json(doc);
   });
 
+  // Milvus API Proxy
+  app.get("/api/milvus/clients", async (req, res) => {
+    try {
+      const search = req.query.search as string | undefined;
+      const milvusToken = process.env.MILVUS_TOKEN;
+
+      if (!milvusToken) {
+        return res.status(500).json({ message: "Milvus token not configured" });
+      }
+
+      // Build URL with query parameters
+      const url = new URL("https://apiintegracao.milvus.com.br/api/cliente/busca");
+      if (search) {
+        url.searchParams.append("nome_fantasia", search);
+      }
+      url.searchParams.append("status", "1"); // Only active clients
+
+      const response = await fetch(url.toString(), {
+        headers: {
+          "Authorization": milvusToken,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Milvus API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      res.json(data);
+    } catch (error: any) {
+      console.error("Error fetching Milvus clients:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch Milvus clients" });
+    }
+  });
+
   // Form Templates
   app.get(api.formTemplates.list.path, async (req, res) => {
     const templates = await storage.getFormTemplates();
@@ -394,7 +429,13 @@ export async function registerRoutes(
 
   app.get("/api/sales-funnel/stats", async (req, res) => {
     try {
-      const stats = await storage.getSalesFunnelStats();
+      const { startDate, endDate } = req.query;
+
+      // Parse date parameters
+      const parsedStartDate = startDate ? new Date(startDate as string) : undefined;
+      const parsedEndDate = endDate ? new Date(endDate as string) : undefined;
+
+      const stats = await storage.getSalesFunnelStats(parsedStartDate, parsedEndDate);
       res.json(stats);
     } catch (error: any) {
       res.status(500).json({ message: error.message || "Failed to get sales funnel stats" });

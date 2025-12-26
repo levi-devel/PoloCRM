@@ -1,17 +1,69 @@
 import { Layout } from "@/components/layout/Layout";
 import { useSalesFunnelStats } from "@/hooks/use-sales-funnel-stats";
 import { Card } from "@/components/ui/card";
-import { TrendingUp, TrendingDown } from "lucide-react";
-import { format } from "date-fns";
+import { TrendingUp, TrendingDown, Calendar } from "lucide-react";
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
+import { useState } from "react";
+
+type FilterType = 'all' | 'week' | 'month' | 'year' | 'custom';
 
 export default function SalesFunnelDashboard() {
-    const { data: stats, isLoading } = useSalesFunnelStats();
+    const [filterType, setFilterType] = useState<FilterType>('all');
+    const [customStartDate, setCustomStartDate] = useState<string>('');
+    const [customEndDate, setCustomEndDate] = useState<string>('');
+
+    // Calculate date range based on filter type
+    const getDateRange = (): { startDate?: Date; endDate?: Date } => {
+        const now = new Date();
+
+        switch (filterType) {
+            case 'week':
+                return {
+                    startDate: startOfWeek(now, { weekStartsOn: 0 }),
+                    endDate: endOfWeek(now, { weekStartsOn: 0 })
+                };
+            case 'month':
+                return {
+                    startDate: startOfMonth(now),
+                    endDate: endOfMonth(now)
+                };
+            case 'year':
+                return {
+                    startDate: startOfYear(now),
+                    endDate: endOfYear(now)
+                };
+            case 'custom':
+                return {
+                    startDate: customStartDate ? new Date(customStartDate) : undefined,
+                    endDate: customEndDate ? new Date(customEndDate) : undefined
+                };
+            default:
+                return {};
+        }
+    };
+
+    const { startDate, endDate } = getDateRange();
+    const { data: stats, isLoading } = useSalesFunnelStats(startDate, endDate);
 
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('pt-BR', {
             style: 'currency',
             currency: 'BRL'
         }).format(value / 100);
+    };
+
+    const getStatusColor = (columnName: string) => {
+        const normalizedName = columnName.toLowerCase();
+        if (normalizedName.includes('envio') || normalizedName.includes('proposta')) {
+            return 'bg-blue-100 text-blue-800';
+        } else if (normalizedName.includes('fechado')) {
+            return 'bg-green-100 text-green-800';
+        } else if (normalizedName.includes('recusado')) {
+            return 'bg-yellow-100 text-yellow-800';
+        } else if (normalizedName.includes('cancelamento')) {
+            return 'bg-red-100 text-red-800';
+        }
+        return 'bg-gray-100 text-gray-800';
     };
 
     if (isLoading || !stats) {
@@ -39,6 +91,89 @@ export default function SalesFunnelDashboard() {
                     <p className="text-muted-foreground">
                         Análise completa do pipeline de vendas • <strong>Total: {formatCurrency(stats.totalValue)}</strong>
                     </p>
+                </Card>
+
+                {/* Period Filter */}
+                <Card className="p-6">
+                    <div className="flex items-center gap-2 mb-4">
+                        <Calendar className="w-5 h-5 text-primary" />
+                        <h2 className="text-lg font-bold">Filtrar por Período</h2>
+                    </div>
+
+                    <div className="space-y-4">
+                        {/* Filter Buttons */}
+                        <div className="flex flex-wrap gap-2">
+                            <button
+                                onClick={() => setFilterType('all')}
+                                className={`px-4 py-2 rounded-lg font-medium transition-all ${filterType === 'all'
+                                    ? 'bg-primary text-primary-foreground shadow-md'
+                                    : 'bg-muted/50 hover:bg-muted'
+                                    }`}
+                            >
+                                Todos
+                            </button>
+                            <button
+                                onClick={() => setFilterType('week')}
+                                className={`px-4 py-2 rounded-lg font-medium transition-all ${filterType === 'week'
+                                    ? 'bg-primary text-primary-foreground shadow-md'
+                                    : 'bg-muted/50 hover:bg-muted'
+                                    }`}
+                            >
+                                Esta Semana
+                            </button>
+                            <button
+                                onClick={() => setFilterType('month')}
+                                className={`px-4 py-2 rounded-lg font-medium transition-all ${filterType === 'month'
+                                    ? 'bg-primary text-primary-foreground shadow-md'
+                                    : 'bg-muted/50 hover:bg-muted'
+                                    }`}
+                            >
+                                Este Mês
+                            </button>
+                            <button
+                                onClick={() => setFilterType('year')}
+                                className={`px-4 py-2 rounded-lg font-medium transition-all ${filterType === 'year'
+                                    ? 'bg-primary text-primary-foreground shadow-md'
+                                    : 'bg-muted/50 hover:bg-muted'
+                                    }`}
+                            >
+                                Este Ano
+                            </button>
+                            <button
+                                onClick={() => setFilterType('custom')}
+                                className={`px-4 py-2 rounded-lg font-medium transition-all ${filterType === 'custom'
+                                    ? 'bg-primary text-primary-foreground shadow-md'
+                                    : 'bg-muted/50 hover:bg-muted'
+                                    }`}
+                            >
+                                Período Personalizado
+                            </button>
+                        </div>
+
+                        {/* Custom Date Range Inputs */}
+                        {filterType === 'custom' && (
+                            <div className="flex flex-wrap gap-4 p-4 bg-muted/30 rounded-lg">
+                                <div className="flex-1 min-w-[200px]">
+                                    <label className="block text-sm font-medium mb-2">Data Inicial</label>
+                                    <input
+                                        type="date"
+                                        value={customStartDate}
+                                        onChange={(e) => setCustomStartDate(e.target.value)}
+                                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
+                                    />
+                                </div>
+                                <div className="flex-1 min-w-[200px]">
+                                    <label className="block text-sm font-medium mb-2">Data Final</label>
+                                    <input
+                                        type="date"
+                                        value={customEndDate}
+                                        onChange={(e) => setCustomEndDate(e.target.value)}
+                                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </Card>
 
                 {/* Dashboard Grid */}
@@ -92,7 +227,7 @@ export default function SalesFunnelDashboard() {
                                                 }}
                                             />
                                             <div className="text-xs text-center text-muted-foreground font-medium">
-                                                {col.columnName.split(' ')[0]}
+                                                {col.columnName}
                                             </div>
                                             <div className="text-sm font-bold">{col.count}</div>
                                         </div>
@@ -171,7 +306,7 @@ export default function SalesFunnelDashboard() {
                                                 {card.sendDate ? format(new Date(card.sendDate), 'dd/MM/yyyy') : '-'}
                                             </td>
                                             <td className="p-3">
-                                                <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                                                <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(column?.columnName || '')}`}>
                                                     {column?.columnName || 'Ativo'}
                                                 </span>
                                             </td>

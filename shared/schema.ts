@@ -13,6 +13,7 @@ export const clients = mysqlTable("clients", {
   phone: text("phone"),
   email: text("email"),
   notes: text("notes"),
+  milvusNotes: text("milvus_notes"), // Observação do Milvus
 
   // Client Description
   description: text("description"),
@@ -180,6 +181,7 @@ export const poloProjectStages = mysqlTable("polo_project_stages", {
   color: text("color").default("#3b82f6"), // Default blue
   isCompleted: boolean("is_completed").default(false),
   assignedTechId: varchar("assigned_tech_id", { length: 255 }).references(() => users.id),
+  activityDescription: text("activity_description"), // Descrição da atividade realizada
   createdAt: timestamp("created_at").defaultNow(),
 });
 

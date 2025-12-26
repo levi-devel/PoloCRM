@@ -26,6 +26,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function PoloProjectGantt() {
     const [, params] = useRoute("/polo-project/:id");
@@ -46,6 +47,7 @@ export default function PoloProjectGantt() {
         parentStageId: null as number | null,
         isCompleted: false,
         assignedTechId: "",
+        activityDescription: "",
     });
 
     // Query para buscar usuários
@@ -95,6 +97,7 @@ export default function PoloProjectGantt() {
                 parentStageId: null,
                 isCompleted: false,
                 assignedTechId: "",
+                activityDescription: "",
             });
             toast({
                 title: "Etapa criada",
@@ -138,6 +141,7 @@ export default function PoloProjectGantt() {
                 parentStageId: null,
                 isCompleted: false,
                 assignedTechId: "",
+                activityDescription: "",
             });
             toast({
                 title: "Etapa atualizada",
@@ -178,6 +182,7 @@ export default function PoloProjectGantt() {
                 parentStageId: null,
                 isCompleted: false,
                 assignedTechId: "",
+                activityDescription: "",
             });
             toast({
                 title: "Etapa excluída",
@@ -233,6 +238,7 @@ export default function PoloProjectGantt() {
             parentStageId: stage.parentStageId || null,
             isCompleted: stage.isCompleted,
             assignedTechId: stage.assignedTechId || "",
+            activityDescription: stage.activityDescription || "",
         });
         setIsModalOpen(true);
     };
@@ -255,6 +261,7 @@ export default function PoloProjectGantt() {
             parentStageId: null,
             isCompleted: false,
             assignedTechId: "",
+            activityDescription: "",
         });
         setIsModalOpen(true);
     };
@@ -384,6 +391,19 @@ export default function PoloProjectGantt() {
         return { left: `${Math.max(0, left)}%`, width: `${Math.max(1, width)}%` };
     };
 
+    // Helper function to get responsible person initials
+    const getResponsibleInitials = (assignedTechId: string | null): string => {
+        if (!assignedTechId || !users) return '';
+
+        const user = users.find((u: any) => u.id === assignedTechId);
+        if (!user) return '';
+
+        const firstInitial = user.firstName?.[0]?.toUpperCase() || '';
+        const lastInitial = user.lastName?.[0]?.toUpperCase() || '';
+
+        return `${firstInitial}${lastInitial}`;
+    };
+
 
     return (
         <Layout>
@@ -495,9 +515,16 @@ export default function PoloProjectGantt() {
                                                 return (
                                                     <div key={stage.id} className="flex items-center mb-3">
                                                         <div className="w-64">
-                                                            <div className={`text-sm text-gray-900 ${isSubStage ? 'pl-6' : 'font-bold'}`}>
-                                                                {isSubStage && '└─ '}
-                                                                {stage.name}
+                                                            <div className={`text-sm text-gray-900 ${isSubStage ? 'pl-6' : 'font-bold'} flex items-center gap-2`}>
+                                                                <span>
+                                                                    {isSubStage && '└─ '}
+                                                                    {stage.name}
+                                                                </span>
+                                                                {stage.assignedTechId && (
+                                                                    <span className="inline-flex items-center justify-center w-6 h-6 text-xs font-medium text-white bg-blue-600 rounded-full">
+                                                                        {getResponsibleInitials(stage.assignedTechId)}
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                             <div className={`text-xs text-gray-500 ${isSubStage ? 'pl-6' : ''}`}>
                                                                 {new Date(stage.startDate).toLocaleDateString('pt-BR')} -{' '}
@@ -690,6 +717,17 @@ export default function PoloProjectGantt() {
                                             ))}
                                         </SelectContent>
                                     </Select>
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="activityDescription">Descrição da Atividade Realizada</Label>
+                                    <Textarea
+                                        id="activityDescription"
+                                        value={formData.activityDescription}
+                                        onChange={(e) => setFormData({ ...formData, activityDescription: e.target.value })}
+                                        placeholder="Descreva as atividades que foram realizadas nesta etapa..."
+                                        rows={4}
+                                        className="resize-none"
+                                    />
                                 </div>
                                 <div className="flex items-center space-x-2">
                                     <Checkbox
