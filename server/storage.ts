@@ -88,7 +88,7 @@ export interface IStorage {
   updateSalesFunnelCard(id: number, updates: Partial<InsertSalesFunnelCard>): Promise<typeof salesFunnelCards.$inferSelect>;
   moveSalesFunnelCard(id: number, columnId: number): Promise<typeof salesFunnelCards.$inferSelect>;
   deleteSalesFunnelCard(id: number): Promise<void>;
-  getSalesFunnelStats(): Promise<{
+  getSalesFunnelStats(startDate?: Date, endDate?: Date): Promise<{
     columnStats: { columnId: number; columnName: string; color: string; count: number; totalValue: number }[];
     totalDeals: number;
     totalValue: number;
@@ -936,9 +936,23 @@ export class MemStorage implements IStorage {
     this.salesFunnelCards.delete(id);
   }
 
-  async getSalesFunnelStats() {
-    const allCards = Array.from(this.salesFunnelCards.values());
+  async getSalesFunnelStats(startDate?: Date, endDate?: Date) {
+    let allCards = Array.from(this.salesFunnelCards.values());
     const allColumns = Array.from(this.salesFunnelColumns.values()).sort((a, b) => a.order - b.order);
+
+    // Apply date filter if provided
+    if (startDate || endDate) {
+      allCards = allCards.filter(card => {
+        if (!card.createdAt) return false;
+
+        const cardDate = new Date(card.createdAt);
+
+        if (startDate && cardDate < startDate) return false;
+        if (endDate && cardDate > endDate) return false;
+
+        return true;
+      });
+    }
 
     // Calculate stats per column
     const columnStats = allColumns.map(column => {

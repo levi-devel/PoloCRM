@@ -1,7 +1,8 @@
 import { Layout } from "@/components/layout/Layout";
 import { useClients, useCreateClient, useUpdateClient } from "@/hooks/use-clients";
+import { useMilvusClients } from "@/hooks/use-milvus-clients";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, Building2, Phone, Mail, Users, Edit, X } from "lucide-react";
+import { Plus, Search, Building2, Phone, Mail, Users, Edit, X, Check, ChevronsUpDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
@@ -13,6 +14,19 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,6 +36,7 @@ import { Link } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import type { Client } from "@shared/schema";
+import { cn } from "@/lib/utils";
 
 type ClientFormValues = z.infer<typeof insertClientSchema>;
 
@@ -70,6 +85,15 @@ function TagInput({ value, onChange, placeholder }: { value?: string[], onChange
   );
 }
 
+// Utility function to strip HTML tags from text
+function stripHtmlTags(html: string): string {
+  // Create a temporary div element to parse HTML
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  // Get text content which automatically strips tags
+  return tmp.textContent || tmp.innerText || '';
+}
+
 function ClientFormDialog({
   client,
   isOpen,
@@ -83,6 +107,10 @@ function ClientFormDialog({
   const updateClient = useUpdateClient(client?.id || 0);
   const isEditing = !!client;
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [comboboxOpen, setComboboxOpen] = useState(false);
+  const { data: milvusClients, isLoading: isMilvusLoading } = useMilvusClients(searchQuery);
+
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(insertClientSchema),
     defaultValues: client ? {
@@ -92,6 +120,7 @@ function ClientFormDialog({
       email: client.email || "",
       phone: client.phone || "",
       notes: client.notes || "",
+      milvusNotes: client.milvusNotes || "",
       description: client.description || "",
       contractedProducts: client.contractedProducts || [],
       contractedAutomations: client.contractedAutomations || [],
@@ -117,7 +146,8 @@ function ClientFormDialog({
       contact: "",
       email: "",
       phone: "",
-      notes: ""
+      notes: "",
+      milvusNotes: ""
     }
   });
 
@@ -160,11 +190,86 @@ function ClientFormDialog({
                 control={form.control}
                 name="name"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="flex flex-col">
                     <FormLabel>Nome da Empresa *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Acme Inc." {...field} />
-                    </FormControl>
+                    <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full justify-between",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value || "Selecione ou digite o nome da empresa..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[600px] p-0">
+                        <Command shouldFilter={false}>
+                          <CommandInput
+                            placeholder="Pesquisar cliente no Milvus..."
+                            value={searchQuery}
+                            onValueChange={setSearchQuery}
+                          />
+                          <CommandList>
+                            <CommandEmpty>
+                              {isMilvusLoading ? "Carregando..." : "Nenhum cliente encontrado."}
+                            </CommandEmpty>
+                            <CommandGroup>
+                              {milvusClients?.map((milvusClient) => (
+                                <CommandItem
+                                  key={milvusClient.id}
+                                  value={milvusClient.nome_fantasia}
+                                  onSelect={() => {
+                                    field.onChange(milvusClient.nome_fantasia);
+                                    // Auto-fill CNPJ and Milvus Notes
+                                    if (milvusClient.cnpj_cpf) {
+                                      form.setValue("cnpj", milvusClient.cnpj_cpf);
+                                    }
+                                    if (milvusClient.observacao) {
+                                      // Strip HTML tags from observation
+                                      const cleanObservation = stripHtmlTags(milvusClient.observacao);
+                                      form.setValue("milvusNotes", cleanObservation);
+                                    }
+                                    setComboboxOpen(false);
+                                    setSearchQuery("");
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      field.value === milvusClient.nome_fantasia
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  <div className="flex flex-col">
+                                    <span className="font-medium">{milvusClient.nome_fantasia}</span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {milvusClient.cnpj_cpf && `CNPJ: ${milvusClient.cnpj_cpf}`}
+                                      {milvusClient.razao_social && milvusClient.razao_social !== milvusClient.nome_fantasia &&
+                                        ` • ${milvusClient.razao_social}`}
+                                    </span>
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                        <div className="border-t p-2">
+                          <Input
+                            placeholder="Ou digite um nome personalizado..."
+                            value={field.value}
+                            onChange={(e) => field.onChange(e.target.value)}
+                            className="w-full"
+                          />
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -236,14 +341,21 @@ function ClientFormDialog({
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
-                name="notes"
+                name="milvusNotes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Notas</FormLabel>
+                    <FormLabel>Notas (Milvus)</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Notas adicionais..." {...field} value={field.value || ""} rows={2} />
+                      <Textarea
+                        placeholder="Observações vindas do Milvus..."
+                        {...field}
+                        value={field.value || ""}
+                        rows={3}
+                        className="bg-muted/30"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -543,8 +655,8 @@ function ClientFormDialog({
             </Button>
           </div>
         </form>
-      </Form>
-    </DialogContent>
+      </Form >
+    </DialogContent >
   );
 }
 

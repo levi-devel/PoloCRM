@@ -14,6 +14,52 @@ import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
+// Utility functions for input masks
+const formatCNPJ = (value: string): string => {
+    // Remove all non-numeric characters
+    const numbers = value.replace(/\D/g, '');
+
+    // Apply CNPJ mask: XX.XXX.XXX/XXXX-XX
+    if (numbers.length <= 2) return numbers;
+    if (numbers.length <= 5) return `${numbers.slice(0, 2)}.${numbers.slice(2)}`;
+    if (numbers.length <= 8) return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5)}`;
+    if (numbers.length <= 12) return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5, 8)}/${numbers.slice(8)}`;
+    return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5, 8)}/${numbers.slice(8, 12)}-${numbers.slice(12, 14)}`;
+};
+
+const formatPhone = (value: string): string => {
+    // Remove all non-numeric characters
+    const numbers = value.replace(/\D/g, '');
+
+    // Apply phone mask: (XX) XXXX-XXXX or (XX) XXXXX-XXXX
+    if (numbers.length <= 2) return numbers.length > 0 ? `(${numbers}` : '';
+    if (numbers.length <= 6) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
+    if (numbers.length <= 10) return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 6)}-${numbers.slice(6)}`;
+    // For 11 digits (mobile), format as (XX) XXXXX-XXXX
+    return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
+};
+
+const formatCurrencyInput = (value: string): string => {
+    // Remove all non-numeric characters
+    const numbers = value.replace(/\D/g, '');
+
+    // If empty, return empty
+    if (!numbers) return '';
+
+    // Convert to number (in cents) and format
+    const numberValue = parseInt(numbers, 10);
+    const formatted = (numberValue / 100).toFixed(2);
+
+    // Split into integer and decimal parts
+    const [integerPart, decimalPart] = formatted.split('.');
+
+    // Add thousand separators to integer part
+    const withThousandSeparators = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+    // Return formatted with R$ prefix
+    return `R$ ${withThousandSeparators},${decimalPart}`;
+};
+
 // Funnel Column Component
 function FunnelColumn({ title, id, cards, onAddCard, onCardClick, color, totalValue }: any) {
     // Format currency in BRL
@@ -90,7 +136,12 @@ function FunnelColumn({ title, id, cards, onAddCard, onCardClick, color, totalVa
                                             )}
                                             {card.sendDate && (
                                                 <p className="text-xs text-muted-foreground">
-                                                    Enviado em: {format(new Date(card.sendDate), 'dd/MM/yyyy')}
+                                                    Enviado em: {card.sendDate.split('-').reverse().join('/')}
+                                                </p>
+                                            )}
+                                            {card.createdAt && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    Criado em: {new Date(card.createdAt).toLocaleDateString('pt-BR')}
                                                 </p>
                                             )}
                                         </div>
@@ -136,6 +187,7 @@ export default function SalesFunnel() {
     const [selectedColumn, setSelectedColumn] = useState<number | null>(null);
     const [selectedCard, setSelectedCard] = useState<any>(null);
     const [isCardModalOpen, setIsCardModalOpen] = useState(false);
+    const [searchText, setSearchText] = useState('');
 
     const form = useForm({
         resolver: zodResolver(cardSchema),
@@ -203,18 +255,44 @@ export default function SalesFunnel() {
         );
     }
 
-    // Group cards by column
-    const getCardsForColumn = (colId: number) => cards.filter(c => c.columnId === colId);
+    // Filter cards based on search text
+    const filterCards = (cardsList: any[]) => {
+        if (!searchText.trim()) return cardsList;
 
-    // Calculate total value per column
+        const searchLower = searchText.toLowerCase().trim();
+        return cardsList.filter(card => {
+            const clientName = (card.clientName || '').toLowerCase();
+            const cnpj = (card.cnpj || '').toLowerCase();
+            const contactName = (card.contactName || '').toLowerCase();
+            const phone = (card.phone || '').toLowerCase();
+            const proposalNumber = (card.proposalNumber || '').toLowerCase();
+            const notes = (card.notes || '').toLowerCase();
+
+            return clientName.includes(searchLower) ||
+                cnpj.includes(searchLower) ||
+                contactName.includes(searchLower) ||
+                phone.includes(searchLower) ||
+                proposalNumber.includes(searchLower) ||
+                notes.includes(searchLower);
+        });
+    };
+
+    // Group cards by column with filtering
+    const getCardsForColumn = (colId: number) => {
+        const columnCards = cards.filter(c => c.columnId === colId);
+        return filterCards(columnCards);
+    };
+
+    // Calculate total value per column (using filtered cards)
     const getTotalValueForColumn = (colId: number) => {
         const columnCards = getCardsForColumn(colId);
         return columnCards.reduce((sum, card) => sum + (card.value || 0), 0);
     };
 
-    // Calculate overall stats
-    const totalValue = cards.reduce((sum, card) => sum + (card.value || 0), 0);
-    const totalDeals = cards.length;
+    // Calculate overall stats (using filtered cards)
+    const filteredCards = filterCards(cards);
+    const totalValue = filteredCards.reduce((sum, card) => sum + (card.value || 0), 0);
+    const totalDeals = filteredCards.length;
 
     return (
         <Layout>
@@ -231,18 +309,16 @@ export default function SalesFunnel() {
                         </p>
                     </div>
                     <div className="flex gap-2">
-                        <Button variant="outline">
-                            <Search className="w-4 h-4 mr-2" />
-                            Buscar
-                        </Button>
-                        <Button variant="outline">
-                            <Filter className="w-4 h-4 mr-2" />
-                            Filtros
-                        </Button>
-                        <Button variant="outline">
-                            <ArrowUpDown className="w-4 h-4 mr-2" />
-                            Ordenar
-                        </Button>
+                        <div className="relative w-96">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <Input
+                                type="text"
+                                placeholder="Buscar por cliente, CNPJ, contato, telefone, proposta..."
+                                value={searchText}
+                                onChange={(e) => setSearchText(e.target.value)}
+                                className="pl-10"
+                            />
+                        </div>
                     </div>
                 </div>
 
@@ -292,7 +368,14 @@ export default function SalesFunnel() {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>CNPJ</FormLabel>
-                                                <FormControl><Input {...field} placeholder="00.000.000/0000-00" /></FormControl>
+                                                <FormControl>
+                                                    <Input
+                                                        {...field}
+                                                        placeholder="00.000.000/0000-00"
+                                                        maxLength={18}
+                                                        onChange={(e) => field.onChange(formatCNPJ(e.target.value))}
+                                                    />
+                                                </FormControl>
                                             </FormItem>
                                         )}
                                     />
@@ -325,7 +408,14 @@ export default function SalesFunnel() {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Telefone</FormLabel>
-                                                <FormControl><Input {...field} placeholder="(00) 00000-0000" /></FormControl>
+                                                <FormControl>
+                                                    <Input
+                                                        {...field}
+                                                        placeholder="(00) 00000-0000"
+                                                        maxLength={15}
+                                                        onChange={(e) => field.onChange(formatPhone(e.target.value))}
+                                                    />
+                                                </FormControl>
                                             </FormItem>
                                         )}
                                     />
@@ -338,7 +428,13 @@ export default function SalesFunnel() {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Valor da Proposta</FormLabel>
-                                                <FormControl><Input {...field} placeholder="R$ 0,00" /></FormControl>
+                                                <FormControl>
+                                                    <Input
+                                                        {...field}
+                                                        placeholder="R$ 0,00"
+                                                        onChange={(e) => field.onChange(formatCurrencyInput(e.target.value))}
+                                                    />
+                                                </FormControl>
                                             </FormItem>
                                         )}
                                     />
@@ -419,10 +515,10 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
     const [editablePhone, setEditablePhone] = React.useState(card.phone || '');
     const [editableProposalNumber, setEditableProposalNumber] = React.useState(card.proposalNumber || '');
     const [editableValue, setEditableValue] = React.useState(
-        card.value ? (card.value / 100).toFixed(2).replace('.', ',') : ''
+        card.value ? formatCurrencyInput(card.value.toString()) : ''
     );
     const [editableSendDate, setEditableSendDate] = React.useState(
-        card.sendDate ? format(new Date(card.sendDate), 'yyyy-MM-dd') : ''
+        card.sendDate || ''
     );
     const [editableNotes, setEditableNotes] = React.useState(card.notes || '');
 
@@ -476,8 +572,9 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
                     </label>
                     <Input
                         value={editableCnpj}
-                        onChange={(e) => setEditableCnpj(e.target.value)}
+                        onChange={(e) => setEditableCnpj(formatCNPJ(e.target.value))}
                         placeholder="00.000.000/0000-00"
+                        maxLength={18}
                     />
                 </div>
 
@@ -509,8 +606,9 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
                     </label>
                     <Input
                         value={editablePhone}
-                        onChange={(e) => setEditablePhone(e.target.value)}
+                        onChange={(e) => setEditablePhone(formatPhone(e.target.value))}
                         placeholder="(00) 00000-0000"
+                        maxLength={15}
                     />
                 </div>
 
@@ -520,8 +618,8 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
                     </label>
                     <Input
                         value={editableValue}
-                        onChange={(e) => setEditableValue(e.target.value)}
-                        placeholder="0,00"
+                        onChange={(e) => setEditableValue(formatCurrencyInput(e.target.value))}
+                        placeholder="R$ 0,00"
                     />
                 </div>
 
