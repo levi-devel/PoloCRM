@@ -1,10 +1,11 @@
 import { Layout } from "@/components/layout/Layout";
-import { useProjects, useCreateProject } from "@/hooks/use-projects";
+import { useProjects, useCreateProject, useDeleteProject } from "@/hooks/use-projects";
 import { useClients } from "@/hooks/use-clients";
 import { useUsers } from "@/hooks/use-users";
 import { useFormTemplates } from "@/hooks/use-forms";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Plus, FolderKanban, Calendar, ArrowRight } from "lucide-react";
+import { Plus, FolderKanban, Calendar, ArrowRight, Trash2 } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
@@ -17,32 +18,47 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertProjectSchema } from "@shared/schema";
+import { insertProjetoSchema } from "@shared/schema";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
-type ProjectFormValues = z.infer<typeof insertProjectSchema>;
+type ProjectFormValues = z.infer<typeof insertProjetoSchema>;
 
 export default function Projects() {
   const { data: projects, isLoading } = useProjects();
   const { data: clients } = useClients();
   const { data: users } = useUsers();
   const { data: templates } = useFormTemplates();
+  const { user } = useAuth();
   const createProject = useCreateProject();
+  const deleteProject = useDeleteProject();
   const [isOpen, setIsOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<number | null>(null);
+
+  const canDelete = user && ["Admin", "Gerente Comercial", "Gerente Supervisor"].includes(user.role);
 
   const form = useForm<ProjectFormValues>({
-    resolver: zodResolver(insertProjectSchema),
+    resolver: zodResolver(insertProjetoSchema),
     defaultValues: {
-      name: "",
-      description: "",
+      nome: "",
+      descricao: "",
       status: "Ativo",
-      priority: "Média"
+      prioridade: "Média"
     }
   });
 
@@ -55,7 +71,10 @@ export default function Projects() {
     });
   };
 
-  const getClientName = (id: number) => clients?.find(c => c.id === id)?.name || "Cliente Desconhecido";
+  const getClientName = (id: number | null | undefined) => {
+    if (!id) return "Sem Cliente";
+    return clients?.find(c => c.id === id)?.nome || "Cliente Desconhecido";
+  };
 
   return (
     <Layout>
@@ -79,7 +98,7 @@ export default function Projects() {
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <FormField
                     control={form.control}
-                    name="name"
+                    name="nome"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Nome do Projeto</FormLabel>
@@ -91,60 +110,32 @@ export default function Projects() {
                     )}
                   />
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="clientId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Cliente</FormLabel>
-                          <Select
-                            onValueChange={(val) => field.onChange(parseInt(val))}
-                            defaultValue={field.value?.toString()}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecione o cliente" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {clients?.map(c => (
-                                <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="techLeadId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Líder Técnico</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecione o líder" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {users?.map(u => (
-                                <SelectItem key={u.id} value={u.id}>{u.firstName} {u.lastName}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                  <FormField
+                    control={form.control}
+                    name="id_lider_tecnico"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Líder Técnico</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o líder" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {users?.map(u => (
+                              <SelectItem key={u.id} value={u.id}>{u.firstName} {u.lastName}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
                   <FormField
                     control={form.control}
-                    name="defaultTemplateId"
+                    name="id_modelo_padrao"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Modelo de Tarefa</FormLabel>
@@ -159,7 +150,7 @@ export default function Projects() {
                           </FormControl>
                           <SelectContent>
                             {templates?.map(t => (
-                              <SelectItem key={t.id} value={t.id.toString()}>{t.name}</SelectItem>
+                              <SelectItem key={t.id} value={t.id.toString()}>{t.nome}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -171,7 +162,7 @@ export default function Projects() {
 
                   <FormField
                     control={form.control}
-                    name="description"
+                    name="descricao"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Descrição</FormLabel>
@@ -186,7 +177,7 @@ export default function Projects() {
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
-                      name="startDate"
+                      name="data_inicio"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Data de Início</FormLabel>
@@ -203,7 +194,7 @@ export default function Projects() {
                     />
                     <FormField
                       control={form.control}
-                      name="dueDate"
+                      name="data_prazo"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Data de Término</FormLabel>
@@ -244,7 +235,7 @@ export default function Projects() {
               >
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-lg font-bold font-display">{project.name}</h3>
+                    <h3 className="text-lg font-bold font-display">{project.nome}</h3>
                     <Badge variant={project.status === "Ativo" ? "default" : "secondary"}>
                       {project.status}
                     </Badge>
@@ -252,12 +243,12 @@ export default function Projects() {
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <FolderKanban className="w-4 h-4" />
-                      <span>{getClientName(project.clientId)}</span>
+                      <span>{getClientName(project.id_cliente)}</span>
                     </div>
-                    {project.dueDate && (
+                    {project.data_prazo && (
                       <div className="flex items-center gap-1">
                         <Calendar className="w-4 h-4" />
-                        <span>Entrega: {format(new Date(project.dueDate), "dd/MM/yyyy")}</span>
+                        <span>Entrega: {format(new Date(project.data_prazo), "dd/MM/yyyy")}</span>
                       </div>
                     )}
                   </div>
@@ -277,12 +268,47 @@ export default function Projects() {
                       Abrir Quadro <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
                   </Link>
+                  {canDelete && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-muted-foreground hover:text-destructive"
+                      onClick={() => setProjectToDelete(project.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}
           </div>
         )}
+        <AlertDialog open={!!projectToDelete} onOpenChange={(open) => !open && setProjectToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir Projeto?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir este projeto? Esta ação apagará todos os cartões, colunas e dados associados permanentemente.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => {
+                  if (projectToDelete) {
+                    deleteProject.mutate(projectToDelete);
+                    setProjectToDelete(null);
+                  }
+                }}
+              >
+                Excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </Layout>
   );
 }
+

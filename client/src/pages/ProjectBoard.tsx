@@ -15,7 +15,7 @@ import { useForm } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertCardSchema } from "@shared/schema";
+import { insertCartaoSchema } from "@shared/schema";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -48,8 +48,8 @@ function ClientSelector({ value, onChange, required }: ClientSelectorProps) {
     >
       <option value="">Selecione um cliente...</option>
       {clients?.map((client) => (
-        <option key={client.id} value={client.name}>
-          {client.name}
+        <option key={client.id} value={client.nome}>
+          {client.nome}
         </option>
       ))}
     </select>
@@ -174,11 +174,11 @@ function KanbanColumn({ title, id, cards, onAddCard, onCardClick, onDeleteCard, 
                         }`}
                     >
                       <div className="flex justify-between items-start mb-2">
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${card.priority === 'Alta' ? 'bg-red-500/10 text-red-600' :
-                          card.priority === 'Média' ? 'bg-yellow-500/10 text-yellow-600' :
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${card.prioridade === 'Alta' ? 'bg-red-500/10 text-red-600' :
+                          card.prioridade === 'Média' ? 'bg-yellow-500/10 text-yellow-600' :
                             'bg-blue-500/10 text-blue-600'
                           }`}>
-                          {card.priority}
+                          {card.prioridade}
                         </span>
                         <div className="flex gap-1">
                           <Button
@@ -197,23 +197,23 @@ function KanbanColumn({ title, id, cards, onAddCard, onCardClick, onDeleteCard, 
                           </Button>
                         </div>
                       </div>
-                      <h4 className="font-medium text-sm mb-1">{card.title}</h4>
-                      <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{card.description}</p>
+                      <h4 className="font-medium text-sm mb-1">{card.titulo}</h4>
+                      <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{card.descricao}</p>
 
                       {/* Dates Section */}
                       <div className="space-y-1 mb-3">
-                        {card.startDate && (
+                        {card.data_inicio && (
                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
                             <Calendar className="w-3 h-3" />
                             <span className="font-medium">Início:</span>
-                            <span>{format(new Date(card.startDate), 'dd/MM/yyyy')}</span>
+                            <span>{format(new Date(card.data_inicio), 'dd/MM/yyyy')}</span>
                           </div>
                         )}
-                        {card.dueDate && (
+                        {card.data_prazo && (
                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
                             <Calendar className="w-3 h-3" />
                             <span className="font-medium">Entrega:</span>
-                            <span>{format(new Date(card.dueDate), 'dd/MM/yyyy')}</span>
+                            <span>{format(new Date(card.data_prazo), 'dd/MM/yyyy')}</span>
                           </div>
                         )}
                       </div>
@@ -284,15 +284,15 @@ export default function ProjectBoard() {
 
   // New card form
   const form = useForm({
-    resolver: zodResolver(insertCardSchema),
+    resolver: zodResolver(insertCartaoSchema),
     defaultValues: {
-      title: "",
-      description: "",
-      priority: "Média",
-      projectId: projectId,
-      columnId: 0,
-      startDate: null as string | null,
-      dueDate: null as string | null,
+      titulo: "",
+      descricao: "",
+      prioridade: "Média",
+      id_projeto: projectId,
+      id_coluna: 0,
+      data_inicio: null,
+      data_prazo: null,
     }
   });
 
@@ -310,8 +310,8 @@ export default function ProjectBoard() {
 
   const handleAddCard = (columnId: number) => {
     setSelectedColumn(columnId);
-    form.setValue("columnId", columnId);
-    form.setValue("projectId", projectId);
+    form.setValue("id_coluna", columnId);
+    form.setValue("id_projeto", projectId);
     setIsAddOpen(true);
   };
 
@@ -352,23 +352,24 @@ export default function ProjectBoard() {
   // Group cards by column
   // Note: Assuming `columns` exist on project. If not, we might need default columns.
   const columns = project.columns && project.columns.length > 0
-    ? project.columns.sort((a, b) => a.order - b.order)
+    ? project.columns.sort((a, b) => a.ordem - b.ordem)
     : [
-      { id: 1, name: "Backlog", order: 0, projectId, color: "#6b7280", status: "Em aberto" },
-      { id: 2, name: "Em Progresso", order: 1, projectId, color: "#6b7280", status: "Em aberto" },
-      { id: 3, name: "Revisão", order: 2, projectId, color: "#6b7280", status: "Em aberto" },
-      { id: 4, name: "Concluído", order: 3, projectId, color: "#6b7280", status: "Concluído" }
-    ]; // Fallback
+      { id: 1, nome: "A Fazer", ordem: 0, projectId, cor: "#6b7280", status: "Em aberto" },
+      { id: 2, nome: "Em Andamento", ordem: 1, projectId, cor: "#3b82f6", status: "Em aberto" },
+      { id: 3, nome: "Pendência Interna", ordem: 2, projectId, cor: "#f59e0b", status: "Em aberto" },
+      { id: 4, nome: "Pendência Externa", ordem: 3, projectId, cor: "#f59e0b", status: "Em aberto" },
+      { id: 5, nome: "Concluído", ordem: 4, projectId, cor: "#10b981", status: "Concluído" }
+    ];
 
-  const getCardsForColumn = (colId: number) => cards.filter(c => c.columnId === colId);
+  const getCardsForColumn = (colId: number) => cards.filter(c => c.id_coluna === colId);
 
   return (
     <Layout>
       <div className="h-[calc(100vh-8rem)] flex flex-col">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold font-display">{project.name}</h1>
-            <p className="text-sm text-muted-foreground">{project.description}</p>
+            <h1 className="text-2xl font-bold font-display">{project.nome}</h1>
+            <p className="text-sm text-muted-foreground">{project.descricao}</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline">Visão de Linha do Tempo</Button>
@@ -386,12 +387,12 @@ export default function ProjectBoard() {
                 <KanbanColumn
                   key={col.id}
                   id={col.id}
-                  title={col.name}
+                  title={col.nome}
                   cards={getCardsForColumn(col.id)}
                   onAddCard={handleAddCard}
                   onCardClick={handleCardClick}
                   onDeleteCard={handleDeleteCard}
-                  color={col.color || "#6b7280"}
+                  color={col.cor}
                   users={users}
                 />
               ))}
@@ -408,21 +409,21 @@ export default function ProjectBoard() {
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="title"
+                  name="titulo"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Título</FormLabel>
-                      <FormControl><Input {...field} /></FormControl>
+                      <FormControl><Input {...field} value={field.value?.toString() || ''} /></FormControl>
                     </FormItem>
                   )}
                 />
                 <FormField
                   control={form.control}
-                  name="description"
+                  name="descricao"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Descrição</FormLabel>
-                      <FormControl><Textarea {...field} /></FormControl>
+                      <FormControl><Textarea {...field} value={field.value?.toString() || ''} /></FormControl>
                     </FormItem>
                   )}
                 />
@@ -430,12 +431,12 @@ export default function ProjectBoard() {
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="priority"
+                    name="prioridade"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Prioridade</FormLabel>
                         <FormControl>
-                          <select {...field} className="w-full p-2 border rounded-md">
+                          <select {...field} value={field.value?.toString() || ''} className="w-full p-2 border rounded-md">
                             <option value="Baixa">Baixa</option>
                             <option value="Média">Média</option>
                             <option value="Alta">Alta</option>
@@ -449,7 +450,7 @@ export default function ProjectBoard() {
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="startDate"
+                    name="data_inicio"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Data de Início</FormLabel>
@@ -466,7 +467,7 @@ export default function ProjectBoard() {
 
                   <FormField
                     control={form.control}
-                    name="dueDate"
+                    name="data_prazo"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Data de Entrega</FormLabel>
@@ -493,7 +494,7 @@ export default function ProjectBoard() {
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-2xl font-display">
-                {selectedCard?.title || "Carregando..."}
+                {selectedCard?.titulo || "Carregando..."}
               </DialogTitle>
             </DialogHeader>
 
@@ -512,26 +513,26 @@ export default function ProjectBoard() {
                 <div className="space-y-4">
                   <div>
                     <h3 className="text-sm font-semibold text-muted-foreground mb-1">Descrição</h3>
-                    <p className="text-sm">{selectedCard.description || "Sem descrição"}</p>
+                    <p className="text-sm">{selectedCard.descricao || "Sem descrição"}</p>
                   </div>
 
                   <div className="flex gap-4">
                     <div className="flex-1">
                       <h3 className="text-sm font-semibold text-muted-foreground mb-1">Prioridade</h3>
-                      <span className={`inline-block text-xs px-3 py-1 rounded-full font-medium ${selectedCard.priority === 'Alta' ? 'bg-red-500/10 text-red-600' :
-                        selectedCard.priority === 'Baixa' ? 'bg-green-500/10 text-green-600' :
+                      <span className={`inline-block text-xs px-3 py-1 rounded-full font-medium ${selectedCard.prioridade === 'Alta' ? 'bg-red-500/10 text-red-600' :
+                        selectedCard.prioridade === 'Baixa' ? 'bg-green-500/10 text-green-600' :
                           'bg-blue-500/10 text-blue-600'
                         }`}>
-                        {selectedCard.priority}
+                        {selectedCard.prioridade}
                       </span>
                     </div>
 
-                    {selectedCard.dueDate && (
+                    {selectedCard.data_prazo && (
                       <div className="flex-1">
                         <h3 className="text-sm font-semibold text-muted-foreground mb-1">Data de Entrega</h3>
                         <p className="text-sm flex items-center gap-2">
                           <Calendar className="w-4 h-4" />
-                          {format(new Date(selectedCard.dueDate), "dd/MM/yyyy")}
+                          {format(new Date(selectedCard.data_prazo), "dd/MM/yyyy")}
                         </p>
                       </div>
                     )}
@@ -571,7 +572,7 @@ export default function ProjectBoard() {
             setCardToDelete(null);
           }}
           onConfirm={confirmDeleteCard}
-          cardTitle={cardToDelete?.title || ''}
+          cardTitle={cardToDelete?.titulo || ''}
           isDeleting={deleteCard.isPending}
         />
       </div >
@@ -587,7 +588,7 @@ interface CardEditFormProps {
 }
 
 function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
-  const { data: template, isLoading: templateLoading } = useFormTemplate(card.formResponse?.templateId);
+  const { data: template, isLoading: templateLoading } = useFormTemplate(card.formResponse?.id_modelo);
   const { data: users } = useQuery({
     queryKey: ['/api/users'],
     queryFn: async () => {
@@ -603,13 +604,13 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
   const [selectedUserId, setSelectedUserId] = React.useState<string | null>(null);
 
   // Editable basic card info
-  const [editableDescription, setEditableDescription] = React.useState(card.description || '');
-  const [editablePriority, setEditablePriority] = React.useState(card.priority || 'Média');
+  const [editableDescription, setEditableDescription] = React.useState(card.descricao || '');
+  const [editablePriority, setEditablePriority] = React.useState(card.prioridade || 'Média');
   const [editableStartDate, setEditableStartDate] = React.useState(
-    dateToInputValue(card.startDate)
+    dateToInputValue(card.data_inicio)
   );
   const [editableDueDate, setEditableDueDate] = React.useState(
-    dateToInputValue(card.dueDate)
+    dateToInputValue(card.data_prazo)
   );
 
   // Load from localStorage on mount
@@ -639,18 +640,18 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
       if (card.formAnswers && card.formAnswers.length > 0) {
         const initialValues: Record<string, any> = {};
         card.formAnswers.forEach((answer: any) => {
-          if (answer.fieldId) {
-            if (answer.valueText) initialValues[`field_${answer.fieldId}`] = answer.valueText;
-            if (answer.valueNum) initialValues[`field_${answer.fieldId}`] = answer.valueNum;
-            if (answer.valueDate) initialValues[`field_${answer.fieldId}`] = answer.valueDate;
-            if (answer.valueBool !== null && answer.valueBool !== undefined) initialValues[`field_${answer.fieldId}`] = answer.valueBool;
-            if (answer.valueList) initialValues[`field_${answer.fieldId}`] = answer.valueList;
+          if (answer.id_campo) {
+            if (answer.valor_texto) initialValues[`field_${answer.id_campo}`] = answer.valor_texto;
+            if (answer.valor_numero) initialValues[`field_${answer.id_campo}`] = answer.valor_numero;
+            if (answer.valor_data) initialValues[`field_${answer.id_campo}`] = answer.valor_data;
+            if (answer.valor_booleano !== null && answer.valor_booleano !== undefined) initialValues[`field_${answer.id_campo}`] = answer.valor_booleano;
+            if (answer.valor_lista) initialValues[`field_${answer.id_campo}`] = answer.valor_lista;
           }
         });
         setFormValues(initialValues);
       }
     }
-  }, [card.id, card.formAnswers, card.description, card.priority, card.startDate, card.dueDate, card.assignedTechId]);
+  }, [card.id, card.formAnswers, card.descricao, card.prioridade, card.data_inicio, card.data_prazo, card.assignedTechId]);
 
   // Auto-save assignedTechId when it changes
   React.useEffect(() => {
@@ -692,25 +693,26 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
     // Convert formValues to answers format
     const answers = template?.fields?.map((field: any) => {
       const value = formValues[`field_${field.id}`];
-      const answer: any = { fieldId: field.id };
+      const answer: any = { id_campo: field.id };
 
-      switch (field.type) {
+      switch (field.tipo) {
         case 'text':
         case 'textarea':
-          answer.valueText = value || '';
+        case 'client':
+          answer.valor_texto = value || '';
           break;
         case 'number':
-          answer.valueNum = value ? parseFloat(value) : null;
+          answer.valor_numero = value ? parseFloat(value) : null;
           break;
         case 'date':
-          answer.valueDate = value || null;
+          answer.valor_data = value || null;
           break;
         case 'checkbox':
-          answer.valueBool = value === true;
+          answer.valor_booleano = value === true;
           break;
         case 'select':
         case 'list':
-          answer.valueList = value || null;
+          answer.valor_lista = value || null;
           break;
       }
 
@@ -867,18 +869,18 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
         <div className="grid grid-cols-2 gap-4">
           {template.fields.map((field: any) => {
             // Campos de texto longo ocupam toda a largura
-            const isFullWidth = field.type === 'textarea' || field.label?.toLowerCase().includes('descrição');
+            const isFullWidth = field.tipo === 'textarea' || field.rotulo?.toLowerCase().includes('descrição');
 
             // Detectar se é um campo de cliente pelo tipo ou pelo label
-            const isClientField = field.type === 'client' ||
-              field.label?.toLowerCase() === 'cliente' ||
-              field.label?.toLowerCase() === 'client';
+            const isClientField = field.tipo === 'client' ||
+              field.rotulo?.toLowerCase() === 'cliente' ||
+              field.rotulo?.toLowerCase() === 'client';
 
             return (
               <div key={field.id} className={`space-y-2 ${isFullWidth ? 'col-span-2' : ''}`}>
                 <label className="text-sm font-medium flex items-center gap-2">
-                  {field.label}
-                  {field.required && <span className="text-red-500">*</span>}
+                  {field.rotulo}
+                  {field.obrigatorio && <span className="text-red-500">*</span>}
                 </label>
 
                 {/* Campo de Cliente - Renderiza dropdown de clientes */}
@@ -886,40 +888,40 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
                   <ClientSelector
                     value={formValues[`field_${field.id}`] || ''}
                     onChange={(value) => handleInputChange(field.id, value)}
-                    required={field.required}
+                    required={field.obrigatorio}
                   />
-                ) : field.type === 'text' ? (
+                ) : field.tipo === 'text' ? (
                   <Input
                     value={formValues[`field_${field.id}`] || ''}
                     onChange={(e) => handleInputChange(field.id, e.target.value)}
-                    required={field.required}
-                    placeholder={field.label}
+                    required={field.obrigatorio}
+                    placeholder={field.rotulo}
                   />
-                ) : field.type === 'textarea' ? (
+                ) : field.tipo === 'textarea' ? (
                   <Textarea
                     value={formValues[`field_${field.id}`] || ''}
                     onChange={(e) => handleInputChange(field.id, e.target.value)}
-                    required={field.required}
-                    placeholder={field.label}
+                    required={field.obrigatorio}
+                    placeholder={field.rotulo}
                     rows={4}
                     className="w-full"
                   />
-                ) : field.type === 'number' ? (
+                ) : field.tipo === 'number' ? (
                   <Input
                     type="number"
                     value={formValues[`field_${field.id}`] || ''}
                     onChange={(e) => handleInputChange(field.id, e.target.value)}
-                    required={field.required}
-                    placeholder={field.label}
+                    required={field.obrigatorio}
+                    placeholder={field.rotulo}
                   />
-                ) : field.type === 'date' ? (
+                ) : field.tipo === 'date' ? (
                   <Input
                     type="date"
                     value={dateToInputValue(formValues[`field_${field.id}`])}
                     onChange={(e) => handleInputChange(field.id, inputValueToDate(e.target.value))}
-                    required={field.required}
+                    required={field.obrigatorio}
                   />
-                ) : field.type === 'checkbox' ? (
+                ) : field.tipo === 'checkbox' ? (
                   <div className="flex items-center gap-2">
                     <input
                       type="checkbox"
@@ -929,15 +931,15 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
                     />
                     <span className="text-sm text-muted-foreground">Sim</span>
                   </div>
-                ) : (field.type === 'select' || field.type === 'list') && field.options ? (
+                ) : (field.tipo === 'select' || field.tipo === 'list') && field.opcoes ? (
                   <select
                     className="w-full p-2 border rounded-md"
                     value={formValues[`field_${field.id}`] || ''}
                     onChange={(e) => handleInputChange(field.id, e.target.value)}
-                    required={field.required}
+                    required={field.obrigatorio}
                   >
                     <option value="">Selecione...</option>
-                    {Array.isArray(field.options) && field.options.map((option: string, idx: number) => (
+                    {Array.isArray(field.opcoes) && field.opcoes.map((option: string, idx: number) => (
                       <option key={idx} value={option}>{option}</option>
                     ))}
                   </select>
@@ -960,3 +962,5 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
     </form>
   );
 }
+
+

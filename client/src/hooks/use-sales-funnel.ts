@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@shared/routes";
-import type { salesFunnelCards, salesFunnelColumns } from "@shared/schema";
+import type { CartaoFunilVendas, ColunaFunilVendas, InsertCartaoFunilVendas, InsertColunaFunilVendas } from "@shared/schema";
 
 // Fetch columns
 export function useSalesFunnelColumns() {
@@ -9,7 +9,7 @@ export function useSalesFunnelColumns() {
         queryFn: async () => {
             const res = await fetch(api.salesFunnel.columns.list.path, { credentials: 'include' });
             if (!res.ok) throw new Error('Failed to fetch sales funnel columns');
-            return res.json() as Promise<typeof salesFunnelColumns.$inferSelect[]>;
+            return res.json() as Promise<ColunaFunilVendas[]>;
         },
     });
 }
@@ -17,11 +17,11 @@ export function useSalesFunnelColumns() {
 // Fetch cards
 export function useSalesFunnelCards() {
     return useQuery({
-        queryKey: [api.salesFunnel.cards.list.path],
+        queryKey: [api.salesFunnel.cartoes.list.path],
         queryFn: async () => {
-            const res = await fetch(api.salesFunnel.cards.list.path, { credentials: 'include' });
+            const res = await fetch(api.salesFunnel.cartoes.list.path, { credentials: 'include' });
             if (!res.ok) throw new Error('Failed to fetch sales funnel cards');
-            return res.json() as Promise<typeof salesFunnelCards.$inferSelect[]>;
+            return res.json() as Promise<CartaoFunilVendas[]>;
         },
     });
 }
@@ -29,11 +29,11 @@ export function useSalesFunnelCards() {
 // Get single card
 export function useSalesFunnelCard(id: number) {
     return useQuery({
-        queryKey: ['/api/sales-funnel/cards', id],
+        queryKey: [api.salesFunnel.cartoes.get.path.replace(':id', id.toString())],
         queryFn: async () => {
-            const res = await fetch(`/api/sales-funnel/cards/${id}`, { credentials: 'include' });
+            const res = await fetch(api.salesFunnel.cartoes.get.path.replace(':id', id.toString()), { credentials: 'include' });
             if (!res.ok) throw new Error('Failed to fetch sales funnel card');
-            return res.json() as Promise<typeof salesFunnelCards.$inferSelect>;
+            return res.json() as Promise<CartaoFunilVendas>;
         },
         enabled: !!id,
     });
@@ -43,8 +43,8 @@ export function useSalesFunnelCard(id: number) {
 export function useCreateSalesFunnelCard() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async (card: Omit<typeof salesFunnelCards.$inferInsert, 'id' | 'createdAt'>) => {
-            const res = await fetch(api.salesFunnel.cards.create.path, {
+        mutationFn: async (card: InsertCartaoFunilVendas) => {
+            const res = await fetch(api.salesFunnel.cartoes.create.path, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(card),
@@ -57,7 +57,7 @@ export function useCreateSalesFunnelCard() {
             return res.json();
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: [api.salesFunnel.cards.list.path] });
+            queryClient.invalidateQueries({ queryKey: [api.salesFunnel.cartoes.list.path] });
         },
     });
 }
@@ -66,8 +66,8 @@ export function useCreateSalesFunnelCard() {
 export function useUpdateSalesFunnelCard() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async ({ id, updates }: { id: number; updates: Partial<Omit<typeof salesFunnelCards.$inferInsert, 'id' | 'createdAt'>> }) => {
-            const res = await fetch(`/api/sales-funnel/cards/${id}`, {
+        mutationFn: async ({ id, updates }: { id: number; updates: Partial<InsertCartaoFunilVendas> }) => {
+            const res = await fetch(api.salesFunnel.cartoes.update.path.replace(':id', id.toString()), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(updates),
@@ -77,7 +77,7 @@ export function useUpdateSalesFunnelCard() {
             return res.json();
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: [api.salesFunnel.cards.list.path] });
+            queryClient.invalidateQueries({ queryKey: [api.salesFunnel.cartoes.list.path] });
         },
     });
 }
@@ -87,7 +87,7 @@ export function useMoveSalesFunnelCard() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async ({ id, columnId }: { id: number; columnId: number }) => {
-            const res = await fetch(`/api/sales-funnel/cards/${id}/move`, {
+            const res = await fetch(api.salesFunnel.cartoes.move.path.replace(':id', id.toString()), {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ columnId }),
@@ -97,7 +97,7 @@ export function useMoveSalesFunnelCard() {
             return res.json();
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: [api.salesFunnel.cards.list.path] });
+            queryClient.invalidateQueries({ queryKey: [api.salesFunnel.cartoes.list.path] });
         },
     });
 }
@@ -107,14 +107,15 @@ export function useDeleteSalesFunnelCard() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (id: number) => {
-            const res = await fetch(`/api/sales-funnel/cards/${id}`, {
+            const res = await fetch(api.salesFunnel.cartoes.delete.path.replace(':id', id.toString()), {
                 method: 'DELETE',
                 credentials: 'include',
             });
             if (!res.ok) throw new Error('Failed to delete sales funnel card');
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: [api.salesFunnel.cards.list.path] });
+            queryClient.invalidateQueries({ queryKey: [api.salesFunnel.cartoes.list.path] });
         },
     });
 }
+

@@ -1,19 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import { z } from "zod";
-import { insertFormTemplateSchema, insertFormFieldSchema } from "@shared/schema";
+import { insertModeloFormularioSchema, insertCampoFormularioSchema } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 
-type FormTemplateInput = z.infer<typeof insertFormTemplateSchema>;
-type FormFieldInput = z.infer<typeof insertFormFieldSchema>;
+type FormTemplateInput = z.infer<typeof insertModeloFormularioSchema>;
+type FormFieldInput = z.infer<typeof insertCampoFormularioSchema>;
 
 export function useFormTemplates() {
   return useQuery({
-    queryKey: [api.formTemplates.list.path],
+    queryKey: [api.modelos_formularios.list.path],
     queryFn: async () => {
-      const res = await fetch(api.formTemplates.list.path, { credentials: "include" });
+      const res = await fetch(api.modelos_formularios.list.path, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch templates");
-      return api.formTemplates.list.responses[200].parse(await res.json());
+      return api.modelos_formularios.list.responses[200].parse(await res.json());
     },
   });
 }
@@ -37,17 +37,17 @@ export function useCreateFormTemplate() {
 
   return useMutation({
     mutationFn: async (data: FormTemplateInput & { fields?: FormFieldInput[] }) => {
-      const res = await fetch(api.formTemplates.create.path, {
+      const res = await fetch(api.modelos_formularios.create.path, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to create template");
-      return api.formTemplates.create.responses[201].parse(await res.json());
+      return api.modelos_formularios.create.responses[201].parse(await res.json());
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [api.formTemplates.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.modelos_formularios.list.path] });
       toast({ title: "Sucesso", description: "Modelo criado" });
     },
   });
@@ -69,7 +69,7 @@ export function useUpdateFormTemplate(templateId: number) {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [api.formTemplates.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.modelos_formularios.list.path] });
       queryClient.invalidateQueries({ queryKey: ['/api/form-templates', templateId] });
       toast({ title: "Sucesso", description: "Modelo atualizado com sucesso" });
     },
@@ -78,6 +78,35 @@ export function useUpdateFormTemplate(templateId: number) {
       toast({
         title: "Erro",
         description: "Falha ao atualizar modelo. Tente novamente.",
+        variant: "destructive"
+      });
+    },
+  });
+}
+
+
+
+export function useDeleteFormTemplate() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/form-templates/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to delete template");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.modelos_formularios.list.path] });
+      toast({ title: "Sucesso", description: "Modelo excluído com sucesso" });
+    },
+    onError: (error) => {
+      console.error("Error deleting template:", error);
+      toast({
+        title: "Erro",
+        description: "Falha ao excluir modelo.",
         variant: "destructive"
       });
     },

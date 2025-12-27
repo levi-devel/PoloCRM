@@ -381,13 +381,13 @@ COMMENT='Alertas e notificações do sistema';
 
 ---
 
-## 6. Tabelas de Polo Projetos
+## 6. Tabelas de Polo Project
 
-### 6.1. Tabela: `polo_projetos`
+### 6.1. Tabela: `polo_project`
 Armazena os projetos Polo com Gantt.
 
 ```sql
-CREATE TABLE polo_projetos (
+CREATE TABLE polo_project (
     id INT AUTO_INCREMENT,
     id_cartao INT NOT NULL,
     nome TEXT NOT NULL,
@@ -399,20 +399,20 @@ CREATE TABLE polo_projetos (
     PRIMARY KEY (id),
     FOREIGN KEY (id_cartao) REFERENCES cartoes(id) ON DELETE CASCADE,
     FOREIGN KEY (criado_por) REFERENCES usuarios(id) ON DELETE SET NULL,
-    INDEX idx_polo_projetos_cartao (id_cartao)
+    INDEX idx_polo_project_cartao (id_cartao)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 COMMENT='Projetos Polo com gestão de etapas e Gantt';
 ```
 
 ---
 
-### 6.2. Tabela: `etapas_polo_projetos`
+### 6.2. Tabela: `etapas_polo_project`
 Armazena as etapas dos projetos Polo (com hierarquia).
 
 ```sql
-CREATE TABLE etapas_polo_projetos (
+CREATE TABLE etapas_polo_project (
     id INT AUTO_INCREMENT,
-    id_polo_projeto INT NOT NULL,
+    id_polo_project INT NOT NULL,
     nome TEXT NOT NULL,
     descricao TEXT,
     data_inicio DATE NOT NULL,
@@ -426,10 +426,10 @@ CREATE TABLE etapas_polo_projetos (
     descricao_atividade TEXT COMMENT 'Descrição da atividade realizada pelo responsável',
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    FOREIGN KEY (id_polo_projeto) REFERENCES polo_projetos(id) ON DELETE CASCADE,
-    FOREIGN KEY (id_etapa_pai) REFERENCES etapas_polo_projetos(id) ON DELETE CASCADE,
+    FOREIGN KEY (id_polo_project) REFERENCES polo_project(id) ON DELETE CASCADE,
+    FOREIGN KEY (id_etapa_pai) REFERENCES etapas_polo_project(id) ON DELETE CASCADE,
     FOREIGN KEY (id_tecnico_atribuido) REFERENCES usuarios(id) ON DELETE SET NULL,
-    INDEX idx_etapas_polo_projeto (id_polo_projeto),
+    INDEX idx_etapas_polo_project (id_polo_project),
     INDEX idx_etapas_pai (id_etapa_pai)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 COMMENT='Etapas dos projetos Polo com hierarquia (principais e sub-etapas)';
@@ -861,237 +861,6 @@ Total de **16 tabelas** criadas com **todos os nomes de colunas em português**:
 
 ---
 
-## Tabela de Mapeamento: Inglês → Português
-
-Esta tabela mostra o mapeamento completo de todos os nomes de colunas do código (em inglês) para o banco de dados (em português):
-
-### Tabela: `sessions` → `sessoes`
-| Código (Inglês) | Banco de Dados (Português) |
-|----------------|---------------------------|
-| sid | sid |
-| sess | sess |
-| expire | expira_em |
-
-### Tabela: `users` → `usuarios`
-| Código (Inglês) | Banco de Dados (Português) |
-|----------------|---------------------------|
-| id | id |
-| email | email |
-| first_name | primeiro_nome |
-| last_name | ultimo_nome |
-| password | senha |
-| profile_image_url | url_imagem_perfil |
-| role | funcao |
-| is_active | ativo |
-| created_at | criado_em |
-| updated_at | atualizado_em |
-
-### Tabela: `clients` → `clientes`
-| Código (Inglês) | Banco de Dados (Português) |
-|----------------|---------------------------|
-| id | id |
-| name | nome |
-| cnpj | cnpj |
-| contact | contato |
-| phone | telefone |
-| email | email |
-| notes | observacoes |
-| description | descricao |
-| contracted_products | produtos_contratados |
-| contracted_automations | automacoes_contratadas |
-| contract_limit_users | limite_usuarios |
-| contract_limit_agents | limite_agentes |
-| contract_limit_supervisors | limite_supervisores |
-| contract_start_date | data_inicio_contrato |
-| access_url | url_acesso |
-| api_used | api_utilizada |
-| credentials | credenciais |
-| defined_scope | escopo_definido |
-| out_of_scope | fora_escopo |
-| internal_managers | gestores_internos |
-| knowledge_base | base_conhecimento |
-| technical_spec_path | caminho_especificacao_tecnica |
-| risks | riscos |
-| current_pending | pendencias_atuais |
-| relevant_incidents | incidentes_relevantes |
-| technical_decisions | decisoes_tecnicas |
-| created_at | criado_em |
-
-### Tabela: `client_docs` → `documentos_clientes`
-| Código (Inglês) | Banco de Dados (Português) |
-|----------------|---------------------------|
-| id | id |
-| client_id | id_cliente |
-| type | tipo |
-| title | titulo |
-| url | url |
-| login | login |
-| password | senha |
-| notes | observacoes |
-| visibility | visibilidade |
-| allowed_users | usuarios_permitidos |
-| attachments | anexos |
-| created_at | criado_em |
-
-### Tabela: `form_templates` → `modelos_formularios`
-| Código (Inglês) | Banco de Dados (Português) |
-|----------------|---------------------------|
-| id | id |
-| name | nome |
-| description | descricao |
-| is_active | ativo |
-| created_by | criado_por |
-| version | versao |
-| created_at | criado_em |
-
-### Tabela: `form_fields` → `campos_formularios`
-| Código (Inglês) | Banco de Dados (Português) |
-|----------------|---------------------------|
-| id | id |
-| template_id | id_modelo |
-| order | ordem |
-| label | rotulo |
-| type | tipo |
-| required | obrigatorio |
-| options | opcoes |
-| placeholder | placeholder |
-
-### Tabela: `projects` → `projetos`
-| Código (Inglês) | Banco de Dados (Português) |
-|----------------|---------------------------|
-| id | id |
-| client_id | id_cliente |
-| name | nome |
-| description | descricao |
-| status | status |
-| tech_lead_id | id_lider_tecnico |
-| team | equipe |
-| start_date | data_inicio |
-| due_date | data_prazo |
-| completion_date | data_conclusao |
-| priority | prioridade |
-| default_template_id | id_modelo_padrao |
-| overdue_alert_active | alerta_atraso_ativo |
-| created_at | criado_em |
-
-### Tabela: `project_columns` → `colunas_projetos`
-| Código (Inglês) | Banco de Dados (Português) |
-|----------------|---------------------------|
-| id | id |
-| project_id | id_projeto |
-| name | nome |
-| order | ordem |
-| color | cor |
-| status | status |
-
-### Tabela: `cards` → `cartoes`
-| Código (Inglês) | Banco de Dados (Português) |
-|----------------|---------------------------|
-| id | id |
-| project_id | id_projeto |
-| column_id | id_coluna |
-| title | titulo |
-| description | descricao |
-| assigned_tech_id | id_tecnico_atribuido |
-| priority | prioridade |
-| start_date | data_inicio |
-| due_date | data_prazo |
-| completion_date | data_conclusao |
-| tags | tags |
-| created_by | criado_por |
-| created_at | criado_em |
-
-### Tabela: `card_form_responses` → `respostas_formularios_cartoes`
-| Código (Inglês) | Banco de Dados (Português) |
-|----------------|---------------------------|
-| id | id |
-| card_id | id_cartao |
-| template_id | id_modelo |
-| status | status |
-| updated_at | atualizado_em |
-
-### Tabela: `card_form_answers` → `respostas_campos_formularios`
-| Código (Inglês) | Banco de Dados (Português) |
-|----------------|---------------------------|
-| id | id |
-| response_id | id_resposta |
-| field_id | id_campo |
-| value_text | valor_texto |
-| value_num | valor_numero |
-| value_date | valor_data |
-| value_bool | valor_booleano |
-| value_list | valor_lista |
-| attachments | anexos |
-
-### Tabela: `alerts` → `alertas`
-| Código (Inglês) | Banco de Dados (Português) |
-|----------------|---------------------------|
-| id | id |
-| type | tipo |
-| project_id | id_projeto |
-| card_id | id_cartao |
-| message | mensagem |
-| severity | severidade |
-| resolved | resolvido |
-| created_at | criado_em |
-| resolved_at | resolvido_em |
-| recipients | destinatarios |
-
-### Tabela: `polo_projects` → `polo_projetos`
-| Código (Inglês) | Banco de Dados (Português) |
-|----------------|---------------------------|
-| id | id |
-| card_id | id_cartao |
-| name | nome |
-| description | descricao |
-| status | status |
-| overall_progress | progresso_geral |
-| created_by | criado_por |
-| created_at | criado_em |
-
-### Tabela: `polo_project_stages` → `etapas_polo_projetos`
-| Código (Inglês) | Banco de Dados (Português) |
-|----------------|---------------------------|
-| id | id |
-| polo_project_id | id_polo_projeto |
-| name | nome |
-| description | descricao |
-| start_date | data_inicio |
-| end_date | data_fim |
-| order | ordem |
-| level | nivel |
-| parent_stage_id | id_etapa_pai |
-| color | cor |
-| is_completed | concluida |
-| assigned_tech_id | id_tecnico_atribuido |
-| activity_description | descricao_atividade |
-| created_at | criado_em |
-
-### Tabela: `sales_funnel_columns` → `colunas_funil_vendas`
-| Código (Inglês) | Banco de Dados (Português) |
-|----------------|---------------------------|
-| id | id |
-| name | nome |
-| order | ordem |
-| color | cor |
-
-### Tabela: `sales_funnel_cards` → `cartoes_funil_vendas`
-| Código (Inglês) | Banco de Dados (Português) |
-|----------------|---------------------------|
-| id | id |
-| column_id | id_coluna |
-| client_name | nome_cliente |
-| cnpj | cnpj |
-| contact_name | nome_contato |
-| phone | telefone |
-| proposal_number | numero_proposta |
-| send_date | data_envio |
-| value | valor |
-| notes | observacoes |
-| created_by | criado_por |
-| created_at | criado_em |
-
----
 
 ## Verificação Final
 

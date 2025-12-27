@@ -13,7 +13,7 @@ interface KanbanSettingsProps {
     isOpen: boolean;
     onClose: () => void;
     projectId: number;
-    columns: Array<{ id: number; name: string; order: number; color: string | null; status: string }>;
+    columns: Array<{ id: number; nome: string; ordem: number; cor: string | null; status: string }>;
 }
 
 export function KanbanSettings({ isOpen, onClose, projectId, columns }: KanbanSettingsProps) {
@@ -31,7 +31,7 @@ export function KanbanSettings({ isOpen, onClose, projectId, columns }: KanbanSe
         setEditedColumns(columns);
     }, [columns]);
 
-    const handleUpdateColumn = async (id: number, updates: Partial<{ name: string; color: string; status: string }>) => {
+    const handleUpdateColumn = async (id: number, updates: Partial<{ nome: string; cor: string; status: string }>) => {
         setEditedColumns(prev =>
             prev.map(col => col.id === id ? { ...col, ...updates } : col)
         );
@@ -61,9 +61,9 @@ export function KanbanSettings({ isOpen, onClose, projectId, columns }: KanbanSe
 
         try {
             await createColumn.mutateAsync({
-                name: newColumnName,
-                order: columns.length,
-                color: "#6b7280",
+                nome: newColumnName,
+                ordem: columns.length,
+                cor: "#6b7280",
                 status: "Em aberto"
             });
             setNewColumnName("");
@@ -120,8 +120,8 @@ export function KanbanSettings({ isOpen, onClose, projectId, columns }: KanbanSe
                                                 Nome da Coluna
                                             </label>
                                             <Input
-                                                value={column.name}
-                                                onChange={(e) => handleUpdateColumn(column.id, { name: e.target.value })}
+                                                value={column.nome}
+                                                onChange={(e) => handleUpdateColumn(column.id, { nome: e.target.value })}
                                                 className="w-full"
                                             />
                                         </div>
@@ -131,8 +131,8 @@ export function KanbanSettings({ isOpen, onClose, projectId, columns }: KanbanSe
                                                 Cor da Coluna
                                             </label>
                                             <ColorPicker
-                                                value={column.color || "#6b7280"}
-                                                onChange={(color) => handleUpdateColumn(column.id, { color })}
+                                                value={column.cor || "#6b7280"}
+                                                onChange={(cor) => handleUpdateColumn(column.id, { cor })}
                                             />
                                         </div>
 

@@ -3,11 +3,12 @@ import { api } from "@shared/routes";
 
 export function useAlerts() {
   return useQuery({
-    queryKey: [api.alerts.list.path],
+    queryKey: [api.alertas.list.path],
     queryFn: async () => {
-      const res = await fetch(api.alerts.list.path, { credentials: "include" });
+      const res = await fetch(api.alertas.list.path, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch alerts");
-      return api.alerts.list.responses[200].parse(await res.json());
+      return api.alertas.list.responses[200].parse(await res.json());
     },
   });
 }
+

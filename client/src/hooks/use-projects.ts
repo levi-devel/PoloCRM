@@ -1,31 +1,31 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import { z } from "zod";
-import { insertProjectSchema, insertCardSchema, insertCardFormAnswerSchema } from "@shared/schema";
+import { insertProjetoSchema, insertCartaoSchema, insertRespostaCampoFormularioSchema } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 
-type ProjectInput = z.infer<typeof insertProjectSchema>;
-type CardInput = z.infer<typeof insertCardSchema>;
+type ProjectInput = z.infer<typeof insertProjetoSchema>;
+type CardInput = z.infer<typeof insertCartaoSchema>;
 
 export function useProjects() {
   return useQuery({
-    queryKey: [api.projects.list.path],
+    queryKey: [api.projetos.list.path],
     queryFn: async () => {
-      const res = await fetch(api.projects.list.path, { credentials: "include" });
+      const res = await fetch(api.projetos.list.path, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch projects");
-      return api.projects.list.responses[200].parse(await res.json());
+      return api.projetos.list.responses[200].parse(await res.json());
     },
   });
 }
 
 export function useProject(id: number) {
   return useQuery({
-    queryKey: [api.projects.get.path, id],
+    queryKey: [api.projetos.get.path, id],
     queryFn: async () => {
-      const url = buildUrl(api.projects.get.path, { id });
+      const url = buildUrl(api.projetos.get.path, { id });
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch project");
-      return api.projects.get.responses[200].parse(await res.json());
+      return api.projetos.get.responses[200].parse(await res.json());
     },
     enabled: !!id,
   });
@@ -37,17 +37,17 @@ export function useCreateProject() {
 
   return useMutation({
     mutationFn: async (data: ProjectInput) => {
-      const res = await fetch(api.projects.create.path, {
+      const res = await fetch(api.projetos.create.path, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to create project");
-      return api.projects.create.responses[201].parse(await res.json());
+      return api.projetos.create.responses[201].parse(await res.json());
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [api.projects.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.projetos.list.path] });
       toast({ title: "Sucesso", description: "Projeto criado" });
     },
     onError: (error) => {
@@ -59,12 +59,12 @@ export function useCreateProject() {
 // Cards
 export function useCards(projectId: number) {
   return useQuery({
-    queryKey: [api.cards.list.path, projectId],
+    queryKey: [api.cartoes.list.path, projectId],
     queryFn: async () => {
-      const url = buildUrl(api.cards.list.path, { projectId });
+      const url = buildUrl(api.cartoes.list.path, { projectId });
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch cards");
-      return api.cards.list.responses[200].parse(await res.json());
+      return api.cartoes.list.responses[200].parse(await res.json());
     },
     enabled: !!projectId,
   });
@@ -72,12 +72,12 @@ export function useCards(projectId: number) {
 
 export function useCard(id: number) {
   return useQuery({
-    queryKey: [api.cards.get.path, id],
+    queryKey: [api.cartoes.get.path, id],
     queryFn: async () => {
-      const url = buildUrl(api.cards.get.path, { id });
+      const url = buildUrl(api.cartoes.get.path, { id });
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch card details");
-      return api.cards.get.responses[200].parse(await res.json());
+      return api.cartoes.get.responses[200].parse(await res.json());
     },
     enabled: !!id,
   });
@@ -89,7 +89,7 @@ export function useCreateCard(projectId: number) {
 
   return useMutation({
     mutationFn: async (data: Omit<CardInput, "projectId">) => {
-      const url = buildUrl(api.cards.create.path, { projectId });
+      const url = buildUrl(api.cartoes.create.path, { projectId });
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -97,10 +97,10 @@ export function useCreateCard(projectId: number) {
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to create card");
-      return api.cards.create.responses[201].parse(await res.json());
+      return api.cartoes.create.responses[201].parse(await res.json());
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [api.cards.list.path, projectId] });
+      queryClient.invalidateQueries({ queryKey: [api.cartoes.list.path, projectId] });
       toast({ title: "Sucesso", description: "Cartão criado" });
     },
   });
@@ -110,7 +110,7 @@ export function useMoveCard() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, columnId, projectId }: { id: number; columnId: number; projectId: number }) => {
-      const url = buildUrl(api.cards.move.path, { id });
+      const url = buildUrl(api.cartoes.move.path, { id });
       const res = await fetch(url, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -118,10 +118,10 @@ export function useMoveCard() {
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to move card");
-      return api.cards.move.responses[200].parse(await res.json());
+      return api.cartoes.move.responses[200].parse(await res.json());
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: [api.cards.list.path, variables.projectId] });
+      queryClient.invalidateQueries({ queryKey: [api.cartoes.list.path, variables.projectId] });
     },
   });
 }
@@ -144,7 +144,7 @@ export function useSubmitCardForm(cardId: number) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/cards/${cardId}`] });
-      queryClient.invalidateQueries({ queryKey: [api.cards.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.cartoes.list.path] });
       toast({ title: "Sucesso", description: "Formulário salvo com sucesso" });
     },
     onError: (error) => {
@@ -181,7 +181,7 @@ export function useUpdateCardBasicInfo(cardId: number) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/cards/${cardId}`] });
-      queryClient.invalidateQueries({ queryKey: [api.cards.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.cartoes.list.path] });
       toast({ title: "Sucesso", description: "Card atualizado com sucesso" });
     },
     onError: (error) => {
@@ -212,8 +212,8 @@ export function useDeleteCard() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [api.cards.list.path] });
-      queryClient.invalidateQueries({ queryKey: [api.projects.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.cartoes.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.projetos.list.path] });
       toast({ title: "Sucesso", description: "Card deletado com sucesso" });
     },
     onError: (error) => {
@@ -226,3 +226,31 @@ export function useDeleteCard() {
     },
   });
 }
+
+export function useDeleteProject() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(buildUrl(api.projetos.delete.path, { id }), {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        if (res.status === 403) {
+          throw new Error("Você não tem permissão para excluir projetos.");
+        }
+        throw new Error("Falha ao excluir projeto");
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.projetos.list.path] });
+      toast({ title: "Sucesso", description: "Projeto excluído com sucesso" });
+    },
+    onError: (error) => {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    },
+  });
+}
+
