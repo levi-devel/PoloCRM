@@ -75,6 +75,13 @@ export async function initializePredefinedUsers() {
     console.log("🔐 Initializing predefined users...");
 
     for (const userData of PREDEFINED_USERS) {
+        // Check if user already exists
+        const existing = await storage.getUser(userData.id);
+        if (existing) {
+            // console.log(`Skipping update for existing user: ${userData.email}`);
+            continue;
+        }
+
         // Hash the password before storing
         const hashedPassword = await hashPassword(userData.password);
 
@@ -86,7 +93,7 @@ export async function initializePredefinedUsers() {
         });
     }
 
-    console.log(`✅ Initialized ${PREDEFINED_USERS.length} users with encrypted passwords`);
+    console.log(`✅ Predefined users check completed`);
 }
 
 // Validate user credentials

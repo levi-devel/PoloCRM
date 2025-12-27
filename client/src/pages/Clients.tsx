@@ -30,7 +30,7 @@ import {
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertClientSchema } from "@shared/schema";
+import { insertClienteSchema } from "@shared/schema";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Link } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -38,7 +38,7 @@ import { Badge } from "@/components/ui/badge";
 import type { Client } from "@shared/schema";
 import { cn } from "@/lib/utils";
 
-type ClientFormValues = z.infer<typeof insertClientSchema>;
+type ClientFormValues = z.infer<typeof insertClienteSchema>;
 
 function TagInput({ value, onChange, placeholder }: { value?: string[], onChange: (value: string[]) => void, placeholder: string }) {
   const [inputValue, setInputValue] = useState("");
@@ -112,42 +112,42 @@ function ClientFormDialog({
   const { data: milvusClients, isLoading: isMilvusLoading } = useMilvusClients(searchQuery);
 
   const form = useForm<ClientFormValues>({
-    resolver: zodResolver(insertClientSchema),
+    resolver: zodResolver(insertClienteSchema),
     defaultValues: client ? {
-      name: client.name || "",
+      nome: client.nome || "",
       cnpj: client.cnpj || "",
-      contact: client.contact || "",
+      contato: client.contato || "",
       email: client.email || "",
-      phone: client.phone || "",
-      notes: client.notes || "",
-      milvusNotes: client.milvusNotes || "",
-      description: client.description || "",
-      contractedProducts: client.contractedProducts || [],
-      contractedAutomations: client.contractedAutomations || [],
-      contractLimitUsers: client.contractLimitUsers || undefined,
-      contractLimitAgents: client.contractLimitAgents || undefined,
-      contractLimitSupervisors: client.contractLimitSupervisors || undefined,
-      contractStartDate: client.contractStartDate || undefined,
-      accessUrl: client.accessUrl || "",
-      apiUsed: client.apiUsed || "",
-      credentials: client.credentials || "",
-      definedScope: client.definedScope || "",
-      outOfScope: client.outOfScope || "",
-      internalManagers: client.internalManagers || [],
-      knowledgeBase: client.knowledgeBase || "",
-      technicalSpecPath: client.technicalSpecPath || "",
-      risks: client.risks || "",
-      currentPending: client.currentPending || "",
-      relevantIncidents: client.relevantIncidents || "",
-      technicalDecisions: client.technicalDecisions || "",
+      telefone: client.telefone || "",
+      observacoes: client.observacoes || "",
+      notas_milvus: client.notas_milvus || "",
+      descricao: client.descricao || "",
+      produtos_contratados: client.produtos_contratados || [],
+      automacoes_contratadas: client.automacoes_contratadas || [],
+      limite_usuarios: client.limite_usuarios || undefined,
+      limite_agentes: client.limite_agentes || undefined,
+      limite_supervisores: client.limite_supervisores || undefined,
+      data_inicio_contrato: client.data_inicio_contrato || undefined,
+      url_acesso: client.url_acesso || "",
+      api_utilizada: client.api_utilizada || "",
+      credenciais: client.credenciais || "",
+      escopo_definido: client.escopo_definido || "",
+      fora_escopo: client.fora_escopo || "",
+      gestores_internos: client.gestores_internos || [],
+      base_conhecimento: client.base_conhecimento || "",
+      caminho_especificacao_tecnica: client.caminho_especificacao_tecnica || "",
+      riscos: client.riscos || "",
+      pendencias_atuais: client.pendencias_atuais || "",
+      incidentes_relevantes: client.incidentes_relevantes || "",
+      decisoes_tecnicas: client.decisoes_tecnicas || "",
     } : {
-      name: "",
+      nome: "",
       cnpj: "",
-      contact: "",
+      contato: "",
       email: "",
-      phone: "",
-      notes: "",
-      milvusNotes: ""
+      telefone: "",
+      observacoes: "",
+      notas_milvus: ""
     }
   });
 
@@ -188,7 +188,7 @@ function ClientFormDialog({
             <TabsContent value="basic" className="space-y-4 mt-4">
               <FormField
                 control={form.control}
-                name="name"
+                name="nome"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel>Nome da Empresa *</FormLabel>
@@ -233,7 +233,7 @@ function ClientFormDialog({
                                     if (milvusClient.observacao) {
                                       // Strip HTML tags from observation
                                       const cleanObservation = stripHtmlTags(milvusClient.observacao);
-                                      form.setValue("milvusNotes", cleanObservation);
+                                      form.setValue("notas_milvus", cleanObservation);
                                     }
                                     setComboboxOpen(false);
                                     setSearchQuery("");
@@ -290,7 +290,7 @@ function ClientFormDialog({
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="contact"
+                  name="contato"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Pessoa de Contato</FormLabel>
@@ -303,7 +303,7 @@ function ClientFormDialog({
                 />
                 <FormField
                   control={form.control}
-                  name="phone"
+                  name="telefone"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Telefone</FormLabel>
@@ -330,7 +330,7 @@ function ClientFormDialog({
               />
               <FormField
                 control={form.control}
-                name="description"
+                name="descricao"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Descrição do Cliente</FormLabel>
@@ -344,7 +344,7 @@ function ClientFormDialog({
 
               <FormField
                 control={form.control}
-                name="milvusNotes"
+                name="notas_milvus"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Notas (Milvus)</FormLabel>
@@ -367,7 +367,7 @@ function ClientFormDialog({
             <TabsContent value="contract" className="space-y-4 mt-4">
               <FormField
                 control={form.control}
-                name="contractedProducts"
+                name="produtos_contratados"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Produtos Contratados</FormLabel>
@@ -384,7 +384,7 @@ function ClientFormDialog({
               />
               <FormField
                 control={form.control}
-                name="contractedAutomations"
+                name="automacoes_contratadas"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Automações Contratadas</FormLabel>
@@ -402,7 +402,7 @@ function ClientFormDialog({
               <div className="grid grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
-                  name="contractLimitUsers"
+                  name="limite_usuarios"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Limite de Usuários</FormLabel>
@@ -421,7 +421,7 @@ function ClientFormDialog({
                 />
                 <FormField
                   control={form.control}
-                  name="contractLimitAgents"
+                  name="limite_agentes"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Limite de Agentes</FormLabel>
@@ -440,7 +440,7 @@ function ClientFormDialog({
                 />
                 <FormField
                   control={form.control}
-                  name="contractLimitSupervisors"
+                  name="limite_supervisores"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Limite de Supervisores</FormLabel>
@@ -460,7 +460,7 @@ function ClientFormDialog({
               </div>
               <FormField
                 control={form.control}
-                name="contractStartDate"
+                name="data_inicio_contrato"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Data Inicial do Contrato</FormLabel>
@@ -481,7 +481,7 @@ function ClientFormDialog({
             <TabsContent value="technical" className="space-y-4 mt-4">
               <FormField
                 control={form.control}
-                name="accessUrl"
+                name="url_acesso"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>URL de Acesso</FormLabel>
@@ -494,7 +494,7 @@ function ClientFormDialog({
               />
               <FormField
                 control={form.control}
-                name="apiUsed"
+                name="api_utilizada"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>API Utilizada</FormLabel>
@@ -507,7 +507,7 @@ function ClientFormDialog({
               />
               <FormField
                 control={form.control}
-                name="credentials"
+                name="credenciais"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Credenciais</FormLabel>
@@ -520,7 +520,7 @@ function ClientFormDialog({
               />
               <FormField
                 control={form.control}
-                name="definedScope"
+                name="escopo_definido"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Escopo Definido</FormLabel>
@@ -533,7 +533,7 @@ function ClientFormDialog({
               />
               <FormField
                 control={form.control}
-                name="outOfScope"
+                name="fora_escopo"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Fora do Escopo</FormLabel>
@@ -546,7 +546,7 @@ function ClientFormDialog({
               />
               <FormField
                 control={form.control}
-                name="internalManagers"
+                name="gestores_internos"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Responsáveis Internos</FormLabel>
@@ -563,7 +563,7 @@ function ClientFormDialog({
               />
               <FormField
                 control={form.control}
-                name="knowledgeBase"
+                name="base_conhecimento"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Base de Conhecimento Geral</FormLabel>
@@ -576,7 +576,7 @@ function ClientFormDialog({
               />
               <FormField
                 control={form.control}
-                name="technicalSpecPath"
+                name="caminho_especificacao_tecnica"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Caminho da Especificação Técnica</FormLabel>
@@ -593,7 +593,7 @@ function ClientFormDialog({
             <TabsContent value="history" className="space-y-4 mt-4">
               <FormField
                 control={form.control}
-                name="risks"
+                name="riscos"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Riscos / Pontos de Atenção</FormLabel>
@@ -606,7 +606,7 @@ function ClientFormDialog({
               />
               <FormField
                 control={form.control}
-                name="currentPending"
+                name="pendencias_atuais"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Pendências Atuais</FormLabel>
@@ -619,7 +619,7 @@ function ClientFormDialog({
               />
               <FormField
                 control={form.control}
-                name="relevantIncidents"
+                name="incidentes_relevantes"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Incidentes Relevantes (Resumo)</FormLabel>
@@ -632,7 +632,7 @@ function ClientFormDialog({
               />
               <FormField
                 control={form.control}
-                name="technicalDecisions"
+                name="decisoes_tecnicas"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Decisões Técnicas Importantes</FormLabel>
@@ -667,8 +667,8 @@ export default function Clients() {
   const [editingClient, setEditingClient] = useState<Client | null>(null);
 
   const filteredClients = clients?.filter(client =>
-    client.name.toLowerCase().includes(search.toLowerCase()) ||
-    client.contact?.toLowerCase().includes(search.toLowerCase())
+    client.nome.toLowerCase().includes(search.toLowerCase()) ||
+    client.contato?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -733,13 +733,13 @@ export default function Clients() {
                   </div>
                 </div>
 
-                <h3 className="text-xl font-bold font-display text-foreground mb-1">{client.name}</h3>
-                <p className="text-sm text-muted-foreground mb-4">{client.description || client.notes || "Sem descrição"}</p>
+                <h3 className="text-xl font-bold font-display text-foreground mb-1">{client.nome}</h3>
+                <p className="text-sm text-muted-foreground mb-4">{client.descricao || client.observacoes || "Sem descrição"}</p>
 
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Users className="w-4 h-4" />
-                    <span>{client.contact || "N/A"}</span>
+                    <span>{client.contato || "N/A"}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Mail className="w-4 h-4" />
@@ -747,7 +747,7 @@ export default function Clients() {
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Phone className="w-4 h-4" />
-                    <span>{client.phone || "N/A"}</span>
+                    <span>{client.telefone || "N/A"}</span>
                   </div>
                 </div>
               </div>
@@ -769,3 +769,5 @@ export default function Clients() {
     </Layout>
   );
 }
+
+

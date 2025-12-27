@@ -39,6 +39,7 @@ const menuVisibility: Record<string, UserRole[]> = {
     "Projetos": ["Admin", "Gerente Comercial", "Gerente Supervisor", "Técnico"],
     "Polo Project": ["Admin", "Gerente Comercial", "Gerente Supervisor", "Técnico"],
     "Funil de Vendas": ["Admin", "Gerente Comercial"],
+    "Dashboard Funil": ["Admin", "Gerente Comercial"],
     "Clientes": ["Admin", "Gerente Comercial", "Gerente Supervisor", "Técnico"],
     "Usuários": ["Admin", "Gerente Comercial", "Gerente Supervisor"],
     "Modelos de Formulário": ["Admin", "Gerente Comercial", "Gerente Supervisor"],

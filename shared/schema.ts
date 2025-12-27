@@ -1,402 +1,424 @@
 export * from "./models/auth";
-import { mysqlTable, text, int, boolean, timestamp, json, date, varchar } from "drizzle-orm/mysql-core";
+import { mysqlTable, text, int, boolean, timestamp, json, date, varchar, foreignKey } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { users } from "./models/auth";
 
-export const clients = mysqlTable("clients", {
+export const clientes = mysqlTable("clientes", {
   id: int("id").primaryKey().autoincrement(),
-  name: text("name").notNull(),
+  nome: text("nome").notNull(),
   cnpj: text("cnpj"),
-  contact: text("contact"),
-  phone: text("phone"),
+  contato: text("contato"),
+  telefone: text("telefone"),
   email: text("email"),
-  notes: text("notes"),
-  milvusNotes: text("milvus_notes"), // Observação do Milvus
+  observacoes: text("observacoes"),
+  notas_milvus: text("milvus_notes"), // Observação do Milvus
 
-  // Client Description
-  description: text("description"),
+  // Descrição do Cliente
+  descricao: text("descricao"),
 
-  // Contract Details
-  contractedProducts: json("contracted_products").$type<string[]>(),
-  contractedAutomations: json("contracted_automations").$type<string[]>(),
-  contractLimitUsers: int("contract_limit_users"),
-  contractLimitAgents: int("contract_limit_agents"),
-  contractLimitSupervisors: int("contract_limit_supervisors"),
-  contractStartDate: date("contract_start_date"),
+  // Detalhes do Contrato
+  produtos_contratados: json("produtos_contratados").$type<string[]>(),
+  automacoes_contratadas: json("automacoes_contratadas").$type<string[]>(),
+  limite_usuarios: int("limite_usuarios"),
+  limite_agentes: int("limite_agentes"),
+  limite_supervisores: int("limite_supervisores"),
+  data_inicio_contrato: date("data_inicio_contrato"),
 
-  // Technical Information
-  accessUrl: text("access_url"),
-  apiUsed: text("api_used"),
-  credentials: text("credentials"), // Sensitive field
-  definedScope: text("defined_scope"),
-  outOfScope: text("out_of_scope"),
-  internalManagers: json("internal_managers").$type<string[]>(),
-  knowledgeBase: text("knowledge_base"),
-  technicalSpecPath: text("technical_spec_path"),
+  // Informações Técnicas
+  url_acesso: text("url_acesso"),
+  api_utilizada: text("api_utilizada"),
+  credenciais: text("credenciais"), // Campo sensível
+  escopo_definido: text("escopo_definido"),
+  fora_escopo: text("fora_escopo"),
+  gestores_internos: json("gestores_internos").$type<string[]>(),
+  base_conhecimento: text("base_conhecimento"),
+  caminho_especificacao_tecnica: text("caminho_especificacao_tecnica"),
 
-  // Quick History & Observations
-  risks: text("risks"),
-  currentPending: text("current_pending"),
-  relevantIncidents: text("relevant_incidents"),
-  technicalDecisions: text("technical_decisions"),
+  // Histórico Rápido e Observações
+  riscos: text("riscos"),
+  pendencias_atuais: text("pendencias_atuais"),
+  incidentes_relevantes: text("incidentes_relevantes"),
+  decisoes_tecnicas: text("decisoes_tecnicas"),
 
-  createdAt: timestamp("created_at").defaultNow(),
+  criado_em: timestamp("criado_em").defaultNow(),
 });
 
-export const clientDocs = mysqlTable("client_docs", {
+export const documentos_clientes = mysqlTable("documentos_clientes", {
   id: int("id").primaryKey().autoincrement(),
-  clientId: int("client_id").references(() => clients.id).notNull(),
-  type: text("type").notNull(), // Senha, URL, Acesso, Observação
-  title: text("title").notNull(),
+  id_cliente: int("id_cliente").references(() => clientes.id).notNull(),
+  tipo: text("tipo").notNull(), // Senha, URL, Acesso, Observação
+  titulo: text("titulo").notNull(),
   url: text("url"),
   login: text("login"),
-  password: text("password"), // Sensitive
-  notes: text("notes"),
-  visibility: text("visibility").default("Admin"), // Admin, Gestor, Atribuídos
-  allowedUsers: json("allowed_users").$type<string[]>(), // Array of user IDs
-  attachments: json("attachments").$type<string[]>(),
-  createdAt: timestamp("created_at").defaultNow(),
+  senha: text("senha"), // Sensitive
+  observacoes: text("observacoes"),
+  visibilidade: varchar("visibilidade", { length: 50 }).default("Admin"), // Admin, Gestor, Atribuídos
+  usuarios_permitidos: json("usuarios_permitidos").$type<string[]>(), // Array of user IDs
+  anexos: json("anexos").$type<string[]>(),
+  criado_em: timestamp("criado_em").defaultNow(),
 });
 
-export const formTemplates = mysqlTable("form_templates", {
+export const modelos_formularios = mysqlTable("modelos_formularios", {
   id: int("id").primaryKey().autoincrement(),
-  name: text("name").notNull(),
-  description: text("description"),
-  isActive: boolean("is_active").default(true).notNull(),
-  createdBy: varchar("created_by", { length: 255 }).references(() => users.id),
-  version: text("version").default("1.0"),
-  createdAt: timestamp("created_at").defaultNow(),
+  nome: text("nome").notNull(),
+  descricao: text("descricao"),
+  ativo: boolean("ativo").default(true).notNull(),
+  criado_por: varchar("criado_por", { length: 255 }).references(() => users.id),
+  versao: varchar("versao", { length: 50 }).default("1.0"),
+  criado_em: timestamp("criado_em").defaultNow(),
 });
 
-export const formFields = mysqlTable("form_fields", {
+export const campos_formularios = mysqlTable("campos_formularios", {
   id: int("id").primaryKey().autoincrement(),
-  templateId: int("template_id").references(() => formTemplates.id).notNull(),
-  order: int("order").notNull(),
-  label: text("label").notNull(),
-  type: text("type").notNull(), // text, long_text, number, date, list, checkbox, file
-  required: boolean("required").default(false).notNull(),
-  options: json("options").$type<string[]>(), // For lists
+  id_modelo: int("id_modelo").references(() => modelos_formularios.id).notNull(),
+  ordem: int("ordem").notNull(),
+  rotulo: text("rotulo").notNull(),
+  tipo: text("tipo").notNull(), // text, long_text, number, date, list, checkbox, file
+  obrigatorio: boolean("obrigatorio").default(false).notNull(),
+  opcoes: json("opcoes").$type<string[]>(), // For lists
   placeholder: text("placeholder"),
 });
 
-export const projects = mysqlTable("projects", {
+export const projetos = mysqlTable("projetos", {
   id: int("id").primaryKey().autoincrement(),
-  clientId: int("client_id").references(() => clients.id).notNull(),
-  name: text("name").notNull(),
-  description: text("description"),
-  status: text("status").default("Ativo").notNull(), // Ativo, Concluído, Pausado, Cancelado
-  techLeadId: varchar("tech_lead_id", { length: 255 }).references(() => users.id).notNull(),
-  team: json("team").$type<string[]>(), // Array of user IDs
-  startDate: timestamp("start_date"),
-  dueDate: timestamp("due_date"), // Prazo
-  completionDate: timestamp("completion_date"),
-  priority: text("priority").default("Média"), // Baixa, Média, Alta
-  defaultTemplateId: int("default_template_id").references(() => formTemplates.id).notNull(),
-  overdueAlertActive: boolean("overdue_alert_active").default(false),
-  createdAt: timestamp("created_at").defaultNow(),
+  id_cliente: int("id_cliente").references(() => clientes.id),
+  nome: text("nome").notNull(),
+  descricao: text("descricao"),
+  status: varchar("status", { length: 100 }).default("Ativo").notNull(), // Ativo, Concluído, Pausado, Cancelado
+  id_lider_tecnico: varchar("id_lider_tecnico", { length: 255 }).references(() => users.id).notNull(),
+  equipe: json("equipe").$type<string[]>(), // Array of user IDs
+  data_inicio: timestamp("data_inicio"),
+  data_prazo: timestamp("data_prazo"), // Prazo
+  data_conclusao: timestamp("data_conclusao"),
+  prioridade: varchar("prioridade", { length: 50 }).default("Média"), // Baixa, Média, Alta
+  id_modelo_padrao: int("id_modelo_padrao").references(() => modelos_formularios.id).notNull(),
+  alerta_atraso_ativo: boolean("alerta_atraso_ativo").default(false),
+  criado_em: timestamp("criado_em").defaultNow(),
 });
 
-export const projectColumns = mysqlTable("project_columns", {
+export const colunas_projetos = mysqlTable("colunas_projetos", {
   id: int("id").primaryKey().autoincrement(),
-  projectId: int("project_id").references(() => projects.id).notNull(),
-  name: text("name").notNull(),
-  order: int("order").notNull(),
-  color: text("color").default("#6b7280"), // Default gray
-  status: text("status").default("Em aberto").notNull(), // Em aberto, Pausado, Concluído
+  id_projeto: int("id_projeto").references(() => projetos.id).notNull(),
+  nome: text("nome").notNull(),
+  ordem: int("ordem").notNull(),
+  cor: varchar("cor", { length: 50 }).default("#6b7280"), // Default gray
+  status: varchar("status", { length: 100 }).default("Em aberto").notNull(), // Em aberto, Pausado, Concluído
 });
 
-export const cards = mysqlTable("cards", {
+export const cartoes = mysqlTable("cartoes", {
   id: int("id").primaryKey().autoincrement(),
-  projectId: int("project_id").references(() => projects.id).notNull(),
-  columnId: int("column_id").references(() => projectColumns.id).notNull(),
-  title: text("title").notNull(),
-  description: text("description"),
-  assignedTechId: varchar("assigned_tech_id", { length: 255 }).references(() => users.id),
-  priority: text("priority").default("Média"),
-  startDate: timestamp("start_date"),
-  dueDate: timestamp("due_date"),
-  completionDate: timestamp("completion_date"),
+  id_projeto: int("id_projeto").references(() => projetos.id).notNull(),
+  id_coluna: int("id_coluna").references(() => colunas_projetos.id).notNull(),
+  titulo: text("titulo").notNull(),
+  descricao: text("descricao"),
+  id_tecnico_atribuido: varchar("id_tecnico_atribuido", { length: 255 }).references(() => users.id),
+  prioridade: varchar("prioridade", { length: 50 }).default("Média"),
+  data_inicio: timestamp("data_inicio"),
+  data_prazo: timestamp("data_prazo"),
+  data_conclusao: timestamp("data_conclusao"),
   tags: json("tags").$type<string[]>(),
-  createdBy: varchar("created_by", { length: 255 }).references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow(),
+  criado_por: varchar("criado_por", { length: 255 }).references(() => users.id),
+  criado_em: timestamp("criado_em").defaultNow(),
 });
 
-export const cardFormResponses = mysqlTable("card_form_responses", {
+export const respostas_formularios_cartoes = mysqlTable("respostas_formularios_cartoes", {
   id: int("id").primaryKey().autoincrement(),
-  cardId: int("card_id").references(() => cards.id).notNull(),
-  templateId: int("template_id").references(() => formTemplates.id).notNull(),
-  status: text("status").default("Não iniciado"), // Não iniciado, Em preenchimento, Completo
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
+  id_cartao: int("id_cartao").notNull(),
+  id_modelo: int("id_modelo").notNull(),
+  status: varchar("status", { length: 100 }).default("Não iniciado"), // Não iniciado, Em preenchimento, Completo
+  atualizado_em: timestamp("atualizado_em").defaultNow(),
+}, (table) => ({
+  cartaoFk: foreignKey({
+    columns: [table.id_cartao],
+    foreignColumns: [cartoes.id],
+    name: "resp_form_cartao_fk"
+  }).onDelete("cascade"),
+  modeloFk: foreignKey({
+    columns: [table.id_modelo],
+    foreignColumns: [modelos_formularios.id],
+    name: "resp_form_modelo_fk"
+  }),
+}));
 
-export const cardFormAnswers = mysqlTable("card_form_answers", {
+export const respostas_campos_formularios = mysqlTable("respostas_campos_formularios", {
   id: int("id").primaryKey().autoincrement(),
-  responseId: int("response_id").references(() => cardFormResponses.id).notNull(),
-  fieldId: int("field_id").references(() => formFields.id).notNull(),
-  valueText: text("value_text"),
-  valueNum: int("value_num"),
-  valueDate: timestamp("value_date"),
-  valueBool: boolean("value_bool"),
-  valueList: text("value_list"),
-  attachments: json("attachments").$type<string[]>(),
-});
+  id_resposta: int("id_resposta").notNull(),
+  id_campo: int("id_campo").notNull(),
+  valor_texto: text("valor_texto"),
+  valor_numero: int("valor_numero"),
+  valor_data: timestamp("valor_data"),
+  valor_booleano: boolean("valor_booleano"),
+  valor_lista: text("valor_lista"),
+  anexos: json("anexos").$type<string[]>(),
+}, (table) => ({
+  respostaFk: foreignKey({
+    columns: [table.id_resposta],
+    foreignColumns: [respostas_formularios_cartoes.id],
+    name: "resp_campo_resposta_fk"
+  }).onDelete("cascade"),
+  campoFk: foreignKey({
+    columns: [table.id_campo],
+    foreignColumns: [campos_formularios.id],
+    name: "resp_campo_campo_fk"
+  }).onDelete("cascade"),
+}));
 
-export const alerts = mysqlTable("alerts", {
+export const alertas = mysqlTable("alertas", {
   id: int("id").primaryKey().autoincrement(),
-  type: text("type").notNull(),
-  projectId: int("project_id").references(() => projects.id).notNull(),
-  cardId: int("card_id").references(() => cards.id),
-  message: text("message").notNull(),
-  severity: text("severity").default("Info"), // Info, Aviso, Crítico
-  resolved: boolean("resolved").default(false),
-  createdAt: timestamp("created_at").defaultNow(),
-  resolvedAt: timestamp("resolved_at"),
-  recipients: json("recipients").$type<string[]>(), // User IDs
+  tipo: text("tipo").notNull(),
+  id_projeto: int("id_projeto").references(() => projetos.id).notNull(),
+  id_cartao: int("id_cartao").references(() => cartoes.id),
+  mensagem: text("mensagem").notNull(),
+  severidade: varchar("severidade", { length: 50 }).default("Info"), // Info, Aviso, Crítico
+  resolvido: boolean("resolvido").default(false),
+  criado_em: timestamp("criado_em").defaultNow(),
+  resolvido_em: timestamp("resolvido_em"),
+  destinatarios: json("destinatarios").$type<string[]>(), // User IDs
 });
 
 // Polo Project Tables
-export const poloProjects = mysqlTable("polo_projects", {
+export const polo_projetos = mysqlTable("polo_projetos", {
   id: int("id").primaryKey().autoincrement(),
-  cardId: int("card_id").references(() => cards.id).notNull(),
-  name: text("name").notNull(),
-  description: text("description"),
-  status: text("status").default("Ativo").notNull(), // Ativo, Concluído, Pausado, Cancelado
-  overallProgress: int("overall_progress").default(0), // 0-100
-  createdBy: varchar("created_by", { length: 255 }).references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow(),
+  id_cartao: int("id_cartao").references(() => cartoes.id).notNull(),
+  nome: text("nome").notNull(),
+  descricao: text("descricao"),
+  status: varchar("status", { length: 100 }).default("Ativo").notNull(), // Ativo, Concluído, Pausado, Cancelado
+  progresso_geral: int("progresso_geral").default(0), // 0-100
+  criado_por: varchar("criado_por", { length: 255 }).references(() => users.id),
+  criado_em: timestamp("criado_em").defaultNow(),
 });
 
-export const poloProjectStages = mysqlTable("polo_project_stages", {
+export const etapas_polo_projetos = mysqlTable("etapas_polo_projetos", {
   id: int("id").primaryKey().autoincrement(),
-  poloProjectId: int("polo_project_id").references(() => poloProjects.id).notNull(),
-  name: text("name").notNull(),
-  description: text("description"),
-  startDate: date("start_date").notNull(),
-  endDate: date("end_date").notNull(),
-  order: int("order").notNull(),
-  level: int("level").notNull().default(1), // 1 = Etapa Principal, 2 = Sub-Etapa
-  parentStageId: int("parent_stage_id"), // Referência à etapa principal (apenas para level 2)
-  color: text("color").default("#3b82f6"), // Default blue
-  isCompleted: boolean("is_completed").default(false),
-  assignedTechId: varchar("assigned_tech_id", { length: 255 }).references(() => users.id),
-  activityDescription: text("activity_description"), // Descrição da atividade realizada
-  createdAt: timestamp("created_at").defaultNow(),
+  id_polo_projeto: int("id_polo_projeto").references(() => polo_projetos.id).notNull(),
+  nome: text("nome").notNull(),
+  descricao: text("descricao"),
+  data_inicio: date("data_inicio").notNull(),
+  data_fim: date("data_fim").notNull(),
+  ordem: int("ordem").notNull(),
+  nivel: int("nivel").notNull().default(1), // 1 = Etapa Principal, 2 = Sub-Etapa
+  id_etapa_pai: int("id_etapa_pai"), // Referência à etapa principal (apenas para level 2)
+  cor: varchar("cor", { length: 50 }).default("#3b82f6"), // Default blue
+  concluida: boolean("concluida").default(false),
+  id_tecnico_atribuido: varchar("id_tecnico_atribuido", { length: 255 }).references(() => users.id),
+  descricao_atividade: text("descricao_atividade"), // Descrição da atividade realizada
+  criado_em: timestamp("criado_em").defaultNow(),
 });
 
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
-  projects: many(projects, { relationName: "techLead" }),
-  cards: many(cards, { relationName: "assignedTech" }),
+  projetos: many(projetos, { relationName: "techLead" }),
+  cartoes: many(cartoes, { relationName: "assignedTech" }),
 }));
 
-export const clientsRelations = relations(clients, ({ many }) => ({
-  projects: many(projects),
-  docs: many(clientDocs),
+export const clientesRelations = relations(clientes, ({ many }) => ({
+  projetos: many(projetos),
+  documentos: many(documentos_clientes),
 }));
 
-export const clientDocsRelations = relations(clientDocs, ({ one }) => ({
-  client: one(clients, {
-    fields: [clientDocs.clientId],
-    references: [clients.id],
+export const documentosClientesRelations = relations(documentos_clientes, ({ one }) => ({
+  cliente: one(clientes, {
+    fields: [documentos_clientes.id_cliente],
+    references: [clientes.id],
   }),
 }));
 
-export const projectsRelations = relations(projects, ({ one, many }) => ({
-  client: one(clients, {
-    fields: [projects.clientId],
-    references: [clients.id],
+export const projetosRelations = relations(projetos, ({ one, many }) => ({
+  cliente: one(clientes, {
+    fields: [projetos.id_cliente],
+    references: [clientes.id],
   }),
-  techLead: one(users, {
-    fields: [projects.techLeadId],
+  lider_tecnico: one(users, {
+    fields: [projetos.id_lider_tecnico],
     references: [users.id],
     relationName: "techLead",
   }),
-  template: one(formTemplates, {
-    fields: [projects.defaultTemplateId],
-    references: [formTemplates.id],
+  modelo: one(modelos_formularios, {
+    fields: [projetos.id_modelo_padrao],
+    references: [modelos_formularios.id],
   }),
-  columns: many(projectColumns),
-  cards: many(cards),
-  alerts: many(alerts),
+  colunas: many(colunas_projetos),
+  cartoes: many(cartoes),
+  alertas: many(alertas),
 }));
 
-export const projectColumnsRelations = relations(projectColumns, ({ one, many }) => ({
-  project: one(projects, {
-    fields: [projectColumns.projectId],
-    references: [projects.id],
+export const colunasProjetosRelations = relations(colunas_projetos, ({ one, many }) => ({
+  projeto: one(projetos, {
+    fields: [colunas_projetos.id_projeto],
+    references: [projetos.id],
   }),
-  cards: many(cards),
+  cartoes: many(cartoes),
 }));
 
-export const cardsRelations = relations(cards, ({ one, many }) => ({
-  project: one(projects, {
-    fields: [cards.projectId],
-    references: [projects.id],
+export const cartoesRelations = relations(cartoes, ({ one, many }) => ({
+  projeto: one(projetos, {
+    fields: [cartoes.id_projeto],
+    references: [projetos.id],
   }),
-  column: one(projectColumns, {
-    fields: [cards.columnId],
-    references: [projectColumns.id],
+  coluna: one(colunas_projetos, {
+    fields: [cartoes.id_coluna],
+    references: [colunas_projetos.id],
   }),
-  assignedTech: one(users, {
-    fields: [cards.assignedTechId],
+  tecnico_atribuido: one(users, {
+    fields: [cartoes.id_tecnico_atribuido],
     references: [users.id],
     relationName: "assignedTech",
   }),
-  createdBy: one(users, {
-    fields: [cards.createdBy],
+  criado_por_usuario: one(users, {
+    fields: [cartoes.criado_por],
     references: [users.id],
   }),
-  formResponse: one(cardFormResponses),
+  resposta_formulario: one(respostas_formularios_cartoes),
 }));
 
-export const cardFormResponsesRelations = relations(cardFormResponses, ({ one, many }) => ({
-  card: one(cards, {
-    fields: [cardFormResponses.cardId],
-    references: [cards.id],
+export const respostasFormulariosCartoesRelations = relations(respostas_formularios_cartoes, ({ one, many }) => ({
+  cartao: one(cartoes, {
+    fields: [respostas_formularios_cartoes.id_cartao],
+    references: [cartoes.id],
   }),
-  template: one(formTemplates, {
-    fields: [cardFormResponses.templateId],
-    references: [formTemplates.id],
+  modelo: one(modelos_formularios, {
+    fields: [respostas_formularios_cartoes.id_modelo],
+    references: [modelos_formularios.id],
   }),
-  answers: many(cardFormAnswers),
+  respostas: many(respostas_campos_formularios),
 }));
 
-export const cardFormAnswersRelations = relations(cardFormAnswers, ({ one }) => ({
-  response: one(cardFormResponses, {
-    fields: [cardFormAnswers.responseId],
-    references: [cardFormResponses.id],
+export const respostasCamposFormulariosRelations = relations(respostas_campos_formularios, ({ one }) => ({
+  resposta: one(respostas_formularios_cartoes, {
+    fields: [respostas_campos_formularios.id_resposta],
+    references: [respostas_formularios_cartoes.id],
   }),
-  field: one(formFields, {
-    fields: [cardFormAnswers.fieldId],
-    references: [formFields.id],
+  campo: one(campos_formularios, {
+    fields: [respostas_campos_formularios.id_campo],
+    references: [campos_formularios.id],
   }),
 }));
 
-export const poloProjectsRelations = relations(poloProjects, ({ one, many }) => ({
-  card: one(cards, {
-    fields: [poloProjects.cardId],
-    references: [cards.id],
+export const poloProjetosRelations = relations(polo_projetos, ({ one, many }) => ({
+  cartao: one(cartoes, {
+    fields: [polo_projetos.id_cartao],
+    references: [cartoes.id],
   }),
-  createdBy: one(users, {
-    fields: [poloProjects.createdBy],
+  criado_por_usuario: one(users, {
+    fields: [polo_projetos.criado_por],
     references: [users.id],
   }),
-  stages: many(poloProjectStages),
+  etapas: many(etapas_polo_projetos),
 }));
 
-export const poloProjectStagesRelations = relations(poloProjectStages, ({ one, many }) => ({
-  poloProject: one(poloProjects, {
-    fields: [poloProjectStages.poloProjectId],
-    references: [poloProjects.id],
+export const etapasPoloProjetosRelations = relations(etapas_polo_projetos, ({ one, many }) => ({
+  polo_projeto: one(polo_projetos, {
+    fields: [etapas_polo_projetos.id_polo_projeto],
+    references: [polo_projetos.id],
   }),
-  assignedTech: one(users, {
-    fields: [poloProjectStages.assignedTechId],
+  tecnico_atribuido: one(users, {
+    fields: [etapas_polo_projetos.id_tecnico_atribuido],
     references: [users.id],
   }),
-  parentStage: one(poloProjectStages, {
-    fields: [poloProjectStages.parentStageId],
-    references: [poloProjectStages.id],
-    relationName: "subStages",
+  etapa_pai: one(etapas_polo_projetos, {
+    fields: [etapas_polo_projetos.id_etapa_pai],
+    references: [etapas_polo_projetos.id],
+    relationName: "subEtapas",
   }),
-  subStages: many(poloProjectStages, {
-    relationName: "subStages",
-  }),
-}));
-
-export const formTemplatesRelations = relations(formTemplates, ({ many }) => ({
-  fields: many(formFields),
-}));
-
-export const formFieldsRelations = relations(formFields, ({ one }) => ({
-  template: one(formTemplates, {
-    fields: [formFields.templateId],
-    references: [formTemplates.id],
+  sub_etapas: many(etapas_polo_projetos, {
+    relationName: "subEtapas",
   }),
 }));
 
-export const insertClientSchema = createInsertSchema(clients).omit({ id: true, createdAt: true });
-export const insertClientDocSchema = createInsertSchema(clientDocs).omit({ id: true, createdAt: true });
-export const insertFormTemplateSchema = createInsertSchema(formTemplates).omit({ id: true, createdAt: true });
-export const insertFormFieldSchema = createInsertSchema(formFields).omit({ id: true });
-export const insertProjectSchema = createInsertSchema(projects).omit({ id: true, createdAt: true });
-export const insertProjectColumnSchema = createInsertSchema(projectColumns).omit({ id: true });
-export const insertCardSchema = createInsertSchema(cards).omit({ id: true, createdAt: true });
-export const insertCardFormResponseSchema = createInsertSchema(cardFormResponses).omit({ id: true, updatedAt: true });
-export const insertCardFormAnswerSchema = createInsertSchema(cardFormAnswers).omit({ id: true });
-export const insertAlertSchema = createInsertSchema(alerts).omit({ id: true, createdAt: true, resolvedAt: true });
-export const insertPoloProjectSchema = createInsertSchema(poloProjects).omit({ id: true, createdAt: true });
-export const insertPoloProjectStageSchema = createInsertSchema(poloProjectStages).omit({ id: true, createdAt: true });
+export const modelosFormulariosRelations = relations(modelos_formularios, ({ many }) => ({
+  campos: many(campos_formularios),
+}));
 
-export type Client = typeof clients.$inferSelect;
-export type InsertClient = z.infer<typeof insertClientSchema>;
-export type ClientDoc = typeof clientDocs.$inferSelect;
-export type InsertClientDoc = z.infer<typeof insertClientDocSchema>;
-export type FormTemplate = typeof formTemplates.$inferSelect;
-export type InsertFormTemplate = z.infer<typeof insertFormTemplateSchema>;
-export type FormField = typeof formFields.$inferSelect;
-export type InsertFormField = z.infer<typeof insertFormFieldSchema>;
-export type Project = typeof projects.$inferSelect;
-export type InsertProject = z.infer<typeof insertProjectSchema>;
-export type ProjectColumn = typeof projectColumns.$inferSelect;
-export type InsertProjectColumn = z.infer<typeof insertProjectColumnSchema>;
-export type Card = typeof cards.$inferSelect;
-export type InsertCard = z.infer<typeof insertCardSchema>;
-export type CardFormResponse = typeof cardFormResponses.$inferSelect;
-export type InsertCardFormResponse = z.infer<typeof insertCardFormResponseSchema>;
-export type CardFormAnswer = typeof cardFormAnswers.$inferSelect;
-export type InsertCardFormAnswer = z.infer<typeof insertCardFormAnswerSchema>;
-export type Alert = typeof alerts.$inferSelect;
-export type InsertAlert = z.infer<typeof insertAlertSchema>;
-export type PoloProject = typeof poloProjects.$inferSelect;
-export type InsertPoloProject = z.infer<typeof insertPoloProjectSchema>;
-export type PoloProjectStage = typeof poloProjectStages.$inferSelect;
-export type InsertPoloProjectStage = z.infer<typeof insertPoloProjectStageSchema>;
+export const camposFormulariosRelations = relations(campos_formularios, ({ one }) => ({
+  modelo: one(modelos_formularios, {
+    fields: [campos_formularios.id_modelo],
+    references: [modelos_formularios.id],
+  }),
+}));
+
+export const insertClienteSchema = createInsertSchema(clientes).omit({ id: true, criado_em: true });
+export const insertDocumentoClienteSchema = createInsertSchema(documentos_clientes).omit({ id: true, criado_em: true });
+export const insertModeloFormularioSchema = createInsertSchema(modelos_formularios).omit({ id: true, criado_em: true });
+export const insertCampoFormularioSchema = createInsertSchema(campos_formularios).omit({ id: true });
+export const insertProjetoSchema = createInsertSchema(projetos).omit({ id: true, criado_em: true });
+export const insertColunaProjetoSchema = createInsertSchema(colunas_projetos).omit({ id: true });
+export const insertCartaoSchema = createInsertSchema(cartoes).omit({ id: true, criado_em: true });
+export const insertRespostaFormularioCartaoSchema = createInsertSchema(respostas_formularios_cartoes).omit({ id: true, atualizado_em: true });
+export const insertRespostaCampoFormularioSchema = createInsertSchema(respostas_campos_formularios).omit({ id: true });
+export const insertAlertaSchema = createInsertSchema(alertas).omit({ id: true, criado_em: true, resolvido_em: true });
+export const insertPoloProjetoSchema = createInsertSchema(polo_projetos).omit({ id: true, criado_em: true });
+export const insertEtapaPoloProjetoSchema = createInsertSchema(etapas_polo_projetos).omit({ id: true, criado_em: true });
+
+export type Cliente = typeof clientes.$inferSelect;
+export type InsertCliente = z.infer<typeof insertClienteSchema>;
+export type DocumentoCliente = typeof documentos_clientes.$inferSelect;
+export type InsertDocumentoCliente = z.infer<typeof insertDocumentoClienteSchema>;
+export type ModeloFormulario = typeof modelos_formularios.$inferSelect;
+export type InsertModeloFormulario = z.infer<typeof insertModeloFormularioSchema>;
+export type CampoFormulario = typeof campos_formularios.$inferSelect;
+export type InsertCampoFormulario = z.infer<typeof insertCampoFormularioSchema>;
+export type Projeto = typeof projetos.$inferSelect;
+export type InsertProjeto = z.infer<typeof insertProjetoSchema>;
+export type ColunaProjeto = typeof colunas_projetos.$inferSelect;
+export type InsertColunaProjeto = z.infer<typeof insertColunaProjetoSchema>;
+export type Cartao = typeof cartoes.$inferSelect;
+export type InsertCartao = z.infer<typeof insertCartaoSchema>;
+export type RespostaFormularioCartao = typeof respostas_formularios_cartoes.$inferSelect;
+export type InsertRespostaFormularioCartao = z.infer<typeof insertRespostaFormularioCartaoSchema>;
+export type RespostaCampoFormulario = typeof respostas_campos_formularios.$inferSelect;
+export type InsertRespostaCampoFormulario = z.infer<typeof insertRespostaCampoFormularioSchema>;
+export type Alerta = typeof alertas.$inferSelect;
+export type InsertAlerta = z.infer<typeof insertAlertaSchema>;
+export type PoloProjeto = typeof polo_projetos.$inferSelect;
+export type InsertPoloProjeto = z.infer<typeof insertPoloProjetoSchema>;
+export type EtapaPoloProjeto = typeof etapas_polo_projetos.$inferSelect;
+export type InsertEtapaPoloProjeto = z.infer<typeof insertEtapaPoloProjetoSchema>;
 
 // Sales Funnel Tables
-export const salesFunnelColumns = mysqlTable("sales_funnel_columns", {
+export const colunas_funil_vendas = mysqlTable("colunas_funil_vendas", {
   id: int("id").primaryKey().autoincrement(),
-  name: text("name").notNull(),
-  order: int("order").notNull(),
-  color: text("color").default("#3b82f6"), // Default blue
+  nome: text("nome").notNull(),
+  ordem: int("ordem").notNull(),
+  cor: varchar("cor", { length: 50 }).default("#3b82f6"), // Default blue
 });
 
-export const salesFunnelCards = mysqlTable("sales_funnel_cards", {
+export const cartoes_funil_vendas = mysqlTable("cartoes_funil_vendas", {
   id: int("id").primaryKey().autoincrement(),
-  columnId: int("column_id").references(() => salesFunnelColumns.id).notNull(),
-  clientName: text("client_name").notNull(),
+  id_coluna: int("id_coluna").references(() => colunas_funil_vendas.id).notNull(),
+  nome_cliente: text("nome_cliente").notNull(),
   cnpj: text("cnpj"),
-  contactName: text("contact_name"),
-  phone: text("phone"),
-  proposalNumber: text("proposal_number"),
-  sendDate: date("send_date"),
-  value: int("value"), // Valor em centavos
-  notes: text("notes"),
-  createdBy: varchar("created_by", { length: 255 }).references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow(),
+  nome_contato: text("nome_contato"),
+  telefone: text("telefone"),
+  numero_proposta: text("numero_proposta"),
+  data_envio: date("data_envio"),
+  valor: int("valor"), // Valor em centavos
+  observacoes: text("observacoes"),
+  criado_por: varchar("criado_por", { length: 255 }).references(() => users.id),
+  criado_em: timestamp("criado_em").defaultNow(),
 });
 
 // Sales Funnel Relations
-export const salesFunnelColumnsRelations = relations(salesFunnelColumns, ({ many }) => ({
-  cards: many(salesFunnelCards),
+export const colunasFunilVendasRelations = relations(colunas_funil_vendas, ({ many }) => ({
+  cartoes: many(cartoes_funil_vendas),
 }));
 
-export const salesFunnelCardsRelations = relations(salesFunnelCards, ({ one }) => ({
-  column: one(salesFunnelColumns, {
-    fields: [salesFunnelCards.columnId],
-    references: [salesFunnelColumns.id],
+export const cartoesFunilVendasRelations = relations(cartoes_funil_vendas, ({ one }) => ({
+  coluna: one(colunas_funil_vendas, {
+    fields: [cartoes_funil_vendas.id_coluna],
+    references: [colunas_funil_vendas.id],
   }),
-  createdBy: one(users, {
-    fields: [salesFunnelCards.createdBy],
+  criado_por_usuario: one(users, {
+    fields: [cartoes_funil_vendas.criado_por],
     references: [users.id],
   }),
 }));
 
-export const insertSalesFunnelColumnSchema = createInsertSchema(salesFunnelColumns).omit({ id: true });
-export const insertSalesFunnelCardSchema = createInsertSchema(salesFunnelCards).omit({ id: true, createdAt: true });
+export const insertColunaFunilVendasSchema = createInsertSchema(colunas_funil_vendas).omit({ id: true });
+export const insertCartaoFunilVendasSchema = createInsertSchema(cartoes_funil_vendas).omit({ id: true, criado_em: true });
 
-export type SalesFunnelColumn = typeof salesFunnelColumns.$inferSelect;
-export type InsertSalesFunnelColumn = z.infer<typeof insertSalesFunnelColumnSchema>;
-export type SalesFunnelCard = typeof salesFunnelCards.$inferSelect;
-export type InsertSalesFunnelCard = z.infer<typeof insertSalesFunnelCardSchema>;
+export type ColunaFunilVendas = typeof colunas_funil_vendas.$inferSelect;
+export type InsertColunaFunilVendas = z.infer<typeof insertColunaFunilVendasSchema>;
+export type CartaoFunilVendas = typeof cartoes_funil_vendas.$inferSelect;
+export type InsertCartaoFunilVendas = z.infer<typeof insertCartaoFunilVendasSchema>;

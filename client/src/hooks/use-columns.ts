@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 // Hook to create a new column
+// Hook to create a new column
 export function useCreateColumn(projectId: number) {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (column: { name: string; order: number; color?: string; status?: string }) => {
+        mutationFn: async (column: { nome: string; ordem: number; cor?: string; status?: string }) => {
             const res = await fetch(`/api/projects/${projectId}/columns`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -26,7 +27,7 @@ export function useUpdateColumn() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ id, updates }: { id: number; updates: { name?: string; order?: number; color?: string; status?: string } }) => {
+        mutationFn: async ({ id, updates }: { id: number; updates: { nome?: string; ordem?: number; cor?: string; status?: string } }) => {
             const res = await fetch(`/api/columns/${id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },

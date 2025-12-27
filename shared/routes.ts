@@ -1,33 +1,33 @@
 import { z } from 'zod';
 import {
-  insertClientSchema,
-  insertClientDocSchema,
-  insertFormTemplateSchema,
-  insertFormFieldSchema,
-  insertProjectSchema,
-  insertProjectColumnSchema,
-  insertCardSchema,
-  insertCardFormResponseSchema,
-  insertCardFormAnswerSchema,
-  insertAlertSchema,
-  insertPoloProjectSchema,
-  insertPoloProjectStageSchema,
-  insertSalesFunnelColumnSchema,
-  insertSalesFunnelCardSchema,
-  clients,
-  clientDocs,
-  formTemplates,
-  formFields,
-  projects,
-  projectColumns,
-  cards,
-  cardFormResponses,
-  cardFormAnswers,
-  alerts,
-  poloProjects,
-  poloProjectStages,
-  salesFunnelColumns,
-  salesFunnelCards,
+  insertClienteSchema,
+  insertDocumentoClienteSchema,
+  insertModeloFormularioSchema,
+  insertCampoFormularioSchema,
+  insertProjetoSchema,
+  insertColunaProjetoSchema,
+  insertCartaoSchema,
+  insertRespostaFormularioCartaoSchema,
+  insertRespostaCampoFormularioSchema,
+  insertAlertaSchema,
+  insertPoloProjetoSchema,
+  insertEtapaPoloProjetoSchema,
+  insertColunaFunilVendasSchema,
+  insertCartaoFunilVendasSchema,
+  clientes,
+  documentos_clientes,
+  modelos_formularios,
+  campos_formularios,
+  projetos,
+  colunas_projetos,
+  cartoes,
+  respostas_formularios_cartoes,
+  respostas_campos_formularios,
+  alertas,
+  polo_projetos,
+  etapas_polo_projetos,
+  colunas_funil_vendas,
+  cartoes_funil_vendas,
   users
 } from './schema';
 
@@ -69,75 +69,75 @@ export const api = {
       },
     },
   },
-  clients: {
+  clientes: {
     list: {
       method: 'GET' as const,
-      path: '/api/clients',
+      path: '/api/clientes',
       responses: {
-        200: z.array(z.custom<typeof clients.$inferSelect>()),
+        200: z.array(z.custom<typeof clientes.$inferSelect>()),
       },
     },
     create: {
       method: 'POST' as const,
-      path: '/api/clients',
-      input: insertClientSchema,
+      path: '/api/clientes',
+      input: insertClienteSchema,
       responses: {
-        201: z.custom<typeof clients.$inferSelect>(),
+        201: z.custom<typeof clientes.$inferSelect>(),
         400: errorSchemas.validation,
       },
     },
     update: {
       method: 'PUT' as const,
-      path: '/api/clients/:id',
-      input: insertClientSchema.partial(),
+      path: '/api/clientes/:id',
+      input: insertClienteSchema.partial(),
       responses: {
-        200: z.custom<typeof clients.$inferSelect>(),
+        200: z.custom<typeof clientes.$inferSelect>(),
         404: errorSchemas.notFound,
       },
     },
     get: {
       method: 'GET' as const,
-      path: '/api/clients/:id',
+      path: '/api/clientes/:id',
       responses: {
-        200: z.custom<typeof clients.$inferSelect>(),
+        200: z.custom<typeof clientes.$inferSelect>(),
         404: errorSchemas.notFound,
       },
     },
   },
-  clientDocs: {
+  documentos_clientes: {
     list: {
       method: 'GET' as const,
-      path: '/api/clients/:clientId/docs',
+      path: '/api/clientes/:clientId/docs',
       responses: {
-        200: z.array(z.custom<typeof clientDocs.$inferSelect>()),
+        200: z.array(z.custom<typeof documentos_clientes.$inferSelect>()),
       },
     },
     create: {
       method: 'POST' as const,
-      path: '/api/clients/:clientId/docs',
-      input: insertClientDocSchema,
+      path: '/api/clientes/:clientId/docs',
+      input: insertDocumentoClienteSchema,
       responses: {
-        201: z.custom<typeof clientDocs.$inferSelect>(),
+        201: z.custom<typeof documentos_clientes.$inferSelect>(),
         400: errorSchemas.validation,
       },
     },
   },
-  formTemplates: {
+  modelos_formularios: {
     list: {
       method: 'GET' as const,
       path: '/api/form-templates',
       responses: {
-        200: z.array(z.custom<typeof formTemplates.$inferSelect>()),
+        200: z.array(z.custom<typeof modelos_formularios.$inferSelect>()),
       },
     },
     create: {
       method: 'POST' as const,
       path: '/api/form-templates',
-      input: insertFormTemplateSchema.extend({
-        fields: z.array(insertFormFieldSchema).optional(),
+      input: insertModeloFormularioSchema.extend({
+        fields: z.array(insertCampoFormularioSchema).optional(),
       }),
       responses: {
-        201: z.custom<typeof formTemplates.$inferSelect>(),
+        201: z.custom<typeof modelos_formularios.$inferSelect>(),
         400: errorSchemas.validation,
       },
     },
@@ -145,97 +145,114 @@ export const api = {
       method: 'GET' as const,
       path: '/api/form-templates/:id',
       responses: {
-        200: z.custom<typeof formTemplates.$inferSelect & { fields: typeof formFields.$inferSelect[] }>(),
+        200: z.custom<typeof modelos_formularios.$inferSelect & { fields: typeof campos_formularios.$inferSelect[] }>(),
         404: errorSchemas.notFound,
       },
     },
     update: {
       method: 'PUT' as const,
       path: '/api/form-templates/:id',
-      input: insertFormTemplateSchema.extend({
-        fields: z.array(insertFormFieldSchema).optional(),
+      input: insertModeloFormularioSchema.extend({
+        fields: z.array(insertCampoFormularioSchema).optional(),
       }),
       responses: {
-        200: z.custom<typeof formTemplates.$inferSelect>(),
+        200: z.custom<typeof modelos_formularios.$inferSelect>(),
         404: errorSchemas.notFound,
         400: errorSchemas.validation,
       },
     },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/form-templates/:id',
+      responses: {
+        204: z.void(),
+        404: errorSchemas.notFound,
+      },
+    },
   },
-  projects: {
+  projetos: {
     list: {
       method: 'GET' as const,
-      path: '/api/projects',
+      path: '/api/projetos',
       responses: {
-        200: z.array(z.custom<typeof projects.$inferSelect>()),
+        200: z.array(z.custom<typeof projetos.$inferSelect>()),
       },
     },
     create: {
       method: 'POST' as const,
-      path: '/api/projects',
-      input: insertProjectSchema,
+      path: '/api/projetos',
+      input: insertProjetoSchema,
       responses: {
-        201: z.custom<typeof projects.$inferSelect>(),
+        201: z.custom<typeof projetos.$inferSelect>(),
         400: errorSchemas.validation,
       },
     },
     get: {
       method: 'GET' as const,
-      path: '/api/projects/:id',
+      path: '/api/projetos/:id',
       responses: {
-        200: z.custom<typeof projects.$inferSelect & { columns: typeof projectColumns.$inferSelect[] }>(),
+        200: z.custom<typeof projetos.$inferSelect & { columns: typeof colunas_projetos.$inferSelect[] }>(),
         404: errorSchemas.notFound,
       },
     },
     update: {
       method: 'PUT' as const,
-      path: '/api/projects/:id',
-      input: insertProjectSchema.partial(),
+      path: '/api/projetos/:id',
+      input: insertProjetoSchema.partial(),
       responses: {
-        200: z.custom<typeof projects.$inferSelect>(),
+        200: z.custom<typeof projetos.$inferSelect>(),
         404: errorSchemas.notFound,
       },
     },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/projetos/:id',
+      responses: {
+        204: z.void(),
+        404: errorSchemas.notFound,
+        403: errorSchemas.validation, // For permission denied
+      },
+    },
   },
-  cards: {
+  cartoes: {
     list: {
       method: 'GET' as const,
-      path: '/api/projects/:projectId/cards',
+      path: '/api/projetos/:projectId/cartoes',
       responses: {
-        200: z.array(z.custom<typeof cards.$inferSelect>()),
+        200: z.array(z.custom<typeof cartoes.$inferSelect>()),
       },
     },
     create: {
       method: 'POST' as const,
-      path: '/api/projects/:projectId/cards',
-      input: insertCardSchema,
+      path: '/api/projetos/:projectId/cartoes',
+      input: insertCartaoSchema,
       responses: {
-        201: z.custom<typeof cards.$inferSelect>(),
+        201: z.custom<typeof cartoes.$inferSelect>(),
         400: errorSchemas.validation,
       },
     },
     update: {
       method: 'PUT' as const,
-      path: '/api/cards/:id',
-      input: insertCardSchema.partial(),
+      path: '/api/cartoes/:id',
+      input: insertCartaoSchema.partial(),
       responses: {
-        200: z.custom<typeof cards.$inferSelect>(),
+        200: z.custom<typeof cartoes.$inferSelect>(),
         404: errorSchemas.notFound,
       },
     },
     move: {
       method: 'PATCH' as const,
-      path: '/api/cards/:id/move',
+      path: '/api/cartoes/:id/move',
       input: z.object({ columnId: z.number() }),
       responses: {
-        200: z.custom<typeof cards.$inferSelect>(),
+        200: z.custom<typeof cartoes.$inferSelect>(),
       },
     },
     get: {
       method: 'GET' as const,
-      path: '/api/cards/:id',
+      path: '/api/cartoes/:id',
       responses: {
-        200: z.custom<typeof cards.$inferSelect & { formResponse?: typeof cardFormResponses.$inferSelect, formAnswers?: typeof cardFormAnswers.$inferSelect[] }>(),
+        200: z.custom<typeof cartoes.$inferSelect & { formResponse?: typeof respostas_formularios_cartoes.$inferSelect, formAnswers?: typeof respostas_campos_formularios.$inferSelect[] }>(),
         404: errorSchemas.notFound,
       },
     },
@@ -243,65 +260,65 @@ export const api = {
   cardForms: {
     submit: {
       method: 'POST' as const,
-      path: '/api/cards/:cardId/form',
+      path: '/api/cartoes/:cardId/form',
       input: z.object({
         status: z.string(),
-        answers: z.array(insertCardFormAnswerSchema),
+        answers: z.array(insertRespostaCampoFormularioSchema),
       }),
       responses: {
-        200: z.custom<typeof cardFormResponses.$inferSelect>(),
+        200: z.custom<typeof respostas_formularios_cartoes.$inferSelect>(),
       },
     },
   },
-  alerts: {
+  alertas: {
     list: {
       method: 'GET' as const,
-      path: '/api/alerts',
+      path: '/api/alertas',
       responses: {
-        200: z.array(z.custom<typeof alerts.$inferSelect>()),
+        200: z.array(z.custom<typeof alertas.$inferSelect>()),
       },
     },
   },
-  poloProjects: {
+  polo_projetos: {
     list: {
       method: 'GET' as const,
-      path: '/api/polo-projects',
+      path: '/api/polo-projetos',
       responses: {
-        200: z.array(z.custom<typeof poloProjects.$inferSelect & { stages?: typeof poloProjectStages.$inferSelect[] }>()),
+        200: z.array(z.custom<typeof polo_projetos.$inferSelect & { stages?: typeof etapas_polo_projetos.$inferSelect[] }>()),
       },
     },
     create: {
       method: 'POST' as const,
-      path: '/api/polo-projects',
-      input: insertPoloProjectSchema.extend({
-        stages: z.array(insertPoloProjectStageSchema).optional(),
+      path: '/api/polo-projetos',
+      input: insertPoloProjetoSchema.extend({
+        stages: z.array(insertEtapaPoloProjetoSchema).optional(),
       }),
       responses: {
-        201: z.custom<typeof poloProjects.$inferSelect>(),
+        201: z.custom<typeof polo_projetos.$inferSelect>(),
         400: errorSchemas.validation,
       },
     },
     get: {
       method: 'GET' as const,
-      path: '/api/polo-projects/:id',
+      path: '/api/polo-projetos/:id',
       responses: {
-        200: z.custom<typeof poloProjects.$inferSelect & { stages: typeof poloProjectStages.$inferSelect[] }>(),
+        200: z.custom<typeof polo_projetos.$inferSelect & { stages: typeof etapas_polo_projetos.$inferSelect[] }>(),
         404: errorSchemas.notFound,
       },
     },
     update: {
       method: 'PUT' as const,
-      path: '/api/polo-projects/:id',
-      input: insertPoloProjectSchema.partial(),
+      path: '/api/polo-projetos/:id',
+      input: insertPoloProjetoSchema.partial(),
       responses: {
-        200: z.custom<typeof poloProjects.$inferSelect>(),
+        200: z.custom<typeof polo_projetos.$inferSelect>(),
         404: errorSchemas.notFound,
         400: errorSchemas.validation,
       },
     },
     dashboard: {
       method: 'GET' as const,
-      path: '/api/polo-projects/dashboard',
+      path: '/api/polo-projetos/dashboard',
       responses: {
         200: z.object({
           activeProjects: z.number(),
@@ -317,11 +334,11 @@ export const api = {
     },
     gantt: {
       method: 'GET' as const,
-      path: '/api/polo-projects/:id/gantt',
+      path: '/api/polo-projetos/:id/gantt',
       responses: {
         200: z.object({
-          project: z.custom<typeof poloProjects.$inferSelect>(),
-          stages: z.array(z.custom<typeof poloProjectStages.$inferSelect>()),
+          project: z.custom<typeof polo_projetos.$inferSelect>(),
+          stages: z.array(z.custom<typeof etapas_polo_projetos.$inferSelect>()),
           timelineStart: z.string(),
           timelineEnd: z.string(),
         }),
@@ -329,29 +346,29 @@ export const api = {
       },
     },
   },
-  poloProjectStages: {
+  etapas_polo_projetos: {
     create: {
       method: 'POST' as const,
-      path: '/api/polo-projects/:projectId/stages',
-      input: insertPoloProjectStageSchema,
+      path: '/api/polo-projetos/:projectId/stages',
+      input: insertEtapaPoloProjetoSchema,
       responses: {
-        201: z.custom<typeof poloProjectStages.$inferSelect>(),
+        201: z.custom<typeof etapas_polo_projetos.$inferSelect>(),
         400: errorSchemas.validation,
       },
     },
     update: {
       method: 'PUT' as const,
-      path: '/api/polo-projects/:projectId/stages/:stageId',
-      input: insertPoloProjectStageSchema.partial(),
+      path: '/api/polo-projetos/:projectId/stages/:stageId',
+      input: insertEtapaPoloProjetoSchema.partial(),
       responses: {
-        200: z.custom<typeof poloProjectStages.$inferSelect>(),
+        200: z.custom<typeof etapas_polo_projetos.$inferSelect>(),
         404: errorSchemas.notFound,
         400: errorSchemas.validation,
       },
     },
     delete: {
       method: 'DELETE' as const,
-      path: '/api/polo-projects/:projectId/stages/:stageId',
+      path: '/api/polo-projetos/:projectId/stages/:stageId',
       responses: {
         204: z.void(),
         404: errorSchemas.notFound,
@@ -364,47 +381,47 @@ export const api = {
         method: 'GET' as const,
         path: '/api/sales-funnel/columns',
         responses: {
-          200: z.array(z.custom<typeof salesFunnelColumns.$inferSelect>()),
+          200: z.array(z.custom<typeof colunas_funil_vendas.$inferSelect>()),
         },
       },
     },
-    cards: {
+    cartoes: {
       list: {
         method: 'GET' as const,
-        path: '/api/sales-funnel/cards',
+        path: '/api/sales-funnel/cartoes',
         responses: {
-          200: z.array(z.custom<typeof salesFunnelCards.$inferSelect>()),
+          200: z.array(z.custom<typeof cartoes_funil_vendas.$inferSelect>()),
         },
       },
       create: {
         method: 'POST' as const,
-        path: '/api/sales-funnel/cards',
-        input: insertSalesFunnelCardSchema,
+        path: '/api/sales-funnel/cartoes',
+        input: insertCartaoFunilVendasSchema,
         responses: {
-          201: z.custom<typeof salesFunnelCards.$inferSelect>(),
+          201: z.custom<typeof cartoes_funil_vendas.$inferSelect>(),
           400: errorSchemas.validation,
         },
       },
       update: {
         method: 'PUT' as const,
-        path: '/api/sales-funnel/cards/:id',
-        input: insertSalesFunnelCardSchema.partial(),
+        path: '/api/sales-funnel/cartoes/:id',
+        input: insertCartaoFunilVendasSchema.partial(),
         responses: {
-          200: z.custom<typeof salesFunnelCards.$inferSelect>(),
+          200: z.custom<typeof cartoes_funil_vendas.$inferSelect>(),
           404: errorSchemas.notFound,
         },
       },
       move: {
         method: 'PATCH' as const,
-        path: '/api/sales-funnel/cards/:id/move',
+        path: '/api/sales-funnel/cartoes/:id/move',
         input: z.object({ columnId: z.number() }),
         responses: {
-          200: z.custom<typeof salesFunnelCards.$inferSelect>(),
+          200: z.custom<typeof cartoes_funil_vendas.$inferSelect>(),
         },
       },
       delete: {
         method: 'DELETE' as const,
-        path: '/api/sales-funnel/cards/:id',
+        path: '/api/sales-funnel/cartoes/:id',
         responses: {
           204: z.void(),
           404: errorSchemas.notFound,
@@ -412,9 +429,9 @@ export const api = {
       },
       get: {
         method: 'GET' as const,
-        path: '/api/sales-funnel/cards/:id',
+        path: '/api/sales-funnel/cartoes/:id',
         responses: {
-          200: z.custom<typeof salesFunnelCards.$inferSelect>(),
+          200: z.custom<typeof cartoes_funil_vendas.$inferSelect>(),
           404: errorSchemas.notFound,
         },
       },
@@ -433,3 +450,4 @@ export function buildUrl(path: string, params?: Record<string, string | number>)
   }
   return url;
 }
+

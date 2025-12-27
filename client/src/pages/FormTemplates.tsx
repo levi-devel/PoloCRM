@@ -1,10 +1,11 @@
 import { Layout } from "@/components/layout/Layout";
-import { useFormTemplates, useCreateFormTemplate, useUpdateFormTemplate } from "@/hooks/use-forms";
+import { useFormTemplates, useCreateFormTemplate, useUpdateFormTemplate, useDeleteFormTemplate } from "@/hooks/use-forms";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Plus, Trash2, Edit2, GripVertical } from "lucide-react";
 import React from "react";
 import { useForm } from "react-hook-form";
@@ -13,9 +14,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
 const templateSchema = z.object({
-    name: z.string().min(1, "Nome é obrigatório"),
-    description: z.string().optional(),
-    version: z.string().optional(),
+    nome: z.string().min(1, "Nome é obrigatório"),
+    descricao: z.string().optional(),
+    versao: z.string().optional(),
 });
 
 const fieldSchema = z.object({
@@ -31,13 +32,28 @@ export default function FormTemplates() {
     const [isEditOpen, setIsEditOpen] = React.useState(false);
     const [selectedTemplate, setSelectedTemplate] = React.useState<any>(null);
     const [fields, setFields] = React.useState<any[]>([]);
+    const [editingFieldIndex, setEditingFieldIndex] = React.useState<number | null>(null);
+    const [templateToDelete, setTemplateToDelete] = React.useState<any>(null);
+
+    const deleteTemplate = useDeleteFormTemplate();
+
+    const handleDeleteClick = (template: any) => {
+        setTemplateToDelete(template);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (templateToDelete) {
+            await deleteTemplate.mutateAsync(templateToDelete.id);
+            setTemplateToDelete(null);
+        }
+    };
 
     const form = useForm<z.infer<typeof templateSchema>>({
         resolver: zodResolver(templateSchema),
         defaultValues: {
-            name: "",
-            description: "",
-            version: "1.0",
+            nome: "",
+            descricao: "",
+            versao: "1.0",
         },
     });
 
@@ -70,19 +86,19 @@ export default function FormTemplates() {
 
             setSelectedTemplate(fullTemplate);
             form.reset({
-                name: fullTemplate.name,
-                description: fullTemplate.description || "",
-                version: fullTemplate.version || "1.0"
+                nome: fullTemplate.nome,
+                descricao: fullTemplate.descricao || "",
+                versao: fullTemplate.versao || "1.0"
             });
 
             // Load existing fields (if fields are included in template)
             if (fullTemplate.fields && fullTemplate.fields.length > 0) {
                 setFields(fullTemplate.fields.map((f: any) => ({
-                    label: f.label,
-                    type: f.type,
-                    required: f.required,
-                    options: f.options || [],
-                    order: f.order
+                    label: f.rotulo,
+                    type: f.tipo,
+                    required: f.obrigatorio,
+                    options: f.opcoes || [],
+                    order: f.ordem
                 })));
             } else {
                 setFields([]);
@@ -95,8 +111,55 @@ export default function FormTemplates() {
     };
 
     const addField = (data: z.infer<typeof fieldSchema>) => {
-        setFields([...fields, { ...data, order: fields.length + 1 }]);
-        fieldForm.reset();
+        // Clean up options if it's a list
+        const cleanData = { ...data };
+        if (cleanData.type === 'list' && cleanData.options) {
+            cleanData.options = cleanData.options.map(o => o.trim()).filter(Boolean);
+        }
+
+        if (editingFieldIndex !== null) {
+            // Update existing field
+            const newFields = [...fields];
+            newFields[editingFieldIndex] = { ...cleanData, order: newFields[editingFieldIndex].order };
+            setFields(newFields);
+            setEditingFieldIndex(null);
+            fieldForm.reset({
+                label: "",
+                type: "text",
+                required: false,
+                options: []
+            });
+        } else {
+            // Add new field
+            setFields([...fields, { ...cleanData, order: fields.length + 1 }]);
+            fieldForm.reset({
+                label: "",
+                type: "text",
+                required: false,
+                options: []
+            });
+        }
+    };
+
+    const startEditingField = (index: number) => {
+        const field = fields[index];
+        setEditingFieldIndex(index);
+        fieldForm.reset({
+            label: field.label,
+            type: field.type,
+            required: field.required,
+            options: field.options || [],
+        });
+    };
+
+    const cancelEditingField = () => {
+        setEditingFieldIndex(null);
+        fieldForm.reset({
+            label: "",
+            type: "text",
+            required: false,
+            options: []
+        });
     };
 
     const removeField = (index: number) => {
@@ -122,8 +185,15 @@ export default function FormTemplates() {
         try {
             await createTemplate.mutateAsync({
                 ...data,
-                isActive: true,
-                fields: fields.map((f, idx) => ({ ...f, order: idx + 1 })),
+                ativo: true,
+                fields: fields.map((f, idx) => ({
+                    rotulo: f.label,
+                    tipo: f.type,
+                    obrigatorio: f.required,
+                    opcoes: f.options,
+                    ordem: idx + 1,
+                    id_modelo: 0
+                })),
             });
             setIsCreateOpen(false);
             form.reset();
@@ -170,7 +240,7 @@ export default function FormTemplates() {
                                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                                         <FormField
                                             control={form.control}
-                                            name="name"
+                                            name="nome"
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>Nome do Modelo *</FormLabel>
@@ -184,7 +254,7 @@ export default function FormTemplates() {
 
                                         <FormField
                                             control={form.control}
-                                            name="description"
+                                            name="descricao"
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>Descrição</FormLabel>
@@ -198,7 +268,7 @@ export default function FormTemplates() {
 
                                         <FormField
                                             control={form.control}
-                                            name="version"
+                                            name="versao"
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>Versão</FormLabel>
@@ -255,9 +325,14 @@ export default function FormTemplates() {
                                                         <FormLabel>Opções (separadas por vírgula)</FormLabel>
                                                         <Input
                                                             placeholder="Opção 1, Opção 2, Opção 3"
+                                                            value={fieldForm.watch("options")?.join(", ") || ""}
                                                             onChange={(e) => {
-                                                                const options = e.target.value.split(',').map(o => o.trim()).filter(Boolean);
-                                                                fieldForm.setValue("options", options);
+                                                                const options = e.target.value.split(',').map(o => o.trim()).filter(Boolean); // keep empty strings out
+                                                                // But to allow typing comma, we need a better approach or just let them type and split on blur?
+                                                                // Simple approach: split by comma but filter boolean only for final submission.
+                                                                // Better: Just update the options array.
+                                                                // Actually for better UX let's just use the value directly split.
+                                                                fieldForm.setValue("options", e.target.value.split(','));
                                                             }}
                                                         />
                                                     </div>
@@ -281,16 +356,34 @@ export default function FormTemplates() {
                                                     )}
                                                 />
 
-                                                <div className="flex items-end">
+                                                <div className="flex items-end gap-2">
                                                     <Button
                                                         type="button"
                                                         onClick={fieldForm.handleSubmit(addField)}
-                                                        variant="outline"
+                                                        variant={editingFieldIndex !== null ? "default" : "outline"}
                                                         className="w-full"
                                                     >
-                                                        <Plus className="w-4 h-4 mr-2" />
-                                                        Adicionar Campo
+                                                        {editingFieldIndex !== null ? (
+                                                            <>
+                                                                <Edit2 className="w-4 h-4 mr-2" />
+                                                                Atualizar Campo
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Plus className="w-4 h-4 mr-2" />
+                                                                Adicionar Campo
+                                                            </>
+                                                        )}
                                                     </Button>
+                                                    {editingFieldIndex !== null && (
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            onClick={cancelEditingField}
+                                                        >
+                                                            Cancelar
+                                                        </Button>
+                                                    )}
                                                 </div>
                                             </div>
 
@@ -340,6 +433,15 @@ export default function FormTemplates() {
                                                                 type="button"
                                                                 variant="ghost"
                                                                 size="sm"
+                                                                onClick={() => startEditingField(index)}
+                                                            >
+                                                                <Edit2 className="w-4 h-4 text-primary" />
+                                                            </Button>
+
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="sm"
                                                                 onClick={() => removeField(index)}
                                                             >
                                                                 <Trash2 className="w-4 h-4 text-destructive" />
@@ -357,7 +459,11 @@ export default function FormTemplates() {
                                                 onClick={() => {
                                                     setIsCreateOpen(false);
                                                     form.reset();
+                                                    setIsCreateOpen(false);
+                                                    form.reset();
                                                     setFields([]);
+                                                    setEditingFieldIndex(null);
+                                                    fieldForm.reset();
                                                 }}
                                                 className="flex-1"
                                             >
@@ -384,6 +490,8 @@ export default function FormTemplates() {
                             setSelectedTemplate(null);
                             setFields([]);
                             form.reset();
+                            setEditingFieldIndex(null);
+                            fieldForm.reset();
                         }
                     }}>
                         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -403,8 +511,15 @@ export default function FormTemplates() {
                                                 }
                                                 await updateTemplate.mutateAsync({
                                                     ...data,
-                                                    isActive: selectedTemplate.isActive !== false, // Preserve isActive status
-                                                    fields: fields.map((f, idx) => ({ ...f, order: idx + 1 })),
+                                                    ativo: selectedTemplate.ativo !== false, // Preserve active status
+                                                    fields: fields.map((f, idx) => ({
+                                                        rotulo: f.label,
+                                                        tipo: f.type,
+                                                        obrigatorio: f.required,
+                                                        opcoes: f.options,
+                                                        ordem: idx + 1,
+                                                        id_modelo: 0
+                                                    })),
                                                 });
                                                 setIsEditOpen(false);
                                                 form.reset();
@@ -415,7 +530,7 @@ export default function FormTemplates() {
                                         })} className="space-y-4">
                                             <FormField
                                                 control={form.control}
-                                                name="name"
+                                                name="nome"
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>Nome do Modelo *</FormLabel>
@@ -429,7 +544,7 @@ export default function FormTemplates() {
 
                                             <FormField
                                                 control={form.control}
-                                                name="description"
+                                                name="descricao"
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>Descrição</FormLabel>
@@ -443,7 +558,7 @@ export default function FormTemplates() {
 
                                             <FormField
                                                 control={form.control}
-                                                name="version"
+                                                name="versao"
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>Versão</FormLabel>
@@ -500,9 +615,9 @@ export default function FormTemplates() {
                                                             <FormLabel>Opções (separadas por vírgula)</FormLabel>
                                                             <Input
                                                                 placeholder="Opção 1, Opção 2, Opção 3"
+                                                                value={fieldForm.watch("options")?.join(", ") || ""}
                                                                 onChange={(e) => {
-                                                                    const options = e.target.value.split(',').map(o => o.trim()).filter(Boolean);
-                                                                    fieldForm.setValue("options", options);
+                                                                    fieldForm.setValue("options", e.target.value.split(','));
                                                                 }}
                                                             />
                                                         </div>
@@ -526,16 +641,34 @@ export default function FormTemplates() {
                                                         )}
                                                     />
 
-                                                    <div className="flex items-end">
+                                                    <div className="flex items-end gap-2">
                                                         <Button
                                                             type="button"
                                                             onClick={fieldForm.handleSubmit(addField)}
-                                                            variant="outline"
+                                                            variant={editingFieldIndex !== null ? "default" : "outline"}
                                                             className="w-full"
                                                         >
-                                                            <Plus className="w-4 h-4 mr-2" />
-                                                            Adicionar Campo
+                                                            {editingFieldIndex !== null ? (
+                                                                <>
+                                                                    <Edit2 className="w-4 h-4 mr-2" />
+                                                                    Atualizar Campo
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <Plus className="w-4 h-4 mr-2" />
+                                                                    Adicionar Campo
+                                                                </>
+                                                            )}
                                                         </Button>
+                                                        {editingFieldIndex !== null && (
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                onClick={cancelEditingField}
+                                                            >
+                                                                Cancelar
+                                                            </Button>
+                                                        )}
                                                     </div>
                                                 </div>
 
@@ -585,6 +718,15 @@ export default function FormTemplates() {
                                                                     type="button"
                                                                     variant="ghost"
                                                                     size="sm"
+                                                                    onClick={() => startEditingField(index)}
+                                                                >
+                                                                    <Edit2 className="w-4 h-4 text-primary" />
+                                                                </Button>
+
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="ghost"
+                                                                    size="sm"
                                                                     onClick={() => removeField(index)}
                                                                 >
                                                                     <Trash2 className="w-4 h-4 text-destructive" />
@@ -602,7 +744,11 @@ export default function FormTemplates() {
                                                     onClick={() => {
                                                         setIsEditOpen(false);
                                                         form.reset();
+                                                        setIsEditOpen(false);
+                                                        form.reset();
                                                         setFields([]);
+                                                        setEditingFieldIndex(null);
+                                                        fieldForm.reset();
                                                     }}
                                                     className="flex-1"
                                                 >
@@ -630,7 +776,7 @@ export default function FormTemplates() {
                         <Card key={template.id} className="hover:shadow-lg transition-shadow">
                             <CardHeader>
                                 <CardTitle className="flex items-center justify-between">
-                                    <span>{template.name}</span>
+                                    <span>{template.nome}</span>
                                     {template.isActive && (
                                         <span className="text-xs bg-green-500/10 text-green-600 px-2 py-1 rounded-full">
                                             Ativo
@@ -640,11 +786,11 @@ export default function FormTemplates() {
                             </CardHeader>
                             <CardContent>
                                 <p className="text-sm text-muted-foreground mb-4">
-                                    {template.description || "Sem descrição"}
+                                    {template.descricao || "Sem descrição"}
                                 </p>
                                 <div className="text-sm">
                                     <p className="text-muted-foreground">
-                                        Versão: {template.version || "1.0"}
+                                        Versão: {template.versao || "1.0"}
                                     </p>
                                     <p className="text-muted-foreground">
                                         Criado: {new Date(template.createdAt).toLocaleDateString()}
@@ -660,12 +806,41 @@ export default function FormTemplates() {
                                         <Edit2 className="w-4 h-4 mr-2" />
                                         Editar
                                     </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        onClick={() => handleDeleteClick(template)}
+                                    >
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        Excluir
+                                    </Button>
                                 </div>
                             </CardContent>
                         </Card>
                     ))}
                 </div>
             </div>
+
+            <AlertDialog open={!!templateToDelete} onOpenChange={(open) => !open && setTemplateToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esta ação não pode ser desfeita. Isso excluirá permanentemente o modelo "{templateToDelete?.nome}" e todos os seus campos.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleConfirmDelete}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            {deleteTemplate.isPending ? "Excluindo..." : "Excluir"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </Layout>
     );
 }

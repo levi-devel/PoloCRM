@@ -1,0 +1,65 @@
+Inspecting Project Configuration...
+Project: {
+  "id": 1,
+  "id_cliente": null,
+  "nome": "Projetos",
+  "descricao": "",
+  "status": "Ativo",
+  "id_lider_tecnico": "user-3",
+  "equipe": null,
+  "data_inicio": null,
+  "data_prazo": null,
+  "data_conclusao": null,
+  "prioridade": "Média",
+  "id_modelo_padrao": 5,
+  "alerta_atraso_ativo": false,
+  "criado_em": "2025-12-26T16:39:31.000Z"
+}
+Template: {
+  "id": 5,
+  "nome": "Projetos",
+  "descricao": "",
+  "ativo": true,
+  "criado_por": null,
+  "versao": "1.0",
+  "criado_em": "2025-12-26T16:25:34.000Z"
+}
+Template has 2 fields: [
+  {
+    "id": 26,
+    "id_modelo": 5,
+    "ordem": 1,
+    "rotulo": "Cliente",
+    "tipo": "textarea",
+    "obrigatorio": false,
+    "opcoes": [],
+    "placeholder": null
+  },
+  {
+    "id": 27,
+    "id_modelo": 5,
+    "ordem": 2,
+    "rotulo": "Telefone",
+    "tipo": "text",
+    "obrigatorio": false,
+    "opcoes": [],
+    "placeholder": null
+  }
+]
+Found 2 cards.
+Card 1 (Senai):
+  - Form Response found: {
+  "id": 1,
+  "id_cartao": 1,
+  "id_modelo": 5,
+  "status": "Não iniciado",
+  "atualizado_em": "2025-12-26T16:56:32.000Z"
+}
+Card 2 (magscan):
+  - Form Response found: {
+  "id": 2,
+  "id_cartao": 2,
+  "id_modelo": 5,
+  "status": "Não iniciado",
+  "atualizado_em": "2025-12-26T17:01:40.000Z"
+}

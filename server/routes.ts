@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { registerAuthRoutes } from "./auth/auth-routes";
-import { isAuthenticated } from "./auth/local-auth";
+import { isAuthenticated, hashPassword } from "./auth/local-auth";
 import { api } from "../shared/routes";
 import { users } from "../shared/models/auth";
 import { z } from "zod";
@@ -15,15 +15,22 @@ export async function registerRoutes(
   // Register authentication routes (login, logout, get user)
   registerAuthRoutes(app);
 
+
+
   // Users
   app.get(api.users.list.path, async (req, res) => {
     const users = await storage.getUsers();
     res.json(users);
   });
   app.post("/api/users", async (req, res) => {
+    let userData = { ...req.body };
+    if (userData.password) {
+      userData.password = await hashPassword(userData.password);
+    }
+
     const newUser = await storage.upsertUser({
       id: `user-${Date.now()}`,
-      ...req.body,
+      ...userData,
     });
     res.status(201).json(newUser);
   });
@@ -34,7 +41,9 @@ export async function registerRoutes(
       if (req.body.firstName !== undefined) updates.firstName = req.body.firstName;
       if (req.body.lastName !== undefined) updates.lastName = req.body.lastName;
       if (req.body.email !== undefined) updates.email = req.body.email;
-      if (req.body.password !== undefined) updates.password = req.body.password; // Store plaintext for now (matching existing auth)
+      if (req.body.password !== undefined) {
+        updates.password = await hashPassword(req.body.password);
+      }
       if (req.body.role !== undefined) updates.role = req.body.role;
       if (req.body.isActive !== undefined) updates.isActive = req.body.isActive;
 
@@ -46,30 +55,30 @@ export async function registerRoutes(
   });
 
   // Clients
-  app.get(api.clients.list.path, async (req, res) => {
+  app.get(api.clientes.list.path, async (req, res) => {
     const clients = await storage.getClients();
     res.json(clients);
   });
-  app.post(api.clients.create.path, async (req, res) => {
+  app.post(api.clientes.create.path, async (req, res) => {
     const client = await storage.createClient(req.body);
     res.status(201).json(client);
   });
-  app.get(api.clients.get.path, async (req, res) => {
+  app.get(api.clientes.get.path, async (req, res) => {
     const client = await storage.getClient(Number(req.params.id));
     if (!client) return res.status(404).json({ message: "Not found" });
     res.json(client);
   });
-  app.put(api.clients.update.path, async (req, res) => {
+  app.put(api.clientes.update.path, async (req, res) => {
     const client = await storage.updateClient(Number(req.params.id), req.body);
     res.json(client);
   });
 
   // Client Docs
-  app.get(api.clientDocs.list.path, async (req, res) => {
+  app.get(api.documentos_clientes.list.path, async (req, res) => {
     const docs = await storage.getClientDocs(Number(req.params.clientId));
     res.json(docs);
   });
-  app.post(api.clientDocs.create.path, async (req, res) => {
+  app.post(api.documentos_clientes.create.path, async (req, res) => {
     const doc = await storage.createClientDoc({ ...req.body, clientId: Number(req.params.clientId) });
     res.status(201).json(doc);
   });
@@ -110,21 +119,21 @@ export async function registerRoutes(
   });
 
   // Form Templates
-  app.get(api.formTemplates.list.path, async (req, res) => {
+  app.get(api.modelos_formularios.list.path, async (req, res) => {
     const templates = await storage.getFormTemplates();
     res.json(templates);
   });
-  app.post(api.formTemplates.create.path, async (req, res) => {
+  app.post(api.modelos_formularios.create.path, async (req, res) => {
     const { fields, ...template } = req.body;
     const newTemplate = await storage.createFormTemplate(template, fields || []);
     res.status(201).json(newTemplate);
   });
-  app.get(api.formTemplates.get.path, async (req, res) => {
+  app.get(api.modelos_formularios.get.path, async (req, res) => {
     const template = await storage.getFormTemplate(Number(req.params.id));
     if (!template) return res.status(404).json({ message: "Not found" });
     res.json(template);
   });
-  app.put(api.formTemplates.update.path, async (req, res) => {
+  app.put(api.modelos_formularios.update.path, async (req, res) => {
     const templateId = Number(req.params.id);
     const { fields, ...templateData } = req.body;
 
@@ -138,24 +147,48 @@ export async function registerRoutes(
       res.status(400).json({ message: error.message || "Failed to update template" });
     }
   });
+  app.delete(api.modelos_formularios.delete.path, async (req, res) => {
+    try {
+      await storage.deleteFormTemplate(Number(req.params.id));
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to delete template" });
+    }
+  });
 
   // Projects
-  app.get(api.projects.list.path, async (req, res) => {
+  app.get(api.projetos.list.path, async (req, res) => {
     const projects = await storage.getProjects();
     res.json(projects);
   });
-  app.post(api.projects.create.path, async (req, res) => {
+  app.post(api.projetos.create.path, async (req, res) => {
     const project = await storage.createProject(req.body);
     res.status(201).json(project);
   });
-  app.get(api.projects.get.path, async (req, res) => {
+  app.get(api.projetos.get.path, async (req, res) => {
     const project = await storage.getProject(Number(req.params.id));
     if (!project) return res.status(404).json({ message: "Not found" });
     res.json(project);
   });
-  app.put(api.projects.update.path, async (req, res) => {
+  app.put(api.projetos.update.path, async (req, res) => {
     const project = await storage.updateProject(Number(req.params.id), req.body);
     res.json(project);
+  });
+  app.delete(api.projetos.delete.path, isAuthenticated, async (req, res) => {
+    try {
+      const user = (req.session as any).user || await storage.getUser((req.session as any).userId);
+
+      // Permission check
+      const allowedRoles = ["Admin", "Gerente Comercial", "Gerente Supervisor"];
+      if (!user || !allowedRoles.includes(user.role)) {
+        return res.status(403).json({ message: "Only Admin and Managers can delete projects" });
+      }
+
+      await storage.deleteProject(Number(req.params.id));
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to delete project" });
+    }
   });
 
   // Cards
@@ -165,20 +198,20 @@ export async function registerRoutes(
     res.json(cards);
   });
 
-  app.get(api.cards.list.path, async (req, res) => {
+  app.get(api.cartoes.list.path, async (req, res) => {
     const cards = await storage.getCards(Number(req.params.projectId));
     res.json(cards);
   });
-  app.post(api.cards.create.path, async (req, res) => {
+  app.post(api.cartoes.create.path, async (req, res) => {
     const card = await storage.createCard({ ...req.body, projectId: Number(req.params.projectId) });
     res.status(201).json(card);
   });
-  app.get(api.cards.get.path, async (req, res) => {
+  app.get(api.cartoes.get.path, async (req, res) => {
     const card = await storage.getCard(Number(req.params.id));
     if (!card) return res.status(404).json({ message: "Not found" });
     res.json(card);
   });
-  app.put(api.cards.update.path, async (req, res) => {
+  app.put(api.cartoes.update.path, async (req, res) => {
     const card = await storage.updateCard(Number(req.params.id), req.body);
     res.json(card);
   });
@@ -189,11 +222,11 @@ export async function registerRoutes(
     console.log("[DEBUG] PATCH /api/cards/:id/basic-info received:", { cardId, assignedTechId, body: req.body });
 
     const updates: any = {};
-    if (description !== undefined) updates.description = description;
-    if (priority !== undefined) updates.priority = priority;
-    if (startDate !== undefined) updates.startDate = startDate ? new Date(startDate) : null;
-    if (dueDate !== undefined) updates.dueDate = dueDate ? new Date(dueDate) : null;
-    if (assignedTechId !== undefined) updates.assignedTechId = assignedTechId || null;
+    if (description !== undefined) updates.descricao = description;
+    if (priority !== undefined) updates.prioridade = priority;
+    if (startDate !== undefined) updates.data_inicio = startDate ? new Date(startDate) : null;
+    if (dueDate !== undefined) updates.data_prazo = dueDate ? new Date(dueDate) : null;
+    if (assignedTechId !== undefined) updates.id_tecnico_atribuido = assignedTechId || null;
 
     console.log("[DEBUG] Updates object to be applied:", updates);
 
@@ -202,8 +235,8 @@ export async function registerRoutes(
 
     res.json(card);
   });
-  app.patch(api.cards.move.path, async (req, res) => {
-    const card = await storage.updateCard(Number(req.params.id), { columnId: req.body.columnId });
+  app.patch(api.cartoes.move.path, async (req, res) => {
+    const card = await storage.updateCard(Number(req.params.id), { id_coluna: req.body.columnId });
     res.json(card);
   });
 
@@ -257,7 +290,7 @@ export async function registerRoutes(
   });
 
   // Alerts
-  app.get(api.alerts.list.path, async (req, res) => {
+  app.get(api.alertas.list.path, async (req, res) => {
     const alerts = await storage.getAlerts();
     res.json(alerts);
   });
@@ -292,12 +325,12 @@ export async function registerRoutes(
 
 
   // Polo Projects
-  app.get(api.poloProjects.list.path, async (req, res) => {
+  app.get(api.polo_projetos.list.path, async (req, res) => {
     const projects = await storage.getPoloProjects();
     res.json(projects);
   });
 
-  app.post(api.poloProjects.create.path, async (req, res) => {
+  app.post(api.polo_projetos.create.path, async (req, res) => {
     try {
       const { stages, ...projectData } = req.body;
       const project = await storage.createPoloProject(projectData, stages);
@@ -308,7 +341,7 @@ export async function registerRoutes(
   });
 
   // IMPORTANT: Specific routes must come BEFORE parameterized routes
-  app.get(api.poloProjects.dashboard.path, async (req, res) => {
+  app.get(api.polo_projetos.dashboard.path, async (req, res) => {
     try {
       const stats = await storage.getPoloProjectDashboardStats();
       res.json(stats);
@@ -317,7 +350,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get(api.poloProjects.gantt.path, async (req, res) => {
+  app.get(api.polo_projetos.gantt.path, async (req, res) => {
     try {
       const ganttData = await storage.getPoloProjectGanttData(Number(req.params.id));
       res.json(ganttData);
@@ -327,13 +360,13 @@ export async function registerRoutes(
   });
 
   // Parameterized routes come after specific routes
-  app.get(api.poloProjects.get.path, async (req, res) => {
+  app.get(api.polo_projetos.get.path, async (req, res) => {
     const project = await storage.getPoloProject(Number(req.params.id));
     if (!project) return res.status(404).json({ message: "Polo Project not found" });
     res.json(project);
   });
 
-  app.put(api.poloProjects.update.path, async (req, res) => {
+  app.put(api.polo_projetos.update.path, async (req, res) => {
     try {
       const project = await storage.updatePoloProject(Number(req.params.id), req.body);
       res.json(project);
@@ -343,7 +376,7 @@ export async function registerRoutes(
   });
 
   // Polo Project Stages
-  app.post(api.poloProjectStages.create.path, async (req, res) => {
+  app.post(api.etapas_polo_projetos.create.path, async (req, res) => {
     try {
       const stage = await storage.createPoloProjectStage({
         ...req.body,
@@ -355,7 +388,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put(api.poloProjectStages.update.path, async (req, res) => {
+  app.put(api.etapas_polo_projetos.update.path, async (req, res) => {
     try {
       const stage = await storage.updatePoloProjectStage(Number(req.params.stageId), req.body);
       res.json(stage);
@@ -364,7 +397,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete(api.poloProjectStages.delete.path, async (req, res) => {
+  app.delete(api.etapas_polo_projetos.delete.path, async (req, res) => {
     try {
       await storage.deletePoloProjectStage(Number(req.params.stageId));
       res.status(204).send();
@@ -380,12 +413,12 @@ export async function registerRoutes(
     res.json(columns);
   });
 
-  app.get(api.salesFunnel.cards.list.path, async (req, res) => {
+  app.get(api.salesFunnel.cartoes.list.path, async (req, res) => {
     const cards = await storage.getSalesFunnelCards();
     res.json(cards);
   });
 
-  app.post(api.salesFunnel.cards.create.path, async (req, res) => {
+  app.post(api.salesFunnel.cartoes.create.path, async (req, res) => {
     try {
       const card = await storage.createSalesFunnelCard(req.body);
       res.status(201).json(card);
@@ -394,13 +427,13 @@ export async function registerRoutes(
     }
   });
 
-  app.get(api.salesFunnel.cards.get.path, async (req, res) => {
+  app.get(api.salesFunnel.cartoes.get.path, async (req, res) => {
     const card = await storage.getSalesFunnelCard(Number(req.params.id));
     if (!card) return res.status(404).json({ message: "Sales funnel card not found" });
     res.json(card);
   });
 
-  app.put(api.salesFunnel.cards.update.path, async (req, res) => {
+  app.put(api.salesFunnel.cartoes.update.path, async (req, res) => {
     try {
       const card = await storage.updateSalesFunnelCard(Number(req.params.id), req.body);
       res.json(card);
@@ -409,16 +442,26 @@ export async function registerRoutes(
     }
   });
 
-  app.patch(api.salesFunnel.cards.move.path, async (req, res) => {
+  app.patch(api.salesFunnel.cartoes.move.path, async (req, res) => {
     try {
-      const card = await storage.moveSalesFunnelCard(Number(req.params.id), req.body.columnId);
+      console.log(`[DEBUG] Moving sales funnel card ${req.params.id} to column ${req.body.columnId}`);
+      if (!req.body.columnId) {
+        return res.status(400).json({ message: "columnId is required" });
+      }
+      const cardId = Number(req.params.id);
+      const columnId = Number(req.body.columnId);
+
+      const card = await storage.moveSalesFunnelCard(cardId, columnId);
       res.json(card);
     } catch (error: any) {
-      res.status(404).json({ message: error.message || "Sales funnel card not found" });
+      console.error(`[ERROR] Failed to move sales funnel card:`, error);
+      res.status(error.message === "Sales funnel card not found" ? 404 : 400).json({
+        message: error.message || "Failed to move sales funnel card"
+      });
     }
   });
 
-  app.delete(api.salesFunnel.cards.delete.path, async (req, res) => {
+  app.delete(api.salesFunnel.cartoes.delete.path, async (req, res) => {
     try {
       await storage.deleteSalesFunnelCard(Number(req.params.id));
       res.status(204).send();
@@ -446,45 +489,25 @@ export async function registerRoutes(
   try {
     // Create default client (PoloTelecom) if not exists
     const clients = await storage.getClients();
-    const poloTelecomExists = clients.some(c => c.name === "PoloTelecom");
+    const poloTelecomExists = clients.some(c => c.nome === "PoloTelecom");
 
     if (!poloTelecomExists) {
       console.log("Seeding default client: PoloTelecom...");
       await storage.createClient({
-        name: "PoloTelecom",
+        nome: "PoloTelecom",
         cnpj: "",
-        contact: "",
-        phone: "",
+        contato: "",
+        telefone: "",
         email: "",
-        notes: "Cliente padrão do sistema"
+        observacoes: "Cliente padrão do sistema"
       });
       console.log("Seeded default client: PoloTelecom.");
     }
 
-    // Create default form template if not exists
-    const templates = await storage.getFormTemplates();
-    const contractTemplateExists = templates.some(t => t.name === "Formulário de Contratos");
-
-    if (!contractTemplateExists) {
-      console.log("Seeding default form template: Formulário de Contratos...");
-      await storage.createFormTemplate({
-        name: "Formulário de Contratos",
-        description: "Template padrão para gestão de contratos",
-        version: "1.0",
-        isActive: true,
-      }, [
-        { order: 1, label: "Cliente", type: "text", required: true } as any,
-        { order: 2, label: "Produto", type: "text", required: true } as any,
-        { order: 3, label: "Fornecedor", type: "text", required: true } as any,
-        { order: 4, label: "Tipo de Contrato", type: "list", required: true, options: ["Novo", "Aditivo"] } as any,
-        { order: 5, label: "Descrição", type: "long_text", required: false } as any,
-        { order: 6, label: "Data de Assinatura", type: "date", required: true } as any,
-      ]);
-      console.log("Seeded default form template: Formulário de Contratos.");
-    }
   } catch (error) {
     console.error("Error seeding data:", error);
   }
 
   return httpServer;
 }
+
