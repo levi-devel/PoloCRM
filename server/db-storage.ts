@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { eq, and, gte, lte, desc, asc, sql } from "drizzle-orm";
+import { eq, and, gte, lte, desc, asc, sql, inArray } from "drizzle-orm";
 import {
     users,
     clientes,
@@ -304,16 +304,16 @@ export class DatabaseStorage implements IStorage {
             const responses = await db
                 .select({ id: respostas_formularios_cartoes.id })
                 .from(respostas_formularios_cartoes)
-                .where(sql`${respostas_formularios_cartoes.id_cartao} IN ${cardIds}`);
+                .where(inArray(respostas_formularios_cartoes.id_cartao, cardIds));
 
             const responseIds = responses.map(r => r.id);
 
             if (responseIds.length > 0) {
                 await db.delete(respostas_campos_formularios)
-                    .where(sql`${respostas_campos_formularios.id_resposta} IN ${responseIds}`);
+                    .where(inArray(respostas_campos_formularios.id_resposta, responseIds));
 
                 await db.delete(respostas_formularios_cartoes)
-                    .where(sql`${respostas_formularios_cartoes.id} IN ${responseIds}`);
+                    .where(inArray(respostas_formularios_cartoes.id, responseIds));
             }
 
             // Finally delete cards
