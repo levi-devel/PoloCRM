@@ -18,6 +18,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { insertCartaoSchema } from "@shared/schema";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { CNPJInput } from "@/components/ui/cnpj-input";
 import { Textarea } from "@/components/ui/textarea";
 import { KanbanSettings } from "@/components/kanban/KanbanSettings";
 
@@ -699,6 +700,7 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
         case 'text':
         case 'textarea':
         case 'client':
+        case 'cnpj':
           answer.valor_texto = value || '';
           break;
         case 'number':
@@ -896,6 +898,12 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
                     onChange={(e) => handleInputChange(field.id, e.target.value)}
                     required={field.obrigatorio}
                     placeholder={field.rotulo}
+                  />
+                ) : field.tipo === 'cnpj' ? (
+                  <CNPJInput
+                    value={formValues[`field_${field.id}`] || ''}
+                    onChange={(value) => handleInputChange(field.id, value)}
+                    placeholder="00.000.000/0000-00"
                   />
                 ) : field.tipo === 'textarea' ? (
                   <Textarea

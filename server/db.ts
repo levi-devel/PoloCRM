@@ -8,15 +8,10 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Parse the DATABASE_URL to extract connection parameters
-const dbUrl = new URL(process.env.DATABASE_URL);
-
+// Create pool with extended configuration
+// We extend the connection string with additional options
 export const pool = mysql.createPool({
-  host: dbUrl.hostname,
-  port: parseInt(dbUrl.port) || 3306,
-  user: dbUrl.username,
-  password: dbUrl.password,
-  database: dbUrl.pathname.slice(1), // Remove leading slash
+  uri: process.env.DATABASE_URL,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
