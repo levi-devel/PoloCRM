@@ -56,6 +56,33 @@ export function useCreateProject() {
   });
 }
 
+export function useUpdateProject(id: number) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (data: Partial<ProjectInput>) => {
+      const url = buildUrl(api.projetos.update.path, { id });
+      const res = await fetch(url, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to update project");
+      return api.projetos.update.responses[200].parse(await res.json());
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.projetos.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.projetos.get.path, id] });
+      toast({ title: "Sucesso", description: "Projeto atualizado" });
+    },
+    onError: (error) => {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    },
+  });
+}
+
 // Cards
 export function useCards(projectId: number) {
   return useQuery({
