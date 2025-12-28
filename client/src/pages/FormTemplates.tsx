@@ -21,7 +21,7 @@ const templateSchema = z.object({
 
 const fieldSchema = z.object({
     label: z.string().min(1, "Label é obrigatório"),
-    type: z.enum(["text", "textarea", "number", "date", "checkbox", "list", "client"]),
+    type: z.enum(["text", "textarea", "number", "date", "checkbox", "list", "client", "cnpj"]),
     required: z.boolean(),
     options: z.array(z.string()).optional(),
 });
@@ -319,6 +319,7 @@ export default function FormTemplates() {
                                                                     <option value="checkbox">Checkbox</option>
                                                                     <option value="list">Lista (Dropdown)</option>
                                                                     <option value="client">Cliente</option>
+                                                                    <option value="cnpj">CNPJ</option>
                                                                 </select>
                                                             </FormControl>
                                                         </FormItem>
@@ -605,6 +606,7 @@ export default function FormTemplates() {
                                                                         <option value="checkbox">Checkbox</option>
                                                                         <option value="list">Lista (Dropdown)</option>
                                                                         <option value="client">Cliente</option>
+                                                                        <option value="cnpj">CNPJ</option>
                                                                     </select>
                                                                 </FormControl>
                                                             </FormItem>
