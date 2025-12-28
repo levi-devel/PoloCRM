@@ -112,6 +112,28 @@ export class DatabaseStorage implements IStorage {
         return updated;
     }
 
+    async deleteClient(id: number, userId: string) {
+        // Check permissions
+        const user = await this.getUser(userId);
+        if (!user) throw new Error("User not found");
+
+        const allowedRoles = ["Admin", "Gerente Comercial", "Gerente Supervisor"];
+        if (!allowedRoles.includes(user.role)) {
+            throw new Error("Only Admin and Managers can delete clients");
+        }
+
+        // Check if client exists
+        const client = await this.getClient(id);
+        if (!client) throw new Error("Client not found");
+
+        // Delete related documents first
+        await db.delete(documentos_clientes).where(eq(documentos_clientes.id_cliente, id));
+
+        // Delete the client
+        await db.delete(clientes).where(eq(clientes.id, id));
+    }
+
+
     // Client Docs
     async getClientDocs(clientId: number) {
         return await db

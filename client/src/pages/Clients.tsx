@@ -1,8 +1,9 @@
 import { Layout } from "@/components/layout/Layout";
-import { useClients, useCreateClient, useUpdateClient } from "@/hooks/use-clients";
+import { useClients, useCreateClient, useUpdateClient, useDeleteClient } from "@/hooks/use-clients";
 import { useMilvusClients } from "@/hooks/use-milvus-clients";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, Building2, Phone, Mail, Users, Edit, X, Check, ChevronsUpDown } from "lucide-react";
+import { Plus, Search, Building2, Phone, Mail, Users, Edit, X, Check, ChevronsUpDown, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
@@ -14,6 +15,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Command,
   CommandEmpty,
@@ -681,14 +692,19 @@ function ClientFormDialog({
 
 export default function Clients() {
   const { data: clients, isLoading } = useClients();
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [deletingClient, setDeletingClient] = useState<Client | null>(null);
 
   const filteredClients = clients?.filter(client =>
     client.nome.toLowerCase().includes(search.toLowerCase()) ||
     client.contato?.toLowerCase().includes(search.toLowerCase())
   );
+
+  // Check if user can delete clients
+  const canDelete = user && ["Admin", "Gerente Comercial", "Gerente Supervisor"].includes(user.role);
 
   return (
     <Layout>
@@ -744,6 +760,17 @@ export default function Clients() {
                       <Edit className="w-4 h-4 mr-1" />
                       Editar
                     </Button>
+                    {canDelete && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDeletingClient(client)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        Excluir
+                      </Button>
+                    )}
                     <Link href={`/clients/${client.id}`}>
                       <Button variant="ghost" size="sm">
                         Ver Detalhes
@@ -784,8 +811,61 @@ export default function Clients() {
             />
           </Dialog>
         )}
+
+        {/* Delete Confirmation Dialog */}
+        {deletingClient && (
+          <DeleteClientDialog
+            client={deletingClient}
+            isOpen={!!deletingClient}
+            onOpenChange={(open) => !open && setDeletingClient(null)}
+          />
+        )}
       </div>
     </Layout>
+  );
+}
+
+function DeleteClientDialog({
+  client,
+  isOpen,
+  onOpenChange
+}: {
+  client: Client,
+  isOpen: boolean,
+  onOpenChange: (open: boolean) => void
+}) {
+  const deleteClient = useDeleteClient(client.id);
+
+  const handleDelete = () => {
+    deleteClient.mutate(undefined, {
+      onSuccess: () => {
+        onOpenChange(false);
+      }
+    });
+  };
+
+  return (
+    <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Tem certeza que deseja excluir?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Você está prestes a excluir o cliente <strong>{client.nome}</strong>.
+            Esta ação não pode ser desfeita e todos os documentos relacionados também serão removidos.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={deleteClient.isPending}>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleDelete}
+            disabled={deleteClient.isPending}
+            className="bg-destructive hover:bg-destructive/90"
+          >
+            {deleteClient.isPending ? "Excluindo..." : "Excluir"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 

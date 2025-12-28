@@ -72,6 +72,22 @@ export async function registerRoutes(
     const client = await storage.updateClient(Number(req.params.id), req.body);
     res.json(client);
   });
+  app.delete(api.clientes.delete.path, isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      await storage.deleteClient(Number(req.params.id), userId);
+      res.status(204).send();
+    } catch (error: any) {
+      if (error.message === "Client not found") {
+        return res.status(404).json({ message: error.message });
+      }
+      if (error.message.includes("Only Admin and Managers")) {
+        return res.status(403).json({ message: error.message });
+      }
+      res.status(400).json({ message: error.message || "Failed to delete client" });
+    }
+  });
+
 
   // Client Docs
   app.get(api.documentos_clientes.list.path, async (req, res) => {
