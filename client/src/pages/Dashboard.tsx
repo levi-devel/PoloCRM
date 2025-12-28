@@ -51,9 +51,29 @@ export default function Dashboard() {
   const [selectedTechnicianId, setSelectedTechnicianId] = useState<string>("all");
   const [trendPeriod, setTrendPeriod] = useState<TrendPeriod>('week');
 
+  // Calculate date range based on selected period
+  const getDateRange = () => {
+    const now = new Date();
+    let startDate: Date | undefined;
+    let endDate: Date | undefined;
+
+    if (selectedPeriod === "month") {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      endDate = now;
+    } else if (selectedPeriod === "year") {
+      startDate = new Date(now.getFullYear(), 0, 1);
+      endDate = now;
+    }
+    // "custom" would need date picker inputs - not implemented yet
+
+    return { startDate, endDate };
+  };
+
+  const { startDate, endDate } = getDateRange();
+
   // Fetch dashboard stats
   const { data: dashboardStats } = useQuery({
-    queryKey: ['/api/dashboard/stats', selectedProjectId, selectedTechnicianId],
+    queryKey: ['/api/dashboard/stats', selectedProjectId, selectedTechnicianId, selectedPeriod],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (selectedProjectId !== "all") {
@@ -61,6 +81,12 @@ export default function Dashboard() {
       }
       if (selectedTechnicianId !== "all") {
         params.append("technicianId", selectedTechnicianId);
+      }
+      if (startDate) {
+        params.append("startDate", startDate.toISOString());
+      }
+      if (endDate) {
+        params.append("endDate", endDate.toISOString());
       }
       const res = await fetch(`/api/dashboard/stats?${params}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch dashboard stats");
@@ -89,7 +115,7 @@ export default function Dashboard() {
   const activeProjects = projects?.filter(p => p.status === "Ativo").length || 0;
   const completedProjects = projects?.filter(p => p.status === "Concluído").length || 0;
   const totalClients = clients?.length || 0;
-  const pendingAlerts = alerts?.filter(a => !a.resolved).length || 0;
+  const pendingAlerts = alerts?.filter(a => !a.resolvido).length || 0;
 
   // Stats from API
   const totalCards = dashboardStats?.totalCards || 0;
@@ -127,7 +153,7 @@ export default function Dashboard() {
                 <SelectItem value="all">Todos</SelectItem>
                 {projects?.map((project) => (
                   <SelectItem key={project.id} value={project.id.toString()}>
-                    {project.name}
+                    {project.nome}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -328,15 +354,15 @@ export default function Dashboard() {
                       <div key={alert.id} className="flex gap-4 items-start p-3 rounded-lg bg-muted/30 border border-border/50">
                         <div className={cn(
                           "w-2 h-2 mt-2 rounded-full flex-shrink-0",
-                          alert.severity === "Crítico" ? "bg-red-500" :
-                            alert.severity === "Aviso" ? "bg-orange-500" : "bg-blue-500"
+                          alert.severidade === "Crítico" ? "bg-red-500" :
+                            alert.severidade === "Aviso" ? "bg-orange-500" : "bg-blue-500"
                         )} />
                         <div>
-                          <p className="text-sm font-medium text-foreground">{alert.message}</p>
+                          <p className="text-sm font-medium text-foreground">{alert.mensagem}</p>
                           <div className="flex items-center gap-2 mt-1">
                             <Clock className="w-3 h-3 text-muted-foreground" />
                             <span className="text-xs text-muted-foreground">
-                              {alert.createdAt ? format(new Date(alert.createdAt), 'dd/MM HH:mm') : 'Agora mesmo'}
+                              {alert.criado_em ? format(new Date(alert.criado_em), 'dd/MM HH:mm') : 'Agora mesmo'}
                             </span>
                           </div>
                         </div>
