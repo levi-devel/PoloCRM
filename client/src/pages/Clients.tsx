@@ -37,8 +37,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import type { Client } from "@shared/schema";
 import { cn } from "@/lib/utils";
+import { MultiSelect } from "@/components/ui/multi-select";
 
 type ClientFormValues = z.infer<typeof insertClienteSchema>;
+
+// Lista de produtos disponíveis para seleção
+const PRODUTOS_DISPONIVEIS = [
+  "IPPolo Omni Business",
+  "IPPolo Omni Enterprise",
+  "IPPolo Omni Profissional",
+  "Plataforma 360 OMNI",
+  "Pabx 3CX",
+  "PABX HIBRIDO",
+  "Pabx IPPolo Business",
+  "Pabx IPPolo Cloud",
+  "Pabx IPPolo Enterprise",
+  "Pabx IPPolo Profissional",
+  "Desenvolvimento de Sistema",
+  "Produtos",
+  "Linha Voip",
+];
 
 function TagInput({ value, onChange, placeholder }: { value?: string[], onChange: (value: string[]) => void, placeholder: string }) {
   const [inputValue, setInputValue] = useState("");
@@ -372,10 +390,11 @@ function ClientFormDialog({
                   <FormItem>
                     <FormLabel>Produtos Contratados</FormLabel>
                     <FormControl>
-                      <TagInput
-                        value={field.value || []}
+                      <MultiSelect
+                        options={PRODUTOS_DISPONIVEIS}
+                        selected={field.value || []}
                         onChange={field.onChange}
-                        placeholder="Digite um produto e pressione Enter"
+                        placeholder="Selecione os produtos contratados"
                       />
                     </FormControl>
                     <FormMessage />
