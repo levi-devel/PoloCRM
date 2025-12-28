@@ -296,14 +296,6 @@ export default function Projects() {
                 </div>
 
                 <div className="flex items-center gap-4">
-                  <div className="flex -space-x-2">
-                    {/* Mock avatars */}
-                    {[1, 2, 3].map(i => (
-                      <div key={i} className="w-8 h-8 rounded-full border-2 border-background bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground">
-                        U{i}
-                      </div>
-                    ))}
-                  </div>
                   {canEdit && (
                     <Button
                       variant="outline"
