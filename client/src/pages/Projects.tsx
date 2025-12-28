@@ -54,6 +54,7 @@ export default function Projects() {
 
   const updateProject = useUpdateProject(projectToEdit?.id || 0);
 
+  const canEdit = user && ["Admin", "Gerente Comercial", "Gerente Supervisor"].includes(user.role);
   const canDelete = user && ["Admin", "Gerente Comercial", "Gerente Supervisor"].includes(user.role);
 
   const createForm = useForm<ProjectFormValues>({
@@ -303,14 +304,16 @@ export default function Projects() {
                       </div>
                     ))}
                   </div>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="text-muted-foreground hover:text-primary"
-                    onClick={() => handleEditClick(project)}
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </Button>
+                  {canEdit && (
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="text-muted-foreground hover:text-primary"
+                      onClick={() => handleEditClick(project)}
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                  )}
                   <Link href={`/projects/${project.id}`}>
                     <Button variant="outline" className="group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                       Abrir Quadro <ArrowRight className="w-4 h-4 ml-2" />
