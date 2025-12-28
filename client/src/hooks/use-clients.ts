@@ -122,4 +122,30 @@ export function useCreateClientDoc(clientId: number) {
   });
 }
 
+export function useDeleteClient(id: number) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async () => {
+      const url = buildUrl(api.clientes.delete.path, { id });
+      const res = await fetch(url, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to delete client");
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.clientes.list.path] });
+      toast({ title: "Sucesso", description: "Cliente excluído com sucesso" });
+    },
+    onError: (error) => {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    },
+  });
+}
+
 
