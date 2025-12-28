@@ -1,11 +1,11 @@
 import { Layout } from "@/components/layout/Layout";
-import { useProjects, useCreateProject, useDeleteProject } from "@/hooks/use-projects";
+import { useProjects, useCreateProject, useUpdateProject, useDeleteProject } from "@/hooks/use-projects";
 import { useClients } from "@/hooks/use-clients";
 import { useUsers } from "@/hooks/use-users";
 import { useFormTemplates } from "@/hooks/use-forms";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Plus, FolderKanban, Calendar, ArrowRight, Trash2 } from "lucide-react";
+import { Plus, FolderKanban, Calendar, ArrowRight, Trash2, Pencil } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
@@ -47,12 +47,16 @@ export default function Projects() {
   const { user } = useAuth();
   const createProject = useCreateProject();
   const deleteProject = useDeleteProject();
-  const [isOpen, setIsOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [projectToEdit, setProjectToEdit] = useState<any>(null);
   const [projectToDelete, setProjectToDelete] = useState<number | null>(null);
+
+  const updateProject = useUpdateProject(projectToEdit?.id || 0);
 
   const canDelete = user && ["Admin", "Gerente Comercial", "Gerente Supervisor"].includes(user.role);
 
-  const form = useForm<ProjectFormValues>({
+  const createForm = useForm<ProjectFormValues>({
     resolver: zodResolver(insertProjetoSchema),
     defaultValues: {
       nome: "",
@@ -62,13 +66,49 @@ export default function Projects() {
     }
   });
 
-  const onSubmit = (data: ProjectFormValues) => {
+  const editForm = useForm<ProjectFormValues>({
+    resolver: zodResolver(insertProjetoSchema),
+    defaultValues: {
+      nome: "",
+      descricao: "",
+      status: "Ativo",
+      prioridade: "Média"
+    }
+  });
+
+  const onCreateSubmit = (data: ProjectFormValues) => {
     createProject.mutate(data, {
       onSuccess: () => {
-        setIsOpen(false);
-        form.reset();
+        setIsCreateOpen(false);
+        createForm.reset();
       }
     });
+  };
+
+  const onEditSubmit = (data: ProjectFormValues) => {
+    updateProject.mutate(data, {
+      onSuccess: () => {
+        setIsEditOpen(false);
+        setProjectToEdit(null);
+        editForm.reset();
+      }
+    });
+  };
+
+  const handleEditClick = (project: any) => {
+    setProjectToEdit(project);
+    editForm.reset({
+      nome: project.nome,
+      descricao: project.descricao || "",
+      status: project.status,
+      prioridade: project.prioridade,
+      id_lider_tecnico: project.id_lider_tecnico,
+      id_modelo_padrao: project.id_modelo_padrao,
+      id_cliente: project.id_cliente,
+      data_inicio: project.data_inicio,
+      data_prazo: project.data_prazo,
+    });
+    setIsEditOpen(true);
   };
 
   const getClientName = (id: number | null | undefined) => {
@@ -84,7 +124,7 @@ export default function Projects() {
             <h1 className="text-3xl font-bold font-display text-foreground">Projetos</h1>
             <p className="text-muted-foreground mt-2">Acompanhe o progresso e gerencie entregas.</p>
           </div>
-          <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
               <Button className="shadow-lg shadow-primary/20">
                 <Plus className="w-4 h-4 mr-2" /> Novo Projeto
@@ -94,10 +134,10 @@ export default function Projects() {
               <DialogHeader>
                 <DialogTitle>Criar Novo Projeto</DialogTitle>
               </DialogHeader>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <Form {...createForm}>
+                <form onSubmit={createForm.handleSubmit(onCreateSubmit)} className="space-y-4">
                   <FormField
-                    control={form.control}
+                    control={createForm.control}
                     name="nome"
                     render={({ field }) => (
                       <FormItem>
@@ -111,7 +151,7 @@ export default function Projects() {
                   />
 
                   <FormField
-                    control={form.control}
+                    control={createForm.control}
                     name="id_lider_tecnico"
                     render={({ field }) => (
                       <FormItem>
@@ -134,7 +174,7 @@ export default function Projects() {
                   />
 
                   <FormField
-                    control={form.control}
+                    control={createForm.control}
                     name="id_modelo_padrao"
                     render={({ field }) => (
                       <FormItem>
@@ -161,7 +201,7 @@ export default function Projects() {
                   />
 
                   <FormField
-                    control={form.control}
+                    control={createForm.control}
                     name="descricao"
                     render={({ field }) => (
                       <FormItem>
@@ -176,7 +216,7 @@ export default function Projects() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
-                      control={form.control}
+                      control={createForm.control}
                       name="data_inicio"
                       render={({ field }) => (
                         <FormItem>
@@ -193,7 +233,7 @@ export default function Projects() {
                       )}
                     />
                     <FormField
-                      control={form.control}
+                      control={createForm.control}
                       name="data_prazo"
                       render={({ field }) => (
                         <FormItem>
@@ -263,6 +303,14 @@ export default function Projects() {
                       </div>
                     ))}
                   </div>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="text-muted-foreground hover:text-primary"
+                    onClick={() => handleEditClick(project)}
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Button>
                   <Link href={`/projects/${project.id}`}>
                     <Button variant="outline" className="group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                       Abrir Quadro <ArrowRight className="w-4 h-4 ml-2" />
@@ -307,6 +355,137 @@ export default function Projects() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Edit Project Dialog */}
+        <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Editar Projeto</DialogTitle>
+            </DialogHeader>
+            <Form {...editForm}>
+              <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
+                <FormField
+                  control={editForm.control}
+                  name="nome"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome do Projeto</FormLabel>
+                      <FormControl>
+                        <Input placeholder="ex: Redesign do Site" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={editForm.control}
+                  name="id_lider_tecnico"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Líder Técnico</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o líder" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {users?.map(u => (
+                            <SelectItem key={u.id} value={u.id}>{u.firstName} {u.lastName}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={editForm.control}
+                  name="id_modelo_padrao"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Modelo de Tarefa</FormLabel>
+                      <Select
+                        onValueChange={(val) => field.onChange(parseInt(val))}
+                        value={field.value?.toString()}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o modelo" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {templates?.map(t => (
+                            <SelectItem key={t.id} value={t.id.toString()}>{t.nome}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">Usado para novos cartões neste projeto.</p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={editForm.control}
+                  name="descricao"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Descrição</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Detalhes do projeto..." {...field} value={field.value || ""} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={editForm.control}
+                    name="data_inicio"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Data de Início</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="date"
+                            value={dateToInputValue(field.value)}
+                            onChange={e => field.onChange(inputValueToDate(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="data_prazo"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Data de Término</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="date"
+                            value={dateToInputValue(field.value)}
+                            onChange={e => field.onChange(inputValueToDate(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <Button type="submit" className="w-full" disabled={updateProject.isPending}>
+                  {updateProject.isPending ? "Atualizando..." : "Atualizar Projeto"}
+                </Button>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );
