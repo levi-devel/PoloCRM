@@ -569,6 +569,13 @@ export class DatabaseStorage implements IStorage {
         if (technicianId) {
             conditions.push(eq(cartoes.id_tecnico_atribuido, technicianId));
         }
+        // Add date filtering
+        if (startDate) {
+            conditions.push(gte(cartoes.criado_em, startDate));
+        }
+        if (endDate) {
+            conditions.push(lte(cartoes.criado_em, endDate));
+        }
 
         const allCards = conditions.length > 0
             ? await db.select().from(cartoes).where(and(...conditions))
