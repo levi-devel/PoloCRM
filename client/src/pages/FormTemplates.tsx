@@ -114,7 +114,12 @@ export default function FormTemplates() {
         // Clean up options if it's a list
         const cleanData = { ...data };
         if (cleanData.type === 'list' && cleanData.options) {
-            cleanData.options = cleanData.options.map(o => o.trim()).filter(Boolean);
+            // If options is a single string (from the input), split it by comma
+            if (cleanData.options.length === 1 && typeof cleanData.options[0] === 'string' && cleanData.options[0].includes(',')) {
+                cleanData.options = cleanData.options[0].split(',').map(o => o.trim()).filter(Boolean);
+            } else {
+                cleanData.options = cleanData.options.map(o => o.trim()).filter(Boolean);
+            }
         }
 
         if (editingFieldIndex !== null) {
@@ -325,14 +330,10 @@ export default function FormTemplates() {
                                                         <FormLabel>Opções (separadas por vírgula)</FormLabel>
                                                         <Input
                                                             placeholder="Opção 1, Opção 2, Opção 3"
-                                                            value={fieldForm.watch("options")?.join(", ") || ""}
+                                                            defaultValue={fieldForm.watch("options")?.join(", ") || ""}
                                                             onChange={(e) => {
-                                                                const options = e.target.value.split(',').map(o => o.trim()).filter(Boolean); // keep empty strings out
-                                                                // But to allow typing comma, we need a better approach or just let them type and split on blur?
-                                                                // Simple approach: split by comma but filter boolean only for final submission.
-                                                                // Better: Just update the options array.
-                                                                // Actually for better UX let's just use the value directly split.
-                                                                fieldForm.setValue("options", e.target.value.split(','));
+                                                                // Just store the raw string, we'll split it when adding the field
+                                                                fieldForm.setValue("options", e.target.value ? [e.target.value] : []);
                                                             }}
                                                         />
                                                     </div>
@@ -615,9 +616,10 @@ export default function FormTemplates() {
                                                             <FormLabel>Opções (separadas por vírgula)</FormLabel>
                                                             <Input
                                                                 placeholder="Opção 1, Opção 2, Opção 3"
-                                                                value={fieldForm.watch("options")?.join(", ") || ""}
+                                                                defaultValue={fieldForm.watch("options")?.join(", ") || ""}
                                                                 onChange={(e) => {
-                                                                    fieldForm.setValue("options", e.target.value.split(','));
+                                                                    // Just store the raw string, we'll split it when adding the field
+                                                                    fieldForm.setValue("options", e.target.value ? [e.target.value] : []);
                                                                 }}
                                                             />
                                                         </div>

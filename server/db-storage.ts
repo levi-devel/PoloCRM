@@ -193,30 +193,34 @@ export class DatabaseStorage implements IStorage {
     }
 
     async updateFormTemplate(id: number, templateData: Partial<InsertModeloFormulario>, fields?: InsertCampoFormulario[]) {
-        await db
-            .update(modelos_formularios)
-            .set(templateData)
-            .where(eq(modelos_formularios.id, id));
+        return await db.transaction(async (tx) => {
+            // Update template metadata
+            await tx
+                .update(modelos_formularios)
+                .set(templateData)
+                .where(eq(modelos_formularios.id, id));
 
-        const updated = await db.select().from(modelos_formularios).where(eq(modelos_formularios.id, id)).limit(1);
-        if (!updated[0]) throw new Error("Template not found");
+            const updated = await tx.select().from(modelos_formularios).where(eq(modelos_formularios.id, id)).limit(1);
+            if (!updated[0]) throw new Error("Template not found");
 
-        if (fields !== undefined) {
-            // Delete old fields
-            await db.delete(campos_formularios).where(eq(campos_formularios.id_modelo, id));
+            // Update fields if provided
+            if (fields !== undefined) {
+                // Delete old fields within the transaction
+                await tx.delete(campos_formularios).where(eq(campos_formularios.id_modelo, id));
 
-            // Insert new fields
-            if (fields.length > 0) {
-                const fieldsData = fields.map(f => ({
-                    ...f,
-                    id_modelo: id,
-                    opcoes: f.opcoes ? [...f.opcoes] : null,
-                }));
-                await db.insert(campos_formularios).values(fieldsData as any);
+                // Insert new fields within the transaction
+                if (fields.length > 0) {
+                    const fieldsData = fields.map(f => ({
+                        ...f,
+                        id_modelo: id,
+                        opcoes: f.opcoes ? [...f.opcoes] : null,
+                    }));
+                    await tx.insert(campos_formularios).values(fieldsData as any);
+                }
             }
-        }
 
-        return updated[0];
+            return updated[0];
+        });
     }
 
     async deleteFormTemplate(id: number) {

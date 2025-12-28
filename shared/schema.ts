@@ -42,6 +42,9 @@ export const clientes = mysqlTable("clientes", {
   incidentes_relevantes: text("incidentes_relevantes"),
   decisoes_tecnicas: text("decisoes_tecnicas"),
 
+  // ✨ EXEMPLO: Nova coluna adicionada
+  ativo: boolean("ativo").default(true).notNull(), // Indica se o cliente está ativo
+
   criado_em: timestamp("criado_em").defaultNow(),
 });
 
@@ -376,6 +379,19 @@ export type InsertPoloProjeto = z.infer<typeof insertPoloProjetoSchema>;
 export type EtapaPoloProjeto = typeof etapas_polo_projetos.$inferSelect;
 export type InsertEtapaPoloProjeto = z.infer<typeof insertEtapaPoloProjetoSchema>;
 
+// ✨ EXEMPLO: Nova Tabela de Tarefas Internas
+export const tarefas_internas = mysqlTable("tarefas_internas", {
+  id: int("id").primaryKey().autoincrement(),
+  titulo: text("titulo").notNull(),
+  descricao: text("descricao"),
+  status: varchar("status", { length: 50 }).default("Pendente").notNull(), // Pendente, Em Progresso, Concluída
+  prioridade: varchar("prioridade", { length: 50 }).default("Média"), // Baixa, Média, Alta, Urgente
+  id_responsavel: varchar("id_responsavel", { length: 255 }),
+  data_prazo: timestamp("data_prazo"),
+  data_conclusao: timestamp("data_conclusao"),
+  criado_em: timestamp("criado_em").defaultNow(),
+});
+
 // Sales Funnel Tables
 export const colunas_funil_vendas = mysqlTable("colunas_funil_vendas", {
   id: int("id").primaryKey().autoincrement(),
@@ -415,6 +431,14 @@ export const cartoesFunilVendasRelations = relations(cartoes_funil_vendas, ({ on
   }),
 }));
 
+// ✨ EXEMPLO: Relations da nova tabela
+export const tarefasInternasRelations = relations(tarefas_internas, ({ one }) => ({
+  responsavel: one(users, {
+    fields: [tarefas_internas.id_responsavel],
+    references: [users.id],
+  }),
+}));
+
 export const insertColunaFunilVendasSchema = createInsertSchema(colunas_funil_vendas).omit({ id: true });
 export const insertCartaoFunilVendasSchema = createInsertSchema(cartoes_funil_vendas).omit({ id: true, criado_em: true });
 
@@ -422,3 +446,8 @@ export type ColunaFunilVendas = typeof colunas_funil_vendas.$inferSelect;
 export type InsertColunaFunilVendas = z.infer<typeof insertColunaFunilVendasSchema>;
 export type CartaoFunilVendas = typeof cartoes_funil_vendas.$inferSelect;
 export type InsertCartaoFunilVendas = z.infer<typeof insertCartaoFunilVendasSchema>;
+
+// ✨ EXEMPLO: Schemas e types da nova tabela
+export const insertTarefaInternaSchema = createInsertSchema(tarefas_internas).omit({ id: true, criado_em: true });
+export type TarefaInterna = typeof tarefas_internas.$inferSelect;
+export type InsertTarefaInterna = z.infer<typeof insertTarefaInternaSchema>;
