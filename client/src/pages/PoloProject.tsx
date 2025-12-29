@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { Plus, Calendar, TrendingUp, Trash2 } from "lucide-react";
+import { Plus, Calendar, TrendingUp, Trash2, Search } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import {
     AlertDialog,
@@ -38,6 +38,7 @@ import { useAuth } from "@/hooks/use-auth";
 
 export default function PoloProject() {
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
     const [formData, setFormData] = useState({
         name: "",
         description: "",
@@ -69,6 +70,11 @@ export default function PoloProject() {
             return response.json();
         },
     });
+
+    // Filter projects based on search term
+    const filteredProjects = projects?.filter((project: any) =>
+        project.nome.toLowerCase().includes(searchTerm.toLowerCase())
+    ) || [];
 
     // Fetch available projects and cards to create association
     const { data: availableProjects } = useQuery({
@@ -418,82 +424,109 @@ export default function PoloProject() {
                             <CardDescription>
                                 Clique em um projeto para visualizar o gráfico de Gantt
                             </CardDescription>
+                            {/* Search Input */}
+                            {projects && projects.length > 0 && (
+                                <div className="relative mt-4">
+                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                    <Input
+                                        type="text"
+                                        placeholder="Buscar projetos por nome..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="pl-10"
+                                    />
+                                </div>
+                            )}
                         </CardHeader>
                         <CardContent>
                             {projects && projects.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {projects.map((project: any) => (
-                                        <div
-                                            key={project.id}
-                                            className="p-4 border rounded-lg hover:border-blue-500 hover:shadow-md transition-all cursor-pointer relative group"
-                                            onClick={() => setLocation(`/polo-project/${project.id}`)}
-                                        >
-                                            <div className="pr-8">
-                                                <h3 className="font-semibold text-gray-900">{project.nome}</h3>
-                                                {project.descricao && (
-                                                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">{project.descricao}</p>
-                                                )}
-                                                <div className="mt-3 flex items-center justify-between">
-                                                    <span className={`text-xs px-2 py-1 rounded ${project.status === 'Ativo' ? 'bg-green-100 text-green-700' :
-                                                        project.status === 'Concluído' ? 'bg-blue-100 text-blue-700' :
-                                                            project.status === 'Pausado' ? 'bg-yellow-100 text-yellow-700' :
-                                                                'bg-gray-100 text-gray-700'
-                                                        }`}>
-                                                        {project.status}
-                                                    </span>
-                                                    {project.stages && (
-                                                        <span className="text-xs text-gray-500">
-                                                            {project.stages.length} etapas
-                                                        </span>
+                                <>
+                                    {filteredProjects.length > 0 ? (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            {filteredProjects.map((project: any) => (
+                                                <div
+                                                    key={project.id}
+                                                    className="p-4 border rounded-lg hover:border-blue-500 hover:shadow-md transition-all cursor-pointer relative group"
+                                                    onClick={() => setLocation(`/polo-project/${project.id}`)}
+                                                >
+                                                    <div className="pr-8">
+                                                        <h3 className="font-semibold text-gray-900">{project.nome}</h3>
+                                                        {project.descricao && (
+                                                            <p className="text-sm text-gray-600 mt-1 line-clamp-2">{project.descricao}</p>
+                                                        )}
+                                                        <div className="mt-3 flex items-center justify-between">
+                                                            <span className={`text-xs px-2 py-1 rounded ${project.status === 'Ativo' ? 'bg-green-100 text-green-700' :
+                                                                project.status === 'Concluído' ? 'bg-blue-100 text-blue-700' :
+                                                                    project.status === 'Pausado' ? 'bg-yellow-100 text-yellow-700' :
+                                                                        'bg-gray-100 text-gray-700'
+                                                                }`}>
+                                                                {project.status}
+                                                            </span>
+                                                            {project.stages && (
+                                                                <span className="text-xs text-gray-500">
+                                                                    {project.stages.length} etapas
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    {canDelete && (
+                                                        <div
+                                                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                            <AlertDialog>
+                                                                <AlertDialogTrigger asChild>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50"
+                                                                    >
+                                                                        <Trash2 className="h-4 w-4" />
+                                                                    </Button>
+                                                                </AlertDialogTrigger>
+                                                                <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                                                                    <AlertDialogHeader>
+                                                                        <AlertDialogTitle>Excluir Projeto</AlertDialogTitle>
+                                                                        <AlertDialogDescription>
+                                                                            Tem certeza que deseja excluir o projeto "{project.nome}"?
+                                                                            Esta ação não pode ser desfeita. O card do Kanban permanecerá, mas o Polo Project será removido.
+                                                                        </AlertDialogDescription>
+                                                                    </AlertDialogHeader>
+                                                                    <AlertDialogFooter>
+                                                                        <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancelar</AlertDialogCancel>
+                                                                        <AlertDialogAction
+                                                                            className="bg-red-600 hover:bg-red-700"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                deletePoloProjectMutation.mutate(project.id);
+                                                                            }}
+                                                                        >
+                                                                            Excluir
+                                                                        </AlertDialogAction>
+                                                                    </AlertDialogFooter>
+                                                                </AlertDialogContent>
+                                                            </AlertDialog>
+                                                        </div>
                                                     )}
                                                 </div>
-                                            </div>
-
-                                            {canDelete && (
-                                                <div
-                                                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={(e) => e.stopPropagation()}
-                                                >
-                                                    <AlertDialog>
-                                                        <AlertDialogTrigger asChild>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50"
-                                                            >
-                                                                <Trash2 className="h-4 w-4" />
-                                                            </Button>
-                                                        </AlertDialogTrigger>
-                                                        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
-                                                            <AlertDialogHeader>
-                                                                <AlertDialogTitle>Excluir Projeto</AlertDialogTitle>
-                                                                <AlertDialogDescription>
-                                                                    Tem certeza que deseja excluir o projeto "{project.nome}"?
-                                                                    Esta ação não pode ser desfeita. O card do Kanban permanecerá, mas o Polo Project será removido.
-                                                                </AlertDialogDescription>
-                                                            </AlertDialogHeader>
-                                                            <AlertDialogFooter>
-                                                                <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancelar</AlertDialogCancel>
-                                                                <AlertDialogAction
-                                                                    className="bg-red-600 hover:bg-red-700"
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        deletePoloProjectMutation.mutate(project.id);
-                                                                    }}
-                                                                >
-                                                                    Excluir
-                                                                </AlertDialogAction>
-                                                            </AlertDialogFooter>
-                                                        </AlertDialogContent>
-                                                    </AlertDialog>
-                                                </div>
-                                            )}
+                                            ))}
                                         </div>
-                                    ))}
-                                </div>
+                                    ) : (
+                                        <div className="text-center py-12">
+                                            <p className="text-gray-500 mb-4">Nenhum projeto encontrado com "{searchTerm}"</p>
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => setSearchTerm("")}
+                                            >
+                                                Limpar busca
+                                            </Button>
+                                        </div>
+                                    )}
+                                </>
                             ) : (
                                 <div className="text-center py-12">
-                                    <p className=" text-gray-500 mb-4">Nenhum projeto criado ainda</p>
+                                    <p className="text-gray-500 mb-4">Nenhum projeto criado ainda</p>
                                     <Button
                                         onClick={() => setDialogOpen(true)}
                                     >
