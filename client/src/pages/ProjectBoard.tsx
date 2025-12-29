@@ -2,11 +2,11 @@ import { Layout } from "@/components/layout/Layout";
 import { useProject, useCards, useCreateCard, useMoveCard, useCard, useSubmitCardForm, useUpdateCardBasicInfo, useDeleteCard } from "@/hooks/use-projects";
 import { useFormTemplate } from "@/hooks/use-forms";
 import { useClients } from "@/hooks/use-clients";
-import { useRoute } from "wouter";
+import { useRoute, useLocation } from "wouter";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, MoreHorizontal, Calendar, FileText, Settings, Trash2, Search } from "lucide-react";
+import { Plus, MoreHorizontal, Calendar, FileText, Settings, Trash2, Search, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { dateToInputValue, inputValueToDate } from "@/lib/date-utils";
@@ -19,6 +19,7 @@ import { insertCartaoSchema } from "@shared/schema";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { CNPJInput } from "@/components/ui/cnpj-input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Textarea } from "@/components/ui/textarea";
 import { KanbanSettings } from "@/components/kanban/KanbanSettings";
 
@@ -256,6 +257,7 @@ function KanbanColumn({ title, id, cards, onAddCard, onCardClick, onDeleteCard, 
 
 export default function ProjectBoard() {
   const [, params] = useRoute("/projects/:id");
+  const [, setLocation] = useLocation();
   const projectId = parseInt(params?.id || "0");
   const { data: project } = useProject(projectId);
   const { data: cards, refetch } = useCards(projectId);
@@ -374,6 +376,14 @@ export default function ProjectBoard() {
   return (
     <Layout>
       <div className="h-[calc(100vh-8rem)] flex flex-col">
+        <Button
+          variant="ghost"
+          onClick={() => setLocation('/projects')}
+          className="mb-4 text-muted-foreground hover:text-foreground w-fit"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Voltar para Projetos
+        </Button>
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold font-display">{project.nome}</h1>
@@ -894,6 +904,10 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
               field.rotulo?.toLowerCase() === 'cliente' ||
               field.rotulo?.toLowerCase() === 'client';
 
+            // Detectar se é um campo de telefone pelo label
+            const isPhoneField = field.rotulo?.toLowerCase().includes('telefone') ||
+              field.rotulo?.toLowerCase().includes('phone');
+
             return (
               <div key={field.id} className={`space-y-2 ${isFullWidth ? 'col-span-2' : ''}`}>
                 <label className="text-sm font-medium flex items-center gap-2">
@@ -907,6 +921,13 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
                     value={formValues[`field_${field.id}`] || ''}
                     onChange={(value) => handleInputChange(field.id, value)}
                     required={field.obrigatorio}
+                  />
+                ) : isPhoneField ? (
+                  <PhoneInput
+                    value={formValues[`field_${field.id}`] || ''}
+                    onChange={(value) => handleInputChange(field.id, value)}
+                    required={field.obrigatorio}
+                    placeholder="(XX) X XXXX-XXXX"
                   />
                 ) : field.tipo === 'text' ? (
                   <Input
