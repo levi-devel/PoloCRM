@@ -111,6 +111,61 @@ const safeFormatDate = (dateValue: any, formatStr: string) => {
     }
 };
 
+// Card Content Component (reutilizado para card normal e clone durante drag)
+const CardContent = ({ card, formatCurrency, isDragging = false }: any) => (
+    <div className="space-y-2.5">
+        <div className="flex justify-between items-start gap-2">
+            <h4 className="font-bold text-xs leading-tight line-clamp-2">
+                {card.nome_cliente}
+            </h4>
+            <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground/30 flex-shrink-0" />
+        </div>
+
+        <div className="space-y-1">
+            {card.cnpj && (
+                <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                    <Building2 className="w-3 h-3 flex-shrink-0" />
+                    <span className="truncate">{card.cnpj}</span>
+                </div>
+            )}
+            {card.nome_contato && (
+                <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                    <User className="w-3 h-3 flex-shrink-0" />
+                    <span className="truncate">{card.nome_contato}</span>
+                </div>
+            )}
+            {card.telefone && (
+                <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                    <Phone className="w-3 h-3 flex-shrink-0" />
+                    <span>{card.telefone}</span>
+                </div>
+            )}
+
+            <div className="pt-1.5 space-y-1 border-t border-border/20 mt-1">
+                <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground font-medium">
+                    <Calendar className="w-2.5 h-2.5 flex-shrink-0" />
+                    <span>Enviado em: {safeFormatDate(card.data_envio, 'dd/MM/yyyy')}</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground/70">
+                    <Clock className="w-2.5 h-2.5 flex-shrink-0" />
+                    <span>Criado em: {safeFormatDate(card.criado_em, 'dd/MM/yyyy HH:mm')}</span>
+                </div>
+            </div>
+        </div>
+
+        <div className="flex items-center justify-between pt-2 border-t border-border/30">
+            <span className="text-xs font-black text-green-600">
+                {formatCurrency(card.valor)}
+            </span>
+            {card.numero_proposta && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 bg-primary/5 text-primary rounded border border-primary/10">
+                    #{card.numero_proposta}
+                </span>
+            )}
+        </div>
+    </div>
+);
+
 // Funnel Column Component
 function FunnelColumn({ title, id, cards, onAddCard, onCardClick, color, totalValue }: any) {
     const formatCurrency = (value: number | null | undefined) => {
@@ -119,6 +174,21 @@ function FunnelColumn({ title, id, cards, onAddCard, onCardClick, color, totalVa
             style: 'currency',
             currency: 'BRL'
         }).format(value / 100);
+    };
+
+    // Função de renderização do clone durante o drag
+    const renderClone = (provided: any, snapshot: any, rubric: any) => {
+        const card = cards[rubric.source.index];
+        return (
+            <div
+                {...provided.draggableProps}
+                {...provided.dragHandleProps}
+                ref={provided.innerRef}
+                className="bg-card p-3.5 rounded-xl border-2 border-primary shadow-2xl ring-4 ring-primary/30 w-80 cursor-grabbing"
+            >
+                <CardContent card={card} formatCurrency={formatCurrency} isDragging={true} />
+            </div>
+        );
     };
 
     return (
@@ -146,7 +216,7 @@ function FunnelColumn({ title, id, cards, onAddCard, onCardClick, color, totalVa
                 </div>
             </div>
 
-            <Droppable droppableId={id.toString().trim()}>
+            <Droppable droppableId={id.toString().trim()} renderClone={renderClone}>
                 {(provided, snapshot) => (
                     <div
                         {...provided.droppableProps}
@@ -163,63 +233,13 @@ function FunnelColumn({ title, id, cards, onAddCard, onCardClick, color, totalVa
                                         {...provided.dragHandleProps}
                                         style={{
                                             ...provided.draggableProps.style,
-                                            userSelect: 'none'
+                                            userSelect: 'none',
                                         }}
-                                        onClick={() => onCardClick(card)}
-                                        className={`bg-card p-3.5 rounded-xl border border-border/50 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md hover:border-primary/20 transition-all ${snapshot.isDragging ? "shadow-lg ring-2 ring-primary/20 !z-[9999]" : ""
+                                        onClick={() => !snapshot.isDragging && onCardClick(card)}
+                                        className={`bg-card p-3.5 rounded-xl border border-border/50 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md hover:border-primary/20 transition-all ${snapshot.isDragging ? "opacity-30" : ""
                                             }`}
                                     >
-                                        <div className="space-y-2.5">
-                                            <div className="flex justify-between items-start gap-2">
-                                                <h4 className="font-bold text-xs leading-tight line-clamp-2">
-                                                    {card.nome_cliente}
-                                                </h4>
-                                                <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground/30 flex-shrink-0" />
-                                            </div>
-
-                                            <div className="space-y-1">
-                                                {card.cnpj && (
-                                                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                                                        <Building2 className="w-3 h-3 flex-shrink-0" />
-                                                        <span className="truncate">{card.cnpj}</span>
-                                                    </div>
-                                                )}
-                                                {card.nome_contato && (
-                                                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                                                        <User className="w-3 h-3 flex-shrink-0" />
-                                                        <span className="truncate">{card.nome_contato}</span>
-                                                    </div>
-                                                )}
-                                                {card.telefone && (
-                                                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                                                        <Phone className="w-3 h-3 flex-shrink-0" />
-                                                        <span>{card.telefone}</span>
-                                                    </div>
-                                                )}
-
-                                                <div className="pt-1.5 space-y-1 border-t border-border/20 mt-1">
-                                                    <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground font-medium">
-                                                        <Calendar className="w-2.5 h-2.5 flex-shrink-0" />
-                                                        <span>Enviado em: {safeFormatDate(card.data_envio, 'dd/MM/yyyy')}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground/70">
-                                                        <Clock className="w-2.5 h-2.5 flex-shrink-0" />
-                                                        <span>Criado em: {safeFormatDate(card.criado_em, 'dd/MM/yyyy HH:mm')}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center justify-between pt-2 border-t border-border/30">
-                                                <span className="text-xs font-black text-green-600">
-                                                    {formatCurrency(card.valor)}
-                                                </span>
-                                                {card.numero_proposta && (
-                                                    <span className="text-[10px] font-bold px-1.5 py-0.5 bg-primary/5 text-primary rounded border border-primary/10">
-                                                        #{card.numero_proposta}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
+                                        <CardContent card={card} formatCurrency={formatCurrency} isDragging={snapshot.isDragging} />
                                     </div>
                                 )}
                             </Draggable>
