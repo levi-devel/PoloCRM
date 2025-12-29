@@ -36,18 +36,18 @@ export default function PoloProject() {
     const { toast } = useToast();
 
     const { data: dashboardStats, isLoading } = useQuery({
-        queryKey: ["/api/polo-projects/dashboard"],
+        queryKey: ["/api/polo-projetos/dashboard"],
         queryFn: async () => {
-            const response = await fetch("/api/polo-projects/dashboard");
+            const response = await fetch("/api/polo-projetos/dashboard");
             if (!response.ok) throw new Error("Failed to fetch dashboard stats");
             return response.json();
         },
     });
 
     const { data: projects } = useQuery({
-        queryKey: ["/api/polo-projects"],
+        queryKey: ["/api/polo-projetos"],
         queryFn: async () => {
-            const response = await fetch("/api/polo-projects");
+            const response = await fetch("/api/polo-projetos");
             if (!response.ok) throw new Error("Failed to fetch projects");
             return response.json();
         },
@@ -55,9 +55,9 @@ export default function PoloProject() {
 
     // Fetch available projects and cards to create association
     const { data: availableProjects } = useQuery({
-        queryKey: ["/api/projects"],
+        queryKey: ["/api/projetos"],
         queryFn: async () => {
-            const response = await fetch("/api/projects");
+            const response = await fetch("/api/projetos");
             if (!response.ok) throw new Error("Failed to fetch projects");
             return response.json();
         },
@@ -70,8 +70,8 @@ export default function PoloProject() {
 
             // If no project exists, create a default "Polo Projects" project
             if (!projectId) {
-                const clients = await fetch("/api/clients").then(res => res.json());
-                const defaultClient = clients.find((c: any) => c.name === "PoloTelecom") || clients[0];
+                const clients = await fetch("/api/clientes").then(res => res.json());
+                const defaultClient = clients.find((c: any) => c.nome === "PoloTelecom") || clients[0];
 
                 if (!defaultClient) {
                     throw new Error("Nenhum cliente disponível no sistema");
@@ -92,15 +92,15 @@ export default function PoloProject() {
                 }
 
                 // Create default project
-                const projectResponse = await fetch("/api/projects", {
+                const projectResponse = await fetch("/api/projetos", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        name: "Polo Projects",
-                        description: "Projeto container para Polo Projects",
-                        clientId: defaultClient.id,
-                        techLeadId: defaultUser.id,
-                        defaultTemplateId: defaultTemplate.id,
+                        nome: "Polo Projects",
+                        descricao: "Projeto container para Polo Projects",
+                        id_cliente: defaultClient.id,
+                        id_lider_tecnico: defaultUser.id,
+                        id_modelo_padrao: defaultTemplate.id,
                         status: "Ativo",
                     }),
                 });
@@ -114,7 +114,7 @@ export default function PoloProject() {
             }
 
             // Get the project columns
-            const project = await fetch(`/api/projects/${projectId}`).then(res => res.json());
+            const project = await fetch(`/api/projetos/${projectId}`).then(res => res.json());
             const firstColumn = project.columns?.[0];
 
             if (!firstColumn) {
@@ -122,13 +122,13 @@ export default function PoloProject() {
             }
 
             // Create a card to associate with the Polo Project
-            const cardResponse = await fetch(`/api/projects/${projectId}/cards`, {
+            const cardResponse = await fetch(`/api/projetos/${projectId}/cartoes`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    title: data.name,
-                    description: data.description || "Card automático para Polo Project",
-                    columnId: firstColumn.id,
+                    titulo: data.name,
+                    descricao: data.description || "Card automático para Polo Project",
+                    id_coluna: firstColumn.id,
                 }),
             });
 
@@ -139,13 +139,13 @@ export default function PoloProject() {
             const newCard = await cardResponse.json();
 
             // Now create the Polo Project
-            const poloProjectResponse = await fetch("/api/polo-projects", {
+            const poloProjectResponse = await fetch("/api/polo-projetos", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    cardId: newCard.id,
-                    name: data.name,
-                    description: data.description,
+                    id_cartao: newCard.id,
+                    nome: data.name,
+                    descricao: data.description,
                     status: data.status,
                 }),
             });
@@ -158,8 +158,8 @@ export default function PoloProject() {
             return poloProjectResponse.json();
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["/api/polo-projects"] });
-            queryClient.invalidateQueries({ queryKey: ["/api/polo-projects/dashboard"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/polo-projetos"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/polo-projetos/dashboard"] });
             toast({
                 title: "Projeto criado!",
                 description: "O Polo Project foi criado com sucesso.",
@@ -379,9 +379,9 @@ export default function PoloProject() {
                                     {projects.map((project: any) => (
                                         <Link key={project.id} href={`/polo-project/${project.id}`}>
                                             <div className="p-4 border rounded-lg hover:border-blue-500 hover:shadow-md transition-all cursor-pointer">
-                                                <h3 className="font-semibold text-gray-900">{project.name}</h3>
-                                                {project.description && (
-                                                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">{project.description}</p>
+                                                <h3 className="font-semibold text-gray-900">{project.nome}</h3>
+                                                {project.descricao && (
+                                                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">{project.descricao}</p>
                                                 )}
                                                 <div className="mt-3 flex items-center justify-between">
                                                     <span className={`text-xs px-2 py-1 rounded ${project.status === 'Ativo' ? 'bg-green-100 text-green-700' :

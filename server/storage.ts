@@ -79,8 +79,8 @@ export interface IStorage {
   getPoloProjectGanttData(id: number): Promise<{
     project: typeof polo_projetos.$inferSelect;
     stages: typeof etapas_polo_projetos.$inferSelect[];
-    timelineStart: string;
-    timelineEnd: string;
+    timelineStart: Date | null;
+    timelineEnd: Date | null;
   }>;
 
   // Sales Funnel

@@ -797,11 +797,32 @@ export class DatabaseStorage implements IStorage {
         const project = await this.getPoloProject(id);
         if (!project) throw new Error("Polo Project not found");
 
+        // Calculate timeline from stages
+        let timelineStart = null;
+        let timelineEnd = null;
+
+        if (project.stages && project.stages.length > 0) {
+            const startDates = project.stages.map(s => s.data_inicio).filter(Boolean);
+            const endDates = project.stages.map(s => s.data_fim).filter(Boolean);
+
+            if (startDates.length > 0) {
+                timelineStart = startDates.reduce((earliest, current) =>
+                    current < earliest ? current : earliest
+                );
+            }
+
+            if (endDates.length > 0) {
+                timelineEnd = endDates.reduce((latest, current) =>
+                    current > latest ? current : latest
+                );
+            }
+        }
+
         return {
             project: { ...project, stages: undefined } as any,
             stages: project.stages || [],
-            timelineStart: "",
-            timelineEnd: "",
+            timelineStart: timelineStart || null,
+            timelineEnd: timelineEnd || null,
         };
     }
 

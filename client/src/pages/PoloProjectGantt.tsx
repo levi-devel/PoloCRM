@@ -61,10 +61,10 @@ export default function PoloProjectGantt() {
     });
 
     const { data: ganttData, isLoading } = useQuery({
-        queryKey: [`/api/polo-projects/${projectId}/gantt`],
+        queryKey: [`/api/polo-projetos/${projectId}/gantt`],
         queryFn: async () => {
             if (!projectId) throw new Error("Invalid project ID");
-            const response = await fetch(`/api/polo-projects/${projectId}/gantt`);
+            const response = await fetch(`/api/polo-projetos/${projectId}/gantt`);
             if (!response.ok) throw new Error("Failed to fetch Gantt data");
             return response.json();
         },
@@ -74,10 +74,21 @@ export default function PoloProjectGantt() {
     // Mutation for creating a new stage
     const createStageMutation = useMutation({
         mutationFn: async (stageData: typeof formData) => {
-            const response = await fetch(`/api/polo-projects/${projectId}/stages`, {
+            const response = await fetch(`/api/polo-projetos/${projectId}/stages`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(stageData),
+                body: JSON.stringify({
+                    nome: stageData.name,
+                    descricao: stageData.description,
+                    data_inicio: dateToInputValue(stageData.startDate),
+                    data_fim: dateToInputValue(stageData.endDate),
+                    nivel: stageData.level,
+                    id_etapa_pai: stageData.parentStageId,
+                    concluida: stageData.isCompleted,
+                    id_tecnico_atribuido: stageData.assignedTechId || null,
+                    descricao_atividade: stageData.activityDescription,
+                    ordem: 0, // Will be managed by backend
+                }),
             });
             if (!response.ok) {
                 const error = await response.json();
@@ -86,7 +97,7 @@ export default function PoloProjectGantt() {
             return response.json();
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: [`/api/polo-projects/${projectId}/gantt`] });
+            queryClient.invalidateQueries({ queryKey: [`/api/polo-projetos/${projectId}/gantt`] });
             setIsModalOpen(false);
             setFormData({
                 name: "",
@@ -116,10 +127,21 @@ export default function PoloProjectGantt() {
     // Mutation for updating a stage
     const updateStageMutation = useMutation({
         mutationFn: async (stageData: typeof formData & { id: number }) => {
-            const response = await fetch(`/api/polo-projects/${projectId}/stages/${stageData.id}`, {
+            const response = await fetch(`/api/polo-projetos/${projectId}/stages/${stageData.id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(stageData),
+                body: JSON.stringify({
+                    nome: stageData.name,
+                    descricao: stageData.description,
+                    data_inicio: dateToInputValue(stageData.startDate),
+                    data_fim: dateToInputValue(stageData.endDate),
+                    nivel: stageData.level,
+                    id_etapa_pai: stageData.parentStageId,
+                    concluida: stageData.isCompleted,
+                    id_tecnico_atribuido: stageData.assignedTechId || null,
+                    descricao_atividade: stageData.activityDescription,
+                    ordem: 0, // Will be managed by backend
+                }),
             });
             if (!response.ok) {
                 const error = await response.json();
@@ -128,7 +150,7 @@ export default function PoloProjectGantt() {
             return response.json();
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: [`/api/polo-projects/${projectId}/gantt`] });
+            queryClient.invalidateQueries({ queryKey: [`/api/polo-projetos/${projectId}/gantt`] });
             setIsModalOpen(false);
             setIsEditMode(false);
             setSelectedStageId(null);
@@ -160,7 +182,7 @@ export default function PoloProjectGantt() {
     // Mutation for deleting a stage
     const deleteStageMutation = useMutation({
         mutationFn: async (stageId: number) => {
-            const response = await fetch(`/api/polo-projects/${projectId}/stages/${stageId}`, {
+            const response = await fetch(`/api/polo-projetos/${projectId}/stages/${stageId}`, {
                 method: "DELETE",
             });
             if (!response.ok) {
@@ -169,7 +191,7 @@ export default function PoloProjectGantt() {
             }
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: [`/api/polo-projects/${projectId}/gantt`] });
+            queryClient.invalidateQueries({ queryKey: [`/api/polo-projetos/${projectId}/gantt`] });
             setIsModalOpen(false);
             setIsEditMode(false);
             setSelectedStageId(null);
@@ -200,10 +222,12 @@ export default function PoloProjectGantt() {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.name || !formData.startDate || !formData.endDate) {
+
+        // Ensure dates are valid before sending
+        if (!formData.name || !formData.startDate || isNaN(formData.startDate.getTime()) || !formData.endDate || isNaN(formData.endDate.getTime())) {
             toast({
-                title: "Campos obrigatórios",
-                description: "Por favor, preencha todos os campos obrigatórios.",
+                title: "Dados inválidos",
+                description: "Por favor, preencha todos os campos obrigatórios com datas válidas.",
                 variant: "destructive",
             });
             return;
@@ -229,16 +253,34 @@ export default function PoloProjectGantt() {
     const handleEdit = (stage: any) => {
         setIsEditMode(true);
         setSelectedStageId(stage.id);
+
+        // Safely parse dates
+        const parseDate = (dateStr: string | null) => {
+            if (!dateStr) return null;
+            // First check if it's already a Date object
+            if (dateStr instanceof Date) return dateStr as Date;
+
+            // Try parsing with T00:00:00 for correct day
+            const d = new Date(dateStr + 'T00:00:00');
+            if (!isNaN(d.getTime())) return d;
+
+            // Fallback for other formats
+            const d2 = new Date(dateStr);
+            if (!isNaN(d2.getTime())) return d2;
+
+            return null;
+        };
+
         setFormData({
-            name: stage.name,
-            description: stage.description || "",
-            startDate: stage.startDate ? new Date(stage.startDate) : null,
-            endDate: stage.endDate ? new Date(stage.endDate) : null,
-            level: stage.level || 1,
-            parentStageId: stage.parentStageId || null,
-            isCompleted: stage.isCompleted,
-            assignedTechId: stage.assignedTechId || "",
-            activityDescription: stage.activityDescription || "",
+            name: stage.nome,
+            description: stage.descricao || "",
+            startDate: inputValueToDate(dateToInputValue(stage.data_inicio)),
+            endDate: inputValueToDate(dateToInputValue(stage.data_fim)),
+            level: stage.nivel || 1,
+            parentStageId: stage.id_etapa_pai || null,
+            isCompleted: stage.concluida,
+            assignedTechId: stage.id_tecnico_atribuido || "",
+            activityDescription: stage.descricao_atividade || "",
         });
         setIsModalOpen(true);
     };
@@ -308,18 +350,20 @@ export default function PoloProjectGantt() {
             return `${year}-${month}-${day}`;
         }
 
-        // If it's an ISO string, extract just the date part
+        // If it's an ISO string WITH time, extract just the date part
         if (typeof dateValue === 'string' && dateValue.includes('T')) {
             return dateValue.split('T')[0];
         }
 
-        // If it's already in YYYY-MM-DD format
+        // If it's already in YYYY-MM-DD format (from database)
         if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
             return dateValue;
         }
 
-        // Fallback
-        const date = new Date(dateValue);
+        // Fallback: parse and format
+        // Append T00:00:00 to force local timezone interpretation
+        const dateStr = typeof dateValue === 'string' ? dateValue : dateValue.toString();
+        const date = new Date(dateStr + (dateStr.includes('T') ? '' : 'T00:00:00'));
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
@@ -359,8 +403,14 @@ export default function PoloProjectGantt() {
     // Helper function to calculate position and width for stages
     const getStagePosition = (stage: any) => {
         // Convert stage dates to local date strings for comparison
-        const stageStartStr = toLocalDateString(stage.startDate);
-        const stageEndStr = toLocalDateString(stage.endDate);
+        // Use data_inicio/data_fim which are the actual field names from the API
+        const stageStartStr = toLocalDateString(stage.data_inicio);
+        const stageEndStr = toLocalDateString(stage.data_fim);
+
+        // Handle null/undefined dates
+        if (!stageStartStr || !stageEndStr) {
+            return { left: '0%', width: '1%' };
+        }
 
         const [sStartYear, sStartMonth, sStartDay] = stageStartStr.split('-').map(Number);
         const [sEndYear, sEndMonth, sEndDay] = stageEndStr.split('-').map(Number);
@@ -419,9 +469,9 @@ export default function PoloProjectGantt() {
                         </Link>
                         <div className="flex justify-between items-start">
                             <div>
-                                <h1 className="text-3xl font-bold text-gray-900">{project.name}</h1>
-                                {project.description && (
-                                    <p className="text-gray-600 mt-2">{project.description}</p>
+                                <h1 className="text-3xl font-bold text-gray-900">{project.nome}</h1>
+                                {project.descricao && (
+                                    <p className="text-gray-600 mt-2">{project.descricao}</p>
                                 )}
                                 <div className="flex items-center gap-4 mt-4">
                                     <span className={`text-xs px-3 py-1 rounded-full ${project.status === 'Ativo' ? 'bg-green-100 text-green-700' :
@@ -433,7 +483,11 @@ export default function PoloProjectGantt() {
                                     </span>
                                     <span className="text-sm text-gray-500 flex items-center">
                                         <Calendar className="w-4 h-4 mr-1" />
-                                        {new Date(timelineStart).toLocaleDateString('pt-BR')} - {new Date(timelineEnd).toLocaleDateString('pt-BR')}
+                                        {timelineStart && timelineEnd ? (
+                                            `${new Date(timelineStart).toLocaleDateString('pt-BR')} - ${new Date(timelineEnd).toLocaleDateString('pt-BR')}`
+                                        ) : (
+                                            'Sem datas definidas'
+                                        )}
                                     </span>
                                 </div>
                             </div>
@@ -496,21 +550,21 @@ export default function PoloProjectGantt() {
                                             // 1. Etapas de 1º nível por ordem
                                             // 2. Para cada etapa de 1º nível, suas sub-etapas logo abaixo
                                             const sortedStages: any[] = [];
-                                            const level1Stages = stages.filter((s: any) => s.level === 1 || !s.level).sort((a: any, b: any) => a.order - b.order);
-                                            const level2Stages = stages.filter((s: any) => s.level === 2);
+                                            const level1Stages = stages.filter((s: any) => s.nivel === 1 || !s.nivel).sort((a: any, b: any) => a.ordem - b.ordem);
+                                            const level2Stages = stages.filter((s: any) => s.nivel === 2);
 
                                             level1Stages.forEach((parentStage: any) => {
                                                 sortedStages.push(parentStage);
                                                 // Adicionar sub-etapas desta etapa principal
                                                 const subStages = level2Stages
-                                                    .filter((s: any) => s.parentStageId === parentStage.id)
-                                                    .sort((a: any, b: any) => a.order - b.order);
+                                                    .filter((s: any) => s.id_etapa_pai === parentStage.id)
+                                                    .sort((a: any, b: any) => a.ordem - b.ordem);
                                                 sortedStages.push(...subStages);
                                             });
 
                                             return sortedStages.map((stage: any) => {
                                                 const position = getStagePosition(stage);
-                                                const isSubStage = stage.level === 2;
+                                                const isSubStage = stage.nivel === 2;
 
                                                 return (
                                                     <div key={stage.id} className="flex items-center mb-3">
@@ -518,17 +572,31 @@ export default function PoloProjectGantt() {
                                                             <div className={`text-sm text-gray-900 ${isSubStage ? 'pl-6' : 'font-bold'} flex items-center gap-2`}>
                                                                 <span>
                                                                     {isSubStage && '└─ '}
-                                                                    {stage.name}
+                                                                    {stage.nome}
                                                                 </span>
-                                                                {stage.assignedTechId && (
+                                                                {stage.id_tecnico_atribuido && (
                                                                     <span className="inline-flex items-center justify-center w-6 h-6 text-xs font-medium text-white bg-blue-600 rounded-full">
-                                                                        {getResponsibleInitials(stage.assignedTechId)}
+                                                                        {getResponsibleInitials(stage.id_tecnico_atribuido)}
                                                                     </span>
                                                                 )}
                                                             </div>
                                                             <div className={`text-xs text-gray-500 ${isSubStage ? 'pl-6' : ''}`}>
-                                                                {new Date(stage.startDate).toLocaleDateString('pt-BR')} -{' '}
-                                                                {new Date(stage.endDate).toLocaleDateString('pt-BR')}
+                                                                {stage.data_inicio && stage.data_fim ? (
+                                                                    <>
+                                                                        {(() => {
+                                                                            const start = dateToInputValue(stage.data_inicio);
+                                                                            const end = dateToInputValue(stage.data_fim);
+                                                                            const formatDate = (d: string) => {
+                                                                                if (!d) return '';
+                                                                                const [y, m, d_day] = d.split('-');
+                                                                                return `${d_day}/${m}/${y}`;
+                                                                            };
+                                                                            return `${formatDate(start)} - ${formatDate(end)}`;
+                                                                        })()}
+                                                                    </>
+                                                                ) : (
+                                                                    <span className="text-red-500">Datas não definidas</span>
+                                                                )}
                                                             </div>
                                                         </div>
                                                         <div className="flex-1 relative h-10">
@@ -543,13 +611,13 @@ export default function PoloProjectGantt() {
                                                             </div>
                                                             {/* Stage bar */}
                                                             <div
-                                                                className={`absolute h-full rounded cursor-pointer hover:opacity-80 transition-all ${stage.isCompleted ? 'bg-green-500' : isSubStage ? 'bg-red-500' : 'bg-blue-600'}`}
+                                                                className={`absolute h-full rounded cursor-pointer hover:opacity-80 transition-all ${stage.concluida ? 'bg-green-500' : isSubStage ? 'bg-red-500' : 'bg-blue-600'}`}
                                                                 style={position}
                                                                 onClick={() => handleEdit(stage)}
                                                                 title="Clique para editar"
                                                             >
                                                                 <div className="h-full flex items-center justify-center px-2">
-                                                                    {stage.isCompleted && (
+                                                                    {stage.concluida && (
                                                                         <span className="text-white text-xs font-medium">✓</span>
                                                                     )}
                                                                 </div>
@@ -588,11 +656,11 @@ export default function PoloProjectGantt() {
                             <div className="w-full bg-gray-200 rounded-full h-4 mb-2">
                                 <div
                                     className="bg-blue-600 h-4 rounded-full transition-all duration-300"
-                                    style={{ width: `${project.overallProgress || 0}%` }}
+                                    style={{ width: `${project.progresso_geral || 0}%` }}
                                 ></div>
                             </div>
                             <div className="text-sm font-medium text-blue-600 text-center">
-                                {project.overallProgress || 0}% Concluído
+                                {project.progresso_geral || 0}% Concluído
                             </div>
                         </CardContent>
                     </Card>
@@ -651,10 +719,10 @@ export default function PoloProjectGantt() {
                                             <SelectItem value="1">1º Nível - Etapa Principal</SelectItem>
                                             <SelectItem
                                                 value="2"
-                                                disabled={!stages || stages.filter((s: any) => s.level === 1).length === 0}
+                                                disabled={!stages || stages.filter((s: any) => s.nivel === 1).length === 0}
                                             >
                                                 2º Nível - Sub-Etapa
-                                                {(!stages || stages.filter((s: any) => s.level === 1).length === 0) &&
+                                                {(!stages || stages.filter((s: any) => s.nivel === 1).length === 0) &&
                                                     " (crie primeiro uma Etapa Principal)"}
                                             </SelectItem>
                                         </SelectContent>
@@ -671,9 +739,20 @@ export default function PoloProjectGantt() {
                                                 <SelectValue placeholder="Selecione a etapa principal relacionada" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {stages?.filter((s: any) => s.level === 1).map((stage: any) => (
+                                                {stages?.filter((s: any) => s.nivel === 1).map((stage: any) => (
                                                     <SelectItem key={stage.id} value={stage.id.toString()}>
-                                                        {stage.name} ({new Date(stage.startDate).toLocaleDateString('pt-BR')} - {new Date(stage.endDate).toLocaleDateString('pt-BR')})
+                                                        {stage.nome} {stage.data_inicio && stage.data_fim ? (
+                                                            (() => {
+                                                                const start = dateToInputValue(stage.data_inicio);
+                                                                const end = dateToInputValue(stage.data_fim);
+                                                                const formatDate = (d: string) => {
+                                                                    if (!d) return '';
+                                                                    const [y, m, d_day] = d.split('-');
+                                                                    return `${d_day}/${m}/${y}`;
+                                                                };
+                                                                return ` (${formatDate(start)} - ${formatDate(end)})`;
+                                                            })()
+                                                        ) : ''}
                                                     </SelectItem>
                                                 ))}
                                             </SelectContent>

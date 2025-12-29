@@ -219,7 +219,7 @@ export async function registerRoutes(
     res.json(cards);
   });
   app.post(api.cartoes.create.path, async (req, res) => {
-    const card = await storage.createCard({ ...req.body, projectId: Number(req.params.projectId) });
+    const card = await storage.createCard({ ...req.body, id_projeto: Number(req.params.projectId) });
     res.status(201).json(card);
   });
   app.get(api.cartoes.get.path, async (req, res) => {
@@ -348,10 +348,15 @@ export async function registerRoutes(
 
   app.post(api.polo_projetos.create.path, async (req, res) => {
     try {
+      console.log("[DEBUG] Polo Project creation request body:", JSON.stringify(req.body, null, 2));
       const { stages, ...projectData } = req.body;
+      console.log("[DEBUG] Project data after destructuring:", JSON.stringify(projectData, null, 2));
       const project = await storage.createPoloProject(projectData, stages);
+      console.log("[DEBUG] Polo Project created successfully:", project);
       res.status(201).json(project);
     } catch (error: any) {
+      console.error("[ERROR] Failed to create Polo Project:", error);
+      console.error("[ERROR] Error stack:", error.stack);
       res.status(400).json({ message: error.message || "Failed to create Polo Project" });
     }
   });
@@ -396,7 +401,7 @@ export async function registerRoutes(
     try {
       const stage = await storage.createPoloProjectStage({
         ...req.body,
-        poloProjectId: Number(req.params.projectId)
+        id_polo_projeto: Number(req.params.projectId)
       });
       res.status(201).json(stage);
     } catch (error: any) {
