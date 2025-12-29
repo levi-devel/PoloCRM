@@ -6,7 +6,7 @@ import { useRoute } from "wouter";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, MoreHorizontal, Calendar, FileText, Settings, Trash2 } from "lucide-react";
+import { Plus, MoreHorizontal, Calendar, FileText, Settings, Trash2, Search } from "lucide-react";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { dateToInputValue, inputValueToDate } from "@/lib/date-utils";
@@ -269,6 +269,7 @@ export default function ProjectBoard() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [cardToDelete, setCardToDelete] = useState<any | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const { data: selectedCard } = useCard(selectedCardId || 0);
   const deleteCard = useDeleteCard();
@@ -362,7 +363,13 @@ export default function ProjectBoard() {
       { id: 5, nome: "Concluído", ordem: 4, projectId, cor: "#10b981", status: "Concluído" }
     ];
 
-  const getCardsForColumn = (colId: number) => cards.filter(c => c.id_coluna === colId);
+  const getCardsForColumn = (colId: number) => {
+    const columnCards = cards.filter(c => c.id_coluna === colId);
+    if (!searchTerm.trim()) return columnCards;
+    return columnCards.filter(card =>
+      card.titulo.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  };
 
   return (
     <Layout>
@@ -373,7 +380,16 @@ export default function ProjectBoard() {
             <p className="text-sm text-muted-foreground">{project.descricao}</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">Visão de Linha do Tempo</Button>
+            <div className="relative w-64">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Buscar cartões por nome..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
             <Button onClick={() => setIsSettingsOpen(true)}>
               <Settings className="w-4 h-4 mr-2" />
               Configurações do Kanban
