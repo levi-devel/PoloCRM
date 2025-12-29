@@ -50,7 +50,7 @@ function ClientSelector({ value, onChange, required }: ClientSelectorProps) {
     >
       <option value="">Selecione um cliente...</option>
       {clients?.map((client) => (
-        <option key={client.id} value={client.nome}>
+        <option key={client.id} value={client.id.toString()}>
           {client.nome}
         </option>
       ))}
@@ -616,6 +616,7 @@ interface CardEditFormProps {
 
 function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
   const { data: template, isLoading: templateLoading } = useFormTemplate(card.formResponse?.id_modelo);
+  const { data: clients } = useClients();
   const { data: users } = useQuery({
     queryKey: ['/api/users'],
     queryFn: async () => {
@@ -707,11 +708,33 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
     localStorage.setItem(`card_${card.id}`, JSON.stringify(dataToSave));
   }, [formValues, selectedUserId, editableDescription, editablePriority, editableStartDate, editableDueDate, card.id]);
 
-  const handleInputChange = (fieldId: number, value: any) => {
+  const handleInputChange = (fieldId: number, value: any, field?: any) => {
     setFormValues(prev => ({
       ...prev,
       [`field_${fieldId}`]: value
     }));
+
+    // Se é um campo de cliente, buscar o CNPJ automaticamente
+    if (field && (field.tipo === 'client' || field.rotulo?.toLowerCase() === 'cliente' || field.rotulo?.toLowerCase() === 'client')) {
+      // Encontrar o cliente selecionado pelo ID
+      const selectedClient = clients?.find((c: any) => c.id === parseInt(value));
+
+      if (selectedClient && selectedClient.cnpj) {
+        // Encontrar o campo CNPJ no template
+        const cnpjField = template?.fields?.find((f: any) =>
+          f.tipo === 'cnpj' ||
+          f.rotulo?.toLowerCase().includes('cnpj')
+        );
+
+        if (cnpjField) {
+          // Preencher automaticamente o campo CNPJ
+          setFormValues(prev => ({
+            ...prev,
+            [`field_${cnpjField.id}`]: selectedClient.cnpj
+          }));
+        }
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -919,33 +942,33 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
                 {isClientField ? (
                   <ClientSelector
                     value={formValues[`field_${field.id}`] || ''}
-                    onChange={(value) => handleInputChange(field.id, value)}
+                    onChange={(value) => handleInputChange(field.id, value, field)}
                     required={field.obrigatorio}
                   />
                 ) : isPhoneField ? (
                   <PhoneInput
                     value={formValues[`field_${field.id}`] || ''}
-                    onChange={(value) => handleInputChange(field.id, value)}
+                    onChange={(value) => handleInputChange(field.id, value, field)}
                     required={field.obrigatorio}
                     placeholder="(XX) X XXXX-XXXX"
                   />
                 ) : field.tipo === 'text' ? (
                   <Input
                     value={formValues[`field_${field.id}`] || ''}
-                    onChange={(e) => handleInputChange(field.id, e.target.value)}
+                    onChange={(e) => handleInputChange(field.id, e.target.value, field)}
                     required={field.obrigatorio}
                     placeholder={field.rotulo}
                   />
                 ) : field.tipo === 'cnpj' ? (
                   <CNPJInput
                     value={formValues[`field_${field.id}`] || ''}
-                    onChange={(value) => handleInputChange(field.id, value)}
+                    onChange={(value) => handleInputChange(field.id, value, field)}
                     placeholder="00.000.000/0000-00"
                   />
                 ) : field.tipo === 'textarea' ? (
                   <Textarea
                     value={formValues[`field_${field.id}`] || ''}
-                    onChange={(e) => handleInputChange(field.id, e.target.value)}
+                    onChange={(e) => handleInputChange(field.id, e.target.value, field)}
                     required={field.obrigatorio}
                     placeholder={field.rotulo}
                     rows={4}
@@ -955,7 +978,7 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
                   <Input
                     type="number"
                     value={formValues[`field_${field.id}`] || ''}
-                    onChange={(e) => handleInputChange(field.id, e.target.value)}
+                    onChange={(e) => handleInputChange(field.id, e.target.value, field)}
                     required={field.obrigatorio}
                     placeholder={field.rotulo}
                   />
@@ -963,7 +986,7 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
                   <Input
                     type="date"
                     value={dateToInputValue(formValues[`field_${field.id}`])}
-                    onChange={(e) => handleInputChange(field.id, inputValueToDate(e.target.value))}
+                    onChange={(e) => handleInputChange(field.id, inputValueToDate(e.target.value), field)}
                     required={field.obrigatorio}
                   />
                 ) : field.tipo === 'checkbox' ? (
@@ -972,7 +995,7 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
                       type="checkbox"
                       className="w-4 h-4"
                       checked={formValues[`field_${field.id}`] === true}
-                      onChange={(e) => handleInputChange(field.id, e.target.checked)}
+                      onChange={(e) => handleInputChange(field.id, e.target.checked, field)}
                     />
                     <span className="text-sm text-muted-foreground">Sim</span>
                   </div>
@@ -980,7 +1003,7 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
                   <select
                     className="w-full p-2 border rounded-md"
                     value={formValues[`field_${field.id}`] || ''}
-                    onChange={(e) => handleInputChange(field.id, e.target.value)}
+                    onChange={(e) => handleInputChange(field.id, e.target.value, field)}
                     required={field.obrigatorio}
                   >
                     <option value="">Selecione...</option>
