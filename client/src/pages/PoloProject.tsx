@@ -66,9 +66,10 @@ export default function PoloProject() {
     const createPoloProjectMutation = useMutation({
         mutationFn: async (data: { name: string; description: string; status: string }) => {
             // First, ensure we have a project to associate with
-            let projectId = availableProjects?.[0]?.id;
+            let targetProject = availableProjects?.find((p: any) => p.nome === "Projetos Polo");
+            let projectId = targetProject?.id;
 
-            // If no project exists, create a default "Polo Projects" project
+            // If the specific project doesn't exist, create it
             if (!projectId) {
                 const clients = await fetch("/api/clientes").then(res => res.json());
                 const defaultClient = clients.find((c: any) => c.nome === "PoloTelecom") || clients[0];
@@ -96,7 +97,7 @@ export default function PoloProject() {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        nome: "Polo Projects",
+                        nome: "Projetos Polo",
                         descricao: "Projeto container para Polo Projects",
                         id_cliente: defaultClient.id,
                         id_lider_tecnico: defaultUser.id,
