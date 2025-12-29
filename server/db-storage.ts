@@ -784,6 +784,13 @@ export class DatabaseStorage implements IStorage {
         await db.delete(etapas_polo_projetos).where(eq(etapas_polo_projetos.id, id));
     }
 
+    async deletePoloProject(id: number) {
+        // Delete stages first
+        await db.delete(etapas_polo_projetos).where(eq(etapas_polo_projetos.id_polo_projeto, id));
+        // Delete project
+        await db.delete(polo_projetos).where(eq(polo_projetos.id, id));
+    }
+
     async getPoloProjectDashboardStats() {
         // Implementation placeholder
         return {

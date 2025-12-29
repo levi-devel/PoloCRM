@@ -1,10 +1,21 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { Plus, Calendar, TrendingUp } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Plus, Calendar, TrendingUp, Trash2 } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
     Dialog,
     DialogContent,
@@ -23,6 +34,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function PoloProject() {
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -34,6 +46,11 @@ export default function PoloProject() {
 
     const queryClient = useQueryClient();
     const { toast } = useToast();
+    const [location, setLocation] = useLocation();
+    const { user } = useAuth();
+
+    // Check permissions
+    const canDelete = user?.role === "Admin" || user?.role === "Gerente Supervisor" || user?.role === "Gerente Comercial";
 
     const { data: dashboardStats, isLoading } = useQuery({
         queryKey: ["/api/polo-projetos/dashboard"],
@@ -172,6 +189,34 @@ export default function PoloProject() {
             toast({
                 title: "Erro ao criar projeto",
                 description: error.message || "Ocorreu um erro ao criar o projeto.",
+                variant: "destructive",
+            });
+        },
+    });
+
+    const deletePoloProjectMutation = useMutation({
+        mutationFn: async (id: number) => {
+            const response = await fetch(`/api/polo-projetos/${id}`, {
+                method: "DELETE",
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || "Falha ao excluir projeto");
+            }
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["/api/polo-projetos"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/polo-projetos/dashboard"] });
+            toast({
+                title: "Projeto excluído",
+                description: "O Polo Project foi excluído com sucesso.",
+            });
+        },
+        onError: (error: any) => {
+            toast({
+                title: "Erro ao excluir",
+                description: error.message || "Ocorreu um erro ao excluir o projeto.",
                 variant: "destructive",
             });
         },
@@ -378,8 +423,12 @@ export default function PoloProject() {
                             {projects && projects.length > 0 ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                     {projects.map((project: any) => (
-                                        <Link key={project.id} href={`/polo-project/${project.id}`}>
-                                            <div className="p-4 border rounded-lg hover:border-blue-500 hover:shadow-md transition-all cursor-pointer">
+                                        <div
+                                            key={project.id}
+                                            className="p-4 border rounded-lg hover:border-blue-500 hover:shadow-md transition-all cursor-pointer relative group"
+                                            onClick={() => setLocation(`/polo-project/${project.id}`)}
+                                        >
+                                            <div className="pr-8">
                                                 <h3 className="font-semibold text-gray-900">{project.nome}</h3>
                                                 {project.descricao && (
                                                     <p className="text-sm text-gray-600 mt-1 line-clamp-2">{project.descricao}</p>
@@ -399,7 +448,47 @@ export default function PoloProject() {
                                                     )}
                                                 </div>
                                             </div>
-                                        </Link>
+
+                                            {canDelete && (
+                                                <div
+                                                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger asChild>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50"
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle>Excluir Projeto</AlertDialogTitle>
+                                                                <AlertDialogDescription>
+                                                                    Tem certeza que deseja excluir o projeto "{project.nome}"?
+                                                                    Esta ação não pode ser desfeita. O card do Kanban permanecerá, mas o Polo Project será removido.
+                                                                </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancelar</AlertDialogCancel>
+                                                                <AlertDialogAction
+                                                                    className="bg-red-600 hover:bg-red-700"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        deletePoloProjectMutation.mutate(project.id);
+                                                                    }}
+                                                                >
+                                                                    Excluir
+                                                                </AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                </div>
+                                            )}
+                                        </div>
                                     ))}
                                 </div>
                             ) : (

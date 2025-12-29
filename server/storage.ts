@@ -71,6 +71,7 @@ export interface IStorage {
   createPoloProjectStage(stage: InsertEtapaPoloProjeto): Promise<typeof etapas_polo_projetos.$inferSelect>;
   updatePoloProjectStage(id: number, updates: Partial<InsertEtapaPoloProjeto>): Promise<typeof etapas_polo_projetos.$inferSelect>;
   deletePoloProjectStage(id: number): Promise<void>;
+  deletePoloProject(id: number): Promise<void>;
   getPoloProjectDashboardStats(): Promise<{
     activeProjects: number;
     upcomingDeadlines: { stageName: string; projectName: string; endDate: string; daysUntil: number; }[];

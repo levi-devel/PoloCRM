@@ -396,6 +396,22 @@ export async function registerRoutes(
     }
   });
 
+  app.delete(api.polo_projetos.delete.path, isAuthenticated, async (req, res) => {
+    try {
+      const user = (req.session as any).user || await storage.getUser((req.session as any).userId);
+
+      const allowedRoles = ["Admin", "Gerente Comercial", "Gerente Supervisor"];
+      if (!user || !allowedRoles.includes(user.role)) {
+        return res.status(403).json({ message: "Apenas Admin e Gerentes podem excluir Polo Projects" });
+      }
+
+      await storage.deletePoloProject(Number(req.params.id));
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to delete Polo Project" });
+    }
+  });
+
   // Polo Project Stages
   app.post(api.etapas_polo_projetos.create.path, async (req, res) => {
     try {

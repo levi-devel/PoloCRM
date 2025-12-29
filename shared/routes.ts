@@ -325,6 +325,15 @@ export const api = {
         400: errorSchemas.validation,
       },
     },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/polo-projetos/:id',
+      responses: {
+        204: z.void(),
+        404: errorSchemas.notFound,
+        403: errorSchemas.validation, // For permission denied
+      },
+    },
     dashboard: {
       method: 'GET' as const,
       path: '/api/polo-projetos/dashboard',
