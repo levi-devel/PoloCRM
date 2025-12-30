@@ -31,6 +31,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { motion, AnimatePresence } from "framer-motion";
 
 // Utility functions for input masks
@@ -274,6 +275,9 @@ const cardSchema = z.object({
     data_envio: z.string().nullable().optional(),
     valor: z.string().nullable().optional(),
     observacoes: z.string().nullable().optional(),
+    produto: z.string().nullable().optional(),
+    tipo_contrato: z.string().nullable().optional(),
+    data_assinatura_contrato: z.string().nullable().optional(),
     id_coluna: z.number(),
 });
 
@@ -300,6 +304,9 @@ export default function SalesFunnel() {
             data_envio: "",
             valor: "",
             observacoes: "",
+            produto: "",
+            tipo_contrato: "",
+            data_assinatura_contrato: "",
             id_coluna: 0,
         }
     });
@@ -324,6 +331,9 @@ export default function SalesFunnel() {
             data_envio: "",
             valor: "",
             observacoes: "",
+            produto: "",
+            tipo_contrato: "",
+            data_assinatura_contrato: "",
             id_coluna: columnId,
         });
         setIsAddOpen(true);
@@ -347,6 +357,9 @@ export default function SalesFunnel() {
             data_envio: data.data_envio || null,
             valor: valueInCents,
             observacoes: data.observacoes || null,
+            produto: data.produto || null,
+            tipo_contrato: data.tipo_contrato || null,
+            data_assinatura_contrato: data.data_assinatura_contrato || null,
             criado_por: null,
         }, {
             onSuccess: () => {
@@ -571,6 +584,78 @@ export default function SalesFunnel() {
                                     />
                                 </div>
 
+                                <div className="grid grid-cols-2 gap-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="produto"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Produto</FormLabel>
+                                                <Select onValueChange={field.onChange} value={field.value || ''}>
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Selecione o produto" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="IPPolo Omni Business">IPPolo Omni Business</SelectItem>
+                                                        <SelectItem value="IPPolo Omni Enterprise">IPPolo Omni Enterprise</SelectItem>
+                                                        <SelectItem value="IPPolo Omni Profissional">IPPolo Omni Profissional</SelectItem>
+                                                        <SelectItem value="Plataforma 360 OMNI">Plataforma 360 OMNI</SelectItem>
+                                                        <SelectItem value="Pabx 3CX">Pabx 3CX</SelectItem>
+                                                        <SelectItem value="PABX HIBRIDO">PABX HIBRIDO</SelectItem>
+                                                        <SelectItem value="Pabx IPPolo Business">Pabx IPPolo Business</SelectItem>
+                                                        <SelectItem value="Pabx IPPolo Cloud">Pabx IPPolo Cloud</SelectItem>
+                                                        <SelectItem value="Pabx IPPolo Enterprise">Pabx IPPolo Enterprise</SelectItem>
+                                                        <SelectItem value="Pabx IPPolo Profissional">Pabx IPPolo Profissional</SelectItem>
+                                                        <SelectItem value="Desenvolvimento de Sistema">Desenvolvimento de Sistema</SelectItem>
+                                                        <SelectItem value="Produtos">Produtos</SelectItem>
+                                                        <SelectItem value="Linha Voip">Linha Voip</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="tipo_contrato"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Tipo de Contrato</FormLabel>
+                                                <Select onValueChange={field.onChange} value={field.value || ''}>
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Selecione o tipo" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="Novo">Novo</SelectItem>
+                                                        <SelectItem value="UPSELL">UPSELL</SelectItem>
+                                                        <SelectItem value="CROSSELL">CROSSELL</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+
+                                <FormField
+                                    control={form.control}
+                                    name="data_assinatura_contrato"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Data da Assinatura do Contrato</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="date"
+                                                    value={field.value || ''}
+                                                    onChange={field.onChange}
+                                                />
+                                            </FormControl>
+                                        </FormItem>
+                                    )}
+                                />
+
                                 <FormField
                                     control={form.control}
                                     name="observacoes"
@@ -642,6 +727,9 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
             valor: card.valor ? formatCurrencyInput(card.valor.toString()) : '',
             data_envio: formatDateForInput(card.data_envio),
             observacoes: card.observacoes || '',
+            produto: card.produto || '',
+            tipo_contrato: card.tipo_contrato || '',
+            data_assinatura_contrato: formatDateForInput(card.data_assinatura_contrato),
         }
     });
 
@@ -662,6 +750,9 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
                     valor: valueInCents,
                     data_envio: data.data_envio || null,
                     observacoes: data.observacoes || null,
+                    produto: data.produto || null,
+                    tipo_contrato: data.tipo_contrato || null,
+                    data_assinatura_contrato: data.data_assinatura_contrato || null,
                 },
             });
             onUpdate();
@@ -776,6 +867,73 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
                             <FormItem>
                                 <FormLabel className="text-[10px] font-bold uppercase text-muted-foreground">Data de Envio</FormLabel>
                                 <FormControl><Input type="date" {...field} /></FormControl>
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={editForm.control}
+                        name="produto"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-[10px] font-bold uppercase text-muted-foreground">Produto</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value || ''}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecione o produto" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="IPPolo Omni Business">IPPolo Omni Business</SelectItem>
+                                        <SelectItem value="IPPolo Omni Enterprise">IPPolo Omni Enterprise</SelectItem>
+                                        <SelectItem value="IPPolo Omni Profissional">IPPolo Omni Profissional</SelectItem>
+                                        <SelectItem value="Plataforma 360 OMNI">Plataforma 360 OMNI</SelectItem>
+                                        <SelectItem value="Pabx 3CX">Pabx 3CX</SelectItem>
+                                        <SelectItem value="PABX HIBRIDO">PABX HIBRIDO</SelectItem>
+                                        <SelectItem value="Pabx IPPolo Business">Pabx IPPolo Business</SelectItem>
+                                        <SelectItem value="Pabx IPPolo Cloud">Pabx IPPolo Cloud</SelectItem>
+                                        <SelectItem value="Pabx IPPolo Enterprise">Pabx IPPolo Enterprise</SelectItem>
+                                        <SelectItem value="Pabx IPPolo Profissional">Pabx IPPolo Profissional</SelectItem>
+                                        <SelectItem value="Desenvolvimento de Sistema">Desenvolvimento de Sistema</SelectItem>
+                                        <SelectItem value="Produtos">Produtos</SelectItem>
+                                        <SelectItem value="Linha Voip">Linha Voip</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={editForm.control}
+                        name="tipo_contrato"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-[10px] font-bold uppercase text-muted-foreground">Tipo de Contrato</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value || ''}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecione o tipo" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="Novo">Novo</SelectItem>
+                                        <SelectItem value="UPSELL">UPSELL</SelectItem>
+                                        <SelectItem value="CROSSELL">CROSSELL</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={editForm.control}
+                        name="data_assinatura_contrato"
+                        render={({ field }) => (
+                            <FormItem className="md:col-span-2">
+                                <FormLabel className="text-[10px] font-bold uppercase text-muted-foreground">Data da Assinatura do Contrato</FormLabel>
+                                <FormControl>
+                                    <Input type="date" {...field} />
+                                </FormControl>
                             </FormItem>
                         )}
                     />

@@ -414,6 +414,9 @@ export const cartoes_funil_vendas = mysqlTable("cartoes_funil_vendas", {
   data_envio: date("data_envio"),
   valor: int("valor"), // Valor em centavos
   observacoes: text("observacoes"),
+  produto: text("produto"), // Produto contratado
+  tipo_contrato: text("tipo_contrato"), // Tipo de contrato: Novo, UPSELL, CROSSELL
+  data_assinatura_contrato: date("data_assinatura_contrato"), // Data da assinatura do contrato
   criado_por: varchar("criado_por", { length: 255 }).references(() => users.id),
   criado_em: timestamp("criado_em").defaultNow(),
 });
