@@ -668,7 +668,21 @@ export class DatabaseStorage implements IStorage {
                     .where(eq(etapas_polo_projetos.id_polo_projeto, project.id))
                     .orderBy(asc(etapas_polo_projetos.ordem));
 
-                return { ...project, stages };
+                // Calcular prazo final: priorizar data_final do projeto, senão usar maior data_fim das etapas
+                const prazo_final = project.data_final
+                    ? (typeof project.data_final === 'string' ? project.data_final : project.data_final.toISOString().split('T')[0])
+                    : (stages.length > 0
+                        ? stages.reduce((latest, s) =>
+                            s.data_fim && (!latest || s.data_fim > latest) ? s.data_fim : latest, null as string | null)
+                        : null);
+
+                return {
+                    ...project,
+                    stages,
+                    prazo_final,
+                    etapas_count: stages.length,
+                    data_atualizacao: project.atualizado_em || project.criado_em
+                };
             })
         );
 
@@ -792,11 +806,34 @@ export class DatabaseStorage implements IStorage {
     }
 
     async getPoloProjectDashboardStats() {
-        // Implementation placeholder
+        const projects = await this.getPoloProjects();
+
+        // Projetos ativos
+        const activeProjects = projects.filter(p => p.status === "Ativo").length;
+
+        // Próximo prazo mais urgente (usando prazo final dos projetos)
+        const allDeadlines = projects
+            .filter(p => p.prazo_final)
+            .map(p => ({
+                stageName: p.nome,
+                projectName: p.nome,
+                endDate: p.prazo_final as string,
+                daysUntil: Math.ceil((new Date(p.prazo_final as string).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+            }))
+            .sort((a, b) => a.daysUntil - b.daysUntil);
+
+        const upcomingDeadlines = allDeadlines.slice(0, 5); // Top 5
+
+        // Progresso geral médio
+        const activeProjectsList = projects.filter(p => p.status === "Ativo");
+        const progresso_geral = activeProjectsList.length > 0
+            ? Math.round(activeProjectsList.reduce((sum, p) => sum + (p.progresso_geral || 0), 0) / activeProjectsList.length)
+            : 0;
+
         return {
-            activeProjects: 0,
-            upcomingDeadlines: [],
-            progresso_geral: 0,
+            activeProjects,
+            upcomingDeadlines,
+            progresso_geral
         };
     }
 

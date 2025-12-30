@@ -189,8 +189,11 @@ export const polo_projetos = mysqlTable("polo_projetos", {
   descricao: text("descricao"),
   status: varchar("status", { length: 100 }).default("Ativo").notNull(), // Ativo, Concluído, Pausado, Cancelado
   progresso_geral: int("progresso_geral").default(0), // 0-100
+  data_inicial: date("data_inicial"),
+  data_final: date("data_final"),
   criado_por: varchar("criado_por", { length: 255 }).references(() => users.id),
   criado_em: timestamp("criado_em").defaultNow(),
+  atualizado_em: timestamp("atualizado_em").defaultNow(),
 });
 
 export const etapas_polo_projetos = mysqlTable("etapas_polo_projetos", {

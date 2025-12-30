@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { Plus, Calendar, TrendingUp, Trash2, Search } from "lucide-react";
+import { Plus, Calendar, TrendingUp, Trash2, Search, Pencil } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import {
     AlertDialog,
@@ -43,6 +43,8 @@ export default function PoloProject() {
         name: "",
         description: "",
         status: "Ativo",
+        startDate: "",
+        endDate: "",
     });
 
     const queryClient = useQueryClient();
@@ -50,7 +52,7 @@ export default function PoloProject() {
     const [location, setLocation] = useLocation();
     const { user } = useAuth();
 
-    // Check permissions
+    // Check permissions - apenas Admin e Gerentes podem excluir
     const canDelete = user?.role === "Admin" || user?.role === "Gerente Supervisor" || user?.role === "Gerente Comercial";
 
     const { data: dashboardStats, isLoading } = useQuery({
@@ -87,7 +89,7 @@ export default function PoloProject() {
     });
 
     const createPoloProjectMutation = useMutation({
-        mutationFn: async (data: { name: string; description: string; status: string }) => {
+        mutationFn: async (data: { name: string; description: string; status: string; startDate?: string; endDate?: string }) => {
             // First, ensure we have a project to associate with
             let targetProject = availableProjects?.find((p: any) => p.nome === "Projetos Polo");
             let projectId = targetProject?.id;
@@ -171,6 +173,8 @@ export default function PoloProject() {
                     nome: data.name,
                     descricao: data.description,
                     status: data.status,
+                    data_inicial: data.startDate || null,
+                    data_final: data.endDate || null,
                 }),
             });
 
@@ -189,7 +193,7 @@ export default function PoloProject() {
                 description: "O Polo Project foi criado com sucesso.",
             });
             setDialogOpen(false);
-            setFormData({ name: "", description: "", status: "Ativo" });
+            setFormData({ name: "", description: "", status: "Ativo", startDate: "", endDate: "" });
         },
         onError: (error: any) => {
             toast({
@@ -227,6 +231,52 @@ export default function PoloProject() {
             });
         },
     });
+
+    const updatePoloProjectMutation = useMutation({
+        mutationFn: async ({ id, data }: { id: number; data: { nome: string; descricao?: string; status: string; data_inicial?: string | null; data_final?: string | null } }) => {
+            const response = await fetch(`/api/polo-projetos/${id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+            });
+            if (!response.ok) throw new Error("Failed to update project");
+            return response.json();
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["/api/polo-projetos"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/polo-projetos/dashboard"] });
+            toast({
+                title: "Projeto atualizado",
+                description: "As informações do projeto foram atualizadas com sucesso.",
+            });
+            setEditDialogOpen(false);
+            setEditingProject(null);
+        },
+        onError: (error: any) => {
+            toast({
+                title: "Erro ao atualizar",
+                description: error.message || "Falha ao atualizar o projeto",
+                variant: "destructive",
+            });
+        },
+    });
+
+    const [editDialogOpen, setEditDialogOpen] = useState(false);
+    const [editingProject, setEditingProject] = useState<any>(null);
+
+    const handleEditClick = (project: any, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setEditingProject({
+            id: project.id,
+            nome: project.nome,
+            descricao: project.descricao,
+            status: project.status,
+            data_inicial: project.data_inicial || "",
+            data_final: project.data_final || ""
+        });
+        setEditDialogOpen(true);
+    };
+
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -291,6 +341,31 @@ export default function PoloProject() {
                                             }
                                             rows={3}
                                         />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="startDate">Data Inicial</Label>
+                                            <Input
+                                                id="startDate"
+                                                type="date"
+                                                value={formData.startDate}
+                                                onChange={(e) =>
+                                                    setFormData({ ...formData, startDate: e.target.value })
+                                                }
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="endDate">Data Final</Label>
+                                            <Input
+                                                id="endDate"
+                                                type="date"
+                                                value={formData.endDate}
+                                                onChange={(e) =>
+                                                    setFormData({ ...formData, endDate: e.target.value })
+                                                }
+                                            />
+                                        </div>
                                     </div>
 
                                     <div className="space-y-2">
@@ -403,11 +478,11 @@ export default function PoloProject() {
                                         <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
                                             <div
                                                 className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
-                                                style={{ width: `${dashboardStats?.overallProgress || 0}%` }}
+                                                style={{ width: `${dashboardStats?.progresso_geral || 0}%` }}
                                             ></div>
                                         </div>
                                         <div className="text-xs font-medium text-blue-600 text-center">
-                                            {dashboardStats?.overallProgress || 0}% Concluído
+                                            {dashboardStats?.progresso_geral || 0}% Concluído
                                         </div>
                                     </>
                                 )}
@@ -442,75 +517,210 @@ export default function PoloProject() {
                             {projects && projects.length > 0 ? (
                                 <>
                                     {filteredProjects.length > 0 ? (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                            {filteredProjects.map((project: any) => (
-                                                <div
-                                                    key={project.id}
-                                                    className="p-4 border rounded-lg hover:border-blue-500 hover:shadow-md transition-all cursor-pointer relative group"
-                                                    onClick={() => setLocation(`/polo-project/${project.id}`)}
-                                                >
-                                                    <div className="pr-8">
-                                                        <h3 className="font-semibold text-gray-900">{project.nome}</h3>
-                                                        {project.descricao && (
-                                                            <p className="text-sm text-gray-600 mt-1 line-clamp-2">{project.descricao}</p>
-                                                        )}
-                                                        <div className="mt-3 flex items-center justify-between">
-                                                            <span className={`text-xs px-2 py-1 rounded ${project.status === 'Ativo' ? 'bg-green-100 text-green-700' :
-                                                                project.status === 'Concluído' ? 'bg-blue-100 text-blue-700' :
-                                                                    project.status === 'Pausado' ? 'bg-yellow-100 text-yellow-700' :
-                                                                        'bg-gray-100 text-gray-700'
-                                                                }`}>
-                                                                {project.status}
-                                                            </span>
-                                                            {project.stages && (
-                                                                <span className="text-xs text-gray-500">
-                                                                    {project.stages.length} etapas
+                                        <div className="space-y-4">
+                                            {filteredProjects.map((project: any) => {
+                                                // Helper function to get progress bar color
+                                                const getProgressColor = (progress: number) => {
+                                                    if (progress <= 30) return '#ef4444'; // red
+                                                    if (progress <= 60) return '#f59e0b'; // orange
+                                                    if (progress <= 90) return '#3b82f6'; // blue
+                                                    return '#10b981'; // green
+                                                };
+
+                                                // Helper function to calculate deadline status
+                                                const getDeadlineStatus = (prazo_final: string | null) => {
+                                                    if (!prazo_final) return {
+                                                        color: 'gray',
+                                                        text: 'Sem prazo',
+                                                        days: null,
+                                                        bgColor: '#f3f4f6',
+                                                        textColor: '#6b7280'
+                                                    };
+
+                                                    const now = new Date();
+                                                    const deadline = new Date(prazo_final);
+                                                    const diffTime = deadline.getTime() - now.getTime();
+                                                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                                                    if (diffDays < 0) {
+                                                        return {
+                                                            color: 'red',
+                                                            text: `Atrasado (${Math.abs(diffDays)}d)`,
+                                                            days: diffDays,
+                                                            bgColor: '#fef2f2',
+                                                            textColor: '#ef4444'
+                                                        };
+                                                    } else if (diffDays <= 4) {
+                                                        return {
+                                                            color: 'yellow',
+                                                            text: `Em ${diffDays} dias`,
+                                                            days: diffDays,
+                                                            bgColor: '#fffbeb',
+                                                            textColor: '#f59e0b'
+                                                        };
+                                                    } else {
+                                                        return {
+                                                            color: 'green',
+                                                            text: `Em ${diffDays} dias`,
+                                                            days: diffDays,
+                                                            bgColor: '#f0fdf4',
+                                                            textColor: '#10b981'
+                                                        };
+                                                    }
+                                                };
+
+                                                const progressColor = getProgressColor(project.progresso_geral || 0);
+                                                const deadlineStatus = getDeadlineStatus(project.prazo_final);
+
+                                                // Format date for display
+                                                const formatDate = (dateStr: string | null) => {
+                                                    if (!dateStr) return '--/--/----';
+                                                    // Parse date without timezone conversion
+                                                    const [year, month, day] = dateStr.split('-');
+                                                    return `${day}/${month}/${year}`;
+                                                };
+
+                                                const formatUpdateDate = (dateStr: string) => {
+                                                    const date = new Date(dateStr);
+                                                    return date.toLocaleDateString('pt-BR');
+                                                };
+
+                                                return (
+                                                    <div
+                                                        key={project.id}
+                                                        className="border rounded-lg p-5 hover:border-blue-500 hover:shadow-lg transition-all cursor-pointer relative group bg-white"
+                                                        onClick={() => setLocation(`/polo-project/${project.id}`)}
+                                                    >
+                                                        {/* Header */}
+                                                        <div className="flex items-start justify-between mb-3">
+                                                            <div className="flex items-center gap-3 flex-wrap">
+                                                                <h3 className="font-bold text-lg text-gray-900">{project.nome}</h3>
+                                                                <span className={`text-xs px-2.5 py-1 rounded-full ${project.status === 'Ativo' ? 'bg-green-100 text-green-700' :
+                                                                    project.status === 'Concluído' ? 'bg-blue-100 text-blue-700' :
+                                                                        project.status === 'Pausado' ? 'bg-yellow-100 text-yellow-700' :
+                                                                            'bg-gray-100 text-gray-700'
+                                                                    }`}>
+                                                                    {project.status === 'Ativo' && '🟢 '}
+                                                                    {project.status === 'Pausado' && '🟡 '}
+                                                                    {project.status === 'Concluído' && '✅ '}
+                                                                    {project.status === 'Cancelado' && '❌ '}
+                                                                    {project.status}
                                                                 </span>
-                                                            )}
+                                                                <span className="text-xs text-gray-500">
+                                                                    {project.etapas_count || project.stages?.length || 0} etapas
+                                                                </span>
+                                                            </div>
+
+                                                            {/* Action buttons */}
+                                                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                {/* Edit button - visível para todos */}
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-8 w-8 text-gray-400 hover:text-blue-600 hover:bg-blue-50"
+                                                                    onClick={(e) => handleEditClick(project, e)}
+                                                                >
+                                                                    <Pencil className="h-4 w-4" />
+                                                                </Button>
+
+                                                                {/* Delete button - apenas para Admin e Gerentes */}
+                                                                {canDelete && (
+                                                                    <div onClick={(e) => e.stopPropagation()}>
+                                                                        <AlertDialog>
+                                                                            <AlertDialogTrigger asChild>
+                                                                                <Button
+                                                                                    variant="ghost"
+                                                                                    size="icon"
+                                                                                    className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50"
+                                                                                >
+                                                                                    <Trash2 className="h-4 w-4" />
+                                                                                </Button>
+                                                                            </AlertDialogTrigger>
+                                                                            <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                                                                                <AlertDialogHeader>
+                                                                                    <AlertDialogTitle>Excluir Projeto</AlertDialogTitle>
+                                                                                    <AlertDialogDescription>
+                                                                                        Tem certeza que deseja excluir o projeto "{project.nome}"?
+                                                                                        Esta ação não pode ser desfeita. O card do Kanban permanecerá, mas o Polo Project será removido.
+                                                                                    </AlertDialogDescription>
+                                                                                </AlertDialogHeader>
+                                                                                <AlertDialogFooter>
+                                                                                    <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancelar</AlertDialogCancel>
+                                                                                    <AlertDialogAction
+                                                                                        className="bg-red-600 hover:bg-red-700"
+                                                                                        onClick={(e) => {
+                                                                                            e.stopPropagation();
+                                                                                            deletePoloProjectMutation.mutate(project.id);
+                                                                                        }}
+                                                                                    >
+                                                                                        Excluir
+                                                                                    </AlertDialogAction>
+                                                                                </AlertDialogFooter>
+                                                                            </AlertDialogContent>
+                                                                        </AlertDialog>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Subtitle */}
+                                                        <div className="text-sm text-gray-600 mb-4">
+                                                            {project.status === 'Ativo' && 'Em andamento'}
+                                                            {project.status === 'Pausado' && 'Pausado'}
+                                                            {project.status === 'Concluído' && 'Concluído'}
+                                                            {project.status === 'Cancelado' && 'Cancelado'}
+                                                            {' • '}
+                                                            <span className="text-gray-500">
+                                                                Atualizado: {formatUpdateDate(project.data_atualizacao || project.criado_em)}
+                                                            </span>
+                                                        </div>
+
+                                                        {/* Progress Bar */}
+                                                        <div className="mb-4">
+                                                            <div className="flex items-center justify-between mb-2">
+                                                                <span className="text-sm font-medium text-gray-700">Progresso</span>
+                                                                <span className="text-sm font-bold" style={{ color: progressColor }}>
+                                                                    {project.progresso_geral || 0}%
+                                                                </span>
+                                                            </div>
+                                                            <div className="w-full bg-gray-200 rounded-full h-3">
+                                                                <div
+                                                                    className="h-3 rounded-full transition-all duration-300"
+                                                                    style={{
+                                                                        width: `${project.progresso_geral || 0}%`,
+                                                                        backgroundColor: progressColor
+                                                                    }}
+                                                                ></div>
+                                                            </div>
+                                                            <div className="mt-1 text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                • Destaque sincronizado
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Deadline Badge */}
+                                                        <div className="flex items-center justify-between pt-3 border-t">
+                                                            <div
+                                                                className="flex items-center gap-2 px-4 py-2 rounded-lg"
+                                                                style={{ backgroundColor: deadlineStatus.bgColor }}
+                                                            >
+                                                                <Calendar className="w-4 h-4" style={{ color: deadlineStatus.textColor }} />
+                                                                <span className="text-sm font-medium" style={{ color: deadlineStatus.textColor }}>
+                                                                    Prazo Final: {formatDate(project.prazo_final)}
+                                                                </span>
+                                                            </div>
+                                                            <div
+                                                                className="px-3 py-1.5 rounded-full text-xs font-medium"
+                                                                style={{
+                                                                    backgroundColor: deadlineStatus.bgColor,
+                                                                    color: deadlineStatus.textColor
+                                                                }}
+                                                            >
+                                                                {deadlineStatus.text}
+                                                            </div>
                                                         </div>
                                                     </div>
-
-                                                    {canDelete && (
-                                                        <div
-                                                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                            onClick={(e) => e.stopPropagation()}
-                                                        >
-                                                            <AlertDialog>
-                                                                <AlertDialogTrigger asChild>
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="icon"
-                                                                        className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50"
-                                                                    >
-                                                                        <Trash2 className="h-4 w-4" />
-                                                                    </Button>
-                                                                </AlertDialogTrigger>
-                                                                <AlertDialogContent onClick={(e) => e.stopPropagation()}>
-                                                                    <AlertDialogHeader>
-                                                                        <AlertDialogTitle>Excluir Projeto</AlertDialogTitle>
-                                                                        <AlertDialogDescription>
-                                                                            Tem certeza que deseja excluir o projeto "{project.nome}"?
-                                                                            Esta ação não pode ser desfeita. O card do Kanban permanecerá, mas o Polo Project será removido.
-                                                                        </AlertDialogDescription>
-                                                                    </AlertDialogHeader>
-                                                                    <AlertDialogFooter>
-                                                                        <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancelar</AlertDialogCancel>
-                                                                        <AlertDialogAction
-                                                                            className="bg-red-600 hover:bg-red-700"
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                deletePoloProjectMutation.mutate(project.id);
-                                                                            }}
-                                                                        >
-                                                                            Excluir
-                                                                        </AlertDialogAction>
-                                                                    </AlertDialogFooter>
-                                                                </AlertDialogContent>
-                                                            </AlertDialog>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     ) : (
                                         <div className="text-center py-12">
@@ -537,6 +747,92 @@ export default function PoloProject() {
                             )}
                         </CardContent>
                     </Card>
+
+                    {/* Edit Project Dialog */}
+                    <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Editar Projeto</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="edit-name">Nome do Projeto</Label>
+                                    <Input
+                                        id="edit-name"
+                                        value={editingProject?.nome || ""}
+                                        onChange={(e) => setEditingProject((prev: any) => ({ ...prev, nome: e.target.value }))}
+                                        placeholder="Digite o nome do projeto"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="edit-description">Descrição</Label>
+                                    <Textarea
+                                        id="edit-description"
+                                        value={editingProject?.descricao || ""}
+                                        onChange={(e) => setEditingProject((prev: any) => ({ ...prev, descricao: e.target.value }))}
+                                        placeholder="Descreva o projeto (opcional)"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="edit-startDate">Data Inicial</Label>
+                                        <Input
+                                            id="edit-startDate"
+                                            type="date"
+                                            value={editingProject?.data_inicial || ""}
+                                            onChange={(e) => setEditingProject((prev: any) => ({ ...prev, data_inicial: e.target.value }))}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="edit-endDate">Data Final</Label>
+                                        <Input
+                                            id="edit-endDate"
+                                            type="date"
+                                            value={editingProject?.data_final || ""}
+                                            onChange={(e) => setEditingProject((prev: any) => ({ ...prev, data_final: e.target.value }))}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="edit-status">Status</Label>
+                                    <Select
+                                        value={editingProject?.status || "Ativo"}
+                                        onValueChange={(value) => setEditingProject((prev: any) => ({ ...prev, status: value }))}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecione o status" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Ativo">🟢 Ativo</SelectItem>
+                                            <SelectItem value="Pausado">🟡 Pausado</SelectItem>
+                                            <SelectItem value="Concluído">✅ Concluído</SelectItem>
+                                            <SelectItem value="Cancelado">❌ Cancelado</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <Button
+                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                                    onClick={() => {
+                                        if (editingProject) {
+                                            updatePoloProjectMutation.mutate({
+                                                id: editingProject.id,
+                                                data: {
+                                                    nome: editingProject.nome,
+                                                    descricao: editingProject.descricao,
+                                                    status: editingProject.status,
+                                                    data_inicial: editingProject.data_inicial || null,
+                                                    data_final: editingProject.data_final || null
+                                                }
+                                            });
+                                        }
+                                    }}
+                                    disabled={updatePoloProjectMutation.isPending || !editingProject?.nome}
+                                >
+                                    {updatePoloProjectMutation.isPending ? "Salvando..." : "Salvar Alterações"}
+                                </Button>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
                 </div>
             </div>
         </Layout>
