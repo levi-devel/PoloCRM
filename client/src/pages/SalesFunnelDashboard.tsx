@@ -1,10 +1,12 @@
 import { Layout } from "@/components/layout/Layout";
 import { useSalesFunnelStats } from "@/hooks/use-sales-funnel-stats";
 import { Card } from "@/components/ui/card";
-import { BarChart3, Calendar } from "lucide-react";
+import { BarChart3, Calendar, Download, FileText, Table } from "lucide-react";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { exportToCSV, formatCurrencyForExport, formatDateForExport } from "@/lib/exportUtils";
+import { exportDashboardToPDF } from "@/lib/pdfExportUtils";
 
 type FilterType = 'all' | 'week' | 'month' | 'year' | 'custom';
 
@@ -12,6 +14,7 @@ export default function SalesFunnelDashboard() {
     const [filterType, setFilterType] = useState<FilterType>('all');
     const [customStartDate, setCustomStartDate] = useState<string>('');
     const [customEndDate, setCustomEndDate] = useState<string>('');
+    const chartRef = useRef<HTMLDivElement>(null);
 
     // Calculate date range based on filter type
     const getDateRange = (): { startDate?: Date; endDate?: Date } => {
@@ -95,6 +98,69 @@ export default function SalesFunnelDashboard() {
         return 'bg-gray-100 text-gray-800';
     };
 
+    const getFilterDescription = (): string => {
+        switch (filterType) {
+            case 'all':
+                return 'Todos os registros';
+            case 'week':
+                return 'Esta Semana';
+            case 'month':
+                return 'Este Mês';
+            case 'year':
+                return 'Este Ano';
+            case 'custom':
+                if (customStartDate && customEndDate) {
+                    return `${customStartDate} até ${customEndDate}`;
+                }
+                return 'Período Personalizado';
+            default:
+                return 'Todos os registros';
+        }
+    };
+
+    const handleExportCSV = () => {
+        if (!stats) return;
+
+        const csvData: any[][] = [
+            [`Dashboard Funil de Vendas - Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`],
+            [`Período: ${getFilterDescription()}`],
+            [], // Linha vazia
+            ['Empresa', 'CNPJ', 'Contato', 'Telefone', 'Proposta', 'Valor', 'Data Envio', 'Status']
+        ];
+
+        stats.allCards.forEach((card: any) => {
+            const column = stats.columnStats.find((c: any) => c.id_coluna === card.id_coluna);
+            csvData.push([
+                card.nome_cliente,
+                card.cnpj || '',
+                card.nome_contato || '',
+                card.telefone || '',
+                card.numero_proposta ? `#${card.numero_proposta}` : '',
+                formatCurrencyForExport(card.valor || 0),
+                formatDateForExport(card.data_envio),
+                column?.columnName || ''
+            ]);
+        });
+
+        const filename = `funil-vendas-${format(new Date(), 'yyyy-MM-dd-HHmm')}.csv`;
+        exportToCSV(csvData, filename);
+    };
+
+    const handleExportPDF = async () => {
+        if (!stats) return;
+
+        await exportDashboardToPDF(
+            stats,
+            {
+                filterType,
+                customStartDate,
+                customEndDate
+            },
+            'chart-distribution',
+            '/LOGO PADRÃO POLO.png'
+        );
+    };
+
     if (isLoading || !stats) {
         return (
             <Layout>
@@ -129,9 +195,27 @@ export default function SalesFunnelDashboard() {
             <div className="p-8 max-w-[1400px] mx-auto space-y-6 bg-gray-50 min-h-screen">
                 {/* Header */}
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                    <div className="flex items-center gap-3 mb-2">
-                        <BarChart3 className="w-8 h-8 text-blue-600" />
-                        <h1 className="text-2xl font-bold text-gray-800">Dashboard Funil de Vendas</h1>
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                            <BarChart3 className="w-8 h-8 text-blue-600" />
+                            <h1 className="text-2xl font-bold text-gray-800">Dashboard Funil de Vendas</h1>
+                        </div>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={handleExportPDF}
+                                className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors shadow-sm font-medium text-sm"
+                            >
+                                <FileText className="w-4 h-4" />
+                                Exportar PDF
+                            </button>
+                            <button
+                                onClick={handleExportCSV}
+                                className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors shadow-sm font-medium text-sm"
+                            >
+                                <Table className="w-4 h-4" />
+                                Exportar CSV
+                            </button>
+                        </div>
                     </div>
                     <p className="text-sm text-gray-500">
                         Análise completa do pipeline de vendas • Total: <span className="font-semibold text-gray-700">{formatCurrency(stats.totalValue)}</span>
@@ -222,7 +306,7 @@ export default function SalesFunnelDashboard() {
                         {/* Distribution Chart */}
                         <Card className="p-6 bg-white border border-gray-100 shadow-sm">
                             <h3 className="font-bold text-gray-800 mb-6">Distribuição por Estágio</h3>
-                            <div className="flex items-end justify-around gap-4" style={{ height: '256px' }}>
+                            <div id="chart-distribution" ref={chartRef} className="flex items-end justify-around gap-4" style={{ height: '256px' }}>
                                 {stats.columnStats.map((col: any, index: number) => {
                                     const heightPx = maxCount > 0 ? Math.floor((col.count / maxCount) * 200) : 0;
                                     return (
