@@ -3,6 +3,7 @@ import { useProject, useCards, useCreateCard, useMoveCard, useCard, useSubmitCar
 import { useFormTemplate } from "@/hooks/use-forms";
 import { useClients } from "@/hooks/use-clients";
 import { useRoute, useLocation } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -111,7 +112,7 @@ function DeleteCardDialog({ isOpen, onClose, onConfirm, cardTitle, isDeleting }:
 }
 
 // Kanban Column Component
-function KanbanColumn({ title, id, cards, onAddCard, onCardClick, onDeleteCard, color, users }: any) {
+function KanbanColumn({ title, id, cards, onAddCard, onCardClick, onDeleteCard, color, users, canDelete }: any) {
   // Helper to get assigned user for a card
   const getAssignedUser = (card: any) => {
     // Priority 1: Get from card.assignedTechId (server data)
@@ -183,17 +184,19 @@ function KanbanColumn({ title, id, cards, onAddCard, onCardClick, onDeleteCard, 
                           {card.prioridade}
                         </span>
                         <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 -mt-1 hover:bg-red-500/10 hover:text-red-600"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onDeleteCard(card);
-                            }}
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
+                          {canDelete && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 -mt-1 hover:bg-red-500/10 hover:text-red-600"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDeleteCard(card);
+                              }}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          )}
                           <Button variant="ghost" size="icon" className="h-6 w-6 -mt-1 -mr-2">
                             <MoreHorizontal className="w-3 h-3" />
                           </Button>
@@ -275,6 +278,10 @@ export default function ProjectBoard() {
 
   const { data: selectedCard } = useCard(selectedCardId || 0);
   const deleteCard = useDeleteCard();
+  const { user } = useAuth();
+
+  // Check permissions - apenas Admin e Gerentes podem excluir cards
+  const canDelete = user?.role === "Admin" || user?.role === "Gerente Supervisor" || user?.role === "Gerente Comercial";
 
   // Fetch users for displaying assigned technician names
   const { data: users } = useQuery({
@@ -421,6 +428,7 @@ export default function ProjectBoard() {
                   onDeleteCard={handleDeleteCard}
                   color={col.cor}
                   users={users}
+                  canDelete={canDelete}
                 />
               ))}
             </div>
