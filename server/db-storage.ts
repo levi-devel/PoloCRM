@@ -838,8 +838,12 @@ export class DatabaseStorage implements IStorage {
     async getPoloProjectDashboardStats() {
         const projects = await this.getPoloProjects();
 
-        // Projetos ativos
-        const activeProjects = projects.filter(p => p.status === "Ativo").length;
+        // Contagem por status
+        const totalProjetos = projects.length;
+        const ativosCount = projects.filter(p => p.status === "Ativo").length;
+        const pausadosCount = projects.filter(p => p.status === "Pausado").length;
+        const concluidosCount = projects.filter(p => p.status === "Concluído").length;
+        const canceladosCount = projects.filter(p => p.status === "Cancelado").length;
 
         // Próximo prazo mais urgente (usando prazo final dos projetos)
         const allDeadlines = projects
@@ -861,7 +865,11 @@ export class DatabaseStorage implements IStorage {
             : 0;
 
         return {
-            activeProjects,
+            totalProjetos,
+            ativosCount,
+            pausadosCount,
+            concluidosCount,
+            canceladosCount,
             upcomingDeadlines,
             progresso_geral
         };

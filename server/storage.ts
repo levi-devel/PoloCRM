@@ -73,7 +73,11 @@ export interface IStorage {
   deletePoloProjectStage(id: number): Promise<void>;
   deletePoloProject(id: number): Promise<void>;
   getPoloProjectDashboardStats(): Promise<{
-    activeProjects: number;
+    totalProjetos: number;
+    ativosCount: number;
+    pausadosCount: number;
+    concluidosCount: number;
+    canceladosCount: number;
     upcomingDeadlines: { stageName: string; projectName: string; endDate: string; daysUntil: number; }[];
     progresso_geral: number;
   }>;

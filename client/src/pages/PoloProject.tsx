@@ -39,6 +39,7 @@ import { useAuth } from "@/hooks/use-auth";
 export default function PoloProject() {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
+    const [statusFilter, setStatusFilter] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         name: "",
         description: "",
@@ -73,10 +74,12 @@ export default function PoloProject() {
         },
     });
 
-    // Filter projects based on search term
-    const filteredProjects = projects?.filter((project: any) =>
-        project.nome.toLowerCase().includes(searchTerm.toLowerCase())
-    ) || [];
+    // Filter projects based on search term AND status filter
+    const filteredProjects = projects?.filter((project: any) => {
+        const matchesSearch = project.nome.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesStatus = !statusFilter || project.status === statusFilter;
+        return matchesSearch && matchesStatus;
+    }) || [];
 
     // Fetch available projects and cards to create association
     const { data: availableProjects } = useQuery({
@@ -413,87 +416,146 @@ export default function PoloProject() {
                         </Dialog>
                     </div>
 
-                    {/* Dashboard Statistics Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                        {/* Active Projects Card */}
-                        <Card className="bg-white shadow-sm">
-                            <CardHeader>
-                                <CardTitle className="text-lg font-semibold text-gray-800">
-                                    Projetos Ativos
-                                </CardTitle>
+                    {/* Dashboard Statistics Cards - Filtros Clicáveis */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+                        {/* Total de Projetos - Remove filtro */}
+                        <Card
+                            className={`cursor-pointer hover:scale-105 transition-all bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg ${!statusFilter ? 'ring-4 ring-blue-300 shadow-xl' : ''
+                                }`}
+                            onClick={() => setStatusFilter(null)}
+                        >
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-semibold">📊 Total</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 {isLoading ? (
-                                    <div className="animate-pulse h-16 bg-gray-200 rounded"></div>
+                                    <div className="animate-pulse h-8 bg-blue-400 rounded"></div>
                                 ) : (
-                                    <div className="text-4xl font-bold text-blue-600">
-                                        {dashboardStats?.activeProjects || 0}
-                                    </div>
+                                    <div className="text-3xl font-bold">{dashboardStats?.totalProjetos || 0}</div>
                                 )}
                             </CardContent>
                         </Card>
 
-                        {/* Upcoming Deadlines Card */}
-                        <Card className="bg-white shadow-sm">
-                            <CardHeader>
-                                <CardTitle className="text-lg font-semibold text-gray-800 flex items-center">
-                                    <Calendar className="w-5 h-5 mr-2" />
-                                    Próximos Prazos
-                                </CardTitle>
+                        {/* Projetos Ativos */}
+                        <Card
+                            className={`cursor-pointer hover:shadow-lg transition-all bg-white shadow-sm border-l-4 border-green-500 ${statusFilter === 'Ativo' ? 'ring-4 ring-green-300 shadow-xl' : ''
+                                }`}
+                            onClick={() => setStatusFilter('Ativo')}
+                        >
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-semibold text-gray-800">🟢 Ativos</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 {isLoading ? (
-                                    <div className="animate-pulse space-y-2">
-                                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                                        <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                                    </div>
-                                ) : dashboardStats?.upcomingDeadlines && dashboardStats.upcomingDeadlines.length > 0 ? (
-                                    <div className="space-y-2 max-h-48 overflow-y-auto">
-                                        {dashboardStats.upcomingDeadlines.map((deadline: any, index: number) => (
-                                            <div key={index} className="flex justify-between items-start">
-                                                <div className="flex-1">
-                                                    <div className="text-sm text-gray-600">{deadline.stageName}</div>
-                                                    <div className="text-xs text-gray-500">{deadline.projectName}</div>
-                                                </div>
-                                                <div className={`text-sm ${deadline.daysUntil <= 3 ? 'font-medium text-red-500' : 'text-gray-500'}`}>
-                                                    {deadline.daysUntil === 0 ? 'Hoje' : deadline.daysUntil === 1 ? 'Amanhã' : `${deadline.daysUntil}d`}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
+                                    <div className="animate-pulse h-8 bg-gray-200 rounded"></div>
                                 ) : (
-                                    <p className="text-sm text-gray-500">Nenhum prazo próximo</p>
+                                    <div className="text-3xl font-bold text-green-600">{dashboardStats?.ativosCount || 0}</div>
                                 )}
                             </CardContent>
                         </Card>
 
-                        {/* Overall Progress Card */}
-                        <Card className="bg-white shadow-sm">
-                            <CardHeader>
-                                <CardTitle className="text-lg font-semibold text-gray-800 flex items-center">
-                                    <TrendingUp className="w-5 h-5 mr-2" />
-                                    Progresso Geral
-                                </CardTitle>
+                        {/* Projetos Pausados */}
+                        <Card
+                            className={`cursor-pointer hover:shadow-lg transition-all bg-white shadow-sm border-l-4 border-yellow-500 ${statusFilter === 'Pausado' ? 'ring-4 ring-yellow-300 shadow-xl' : ''
+                                }`}
+                            onClick={() => setStatusFilter('Pausado')}
+                        >
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-semibold text-gray-800">🟡 Pausados</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 {isLoading ? (
-                                    <div className="animate-pulse h-16 bg-gray-200 rounded"></div>
+                                    <div className="animate-pulse h-8 bg-gray-200 rounded"></div>
                                 ) : (
-                                    <>
-                                        <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
-                                            <div
-                                                className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
-                                                style={{ width: `${dashboardStats?.progresso_geral || 0}%` }}
-                                            ></div>
-                                        </div>
-                                        <div className="text-xs font-medium text-blue-600 text-center">
-                                            {dashboardStats?.progresso_geral || 0}% Concluído
-                                        </div>
-                                    </>
+                                    <div className="text-3xl font-bold text-yellow-600">{dashboardStats?.pausadosCount || 0}</div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Projetos Concluídos */}
+                        <Card
+                            className={`cursor-pointer hover:shadow-lg transition-all bg-white shadow-sm border-l-4 border-blue-500 ${statusFilter === 'Concluído' ? 'ring-4 ring-blue-300 shadow-xl' : ''
+                                }`}
+                            onClick={() => setStatusFilter('Concluído')}
+                        >
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-semibold text-gray-800">✅ Concluídos</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                {isLoading ? (
+                                    <div className="animate-pulse h-8 bg-gray-200 rounded"></div>
+                                ) : (
+                                    <div className="text-3xl font-bold text-blue-600">{dashboardStats?.concluidosCount || 0}</div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Projetos Cancelados */}
+                        <Card
+                            className={`cursor-pointer hover:shadow-lg transition-all bg-white shadow-sm border-l-4 border-red-500 ${statusFilter === 'Cancelado' ? 'ring-4 ring-red-300 shadow-xl' : ''
+                                }`}
+                            onClick={() => setStatusFilter('Cancelado')}
+                        >
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-semibold text-gray-800">❌ Cancelados</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                {isLoading ? (
+                                    <div className="animate-pulse h-8 bg-gray-200 rounded"></div>
+                                ) : (
+                                    <div className="text-3xl font-bold text-red-600">{dashboardStats?.canceladosCount || 0}</div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Progresso Geral */}
+                        <Card className="bg-white shadow-sm border-l-4 border-purple-500">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-semibold text-gray-800">📈 Progresso</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                {isLoading ? (
+                                    <div className="animate-pulse h-8 bg-gray-200 rounded"></div>
+                                ) : (
+                                    <div className="text-3xl font-bold text-purple-600">{dashboardStats?.progresso_geral || 0}%</div>
                                 )}
                             </CardContent>
                         </Card>
                     </div>
+
+                    {/* Próximos Prazos - Card separado em largura completa */}
+                    <Card className="bg-white shadow-sm mb-8">
+                        <CardHeader>
+                            <CardTitle className="text-lg font-semibold text-gray-800 flex items-center">
+                                <Calendar className="w-5 h-5 mr-2" />
+                                Próximos Prazos
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {isLoading ? (
+                                <div className="animate-pulse space-y-2">
+                                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                                </div>
+                            ) : dashboardStats?.upcomingDeadlines && dashboardStats.upcomingDeadlines.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {dashboardStats.upcomingDeadlines.map((deadline: any, index: number) => (
+                                        <div key={index} className="flex justify-between items-start border-l-2 border-blue-300 pl-3 py-1">
+                                            <div className="flex-1">
+                                                <div className="text-sm font-medium text-gray-700">{deadline.stageName}</div>
+                                                <div className="text-xs text-gray-500">{deadline.projectName}</div>
+                                            </div>
+                                            <div className={`text-sm font-semibold ${deadline.daysUntil <= 3 ? 'text-red-500' : 'text-gray-500'}`}>
+                                                {deadline.daysUntil === 0 ? 'Hoje' : deadline.daysUntil === 1 ? 'Amanhã' : `${deadline.daysUntil}d`}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-gray-500">Nenhum prazo próximo</p>
+                            )}
+                        </CardContent>
+                    </Card>
 
                     {/* Projects List */}
                     <Card className="bg-white shadow-sm">
