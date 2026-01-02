@@ -1,5 +1,6 @@
 
-import { users, clientes, documentos_clientes, modelos_formularios, campos_formularios, projetos, colunas_projetos, cartoes, respostas_formularios_cartoes, respostas_campos_formularios, alertas, polo_projetos, etapas_polo_projetos, colunas_funil_vendas, cartoes_funil_vendas, type User, type UpsertUser, type InsertCliente, type InsertDocumentoCliente, type InsertModeloFormulario, type InsertCampoFormulario, type InsertProjeto, type InsertCartao, type InsertRespostaCampoFormulario, type InsertPoloProjeto, type InsertEtapaPoloProjeto, type InsertColunaFunilVendas, type InsertCartaoFunilVendas } from "../shared/schema";
+
+import { users, clientes, documentos_clientes, modelos_formularios, campos_formularios, projetos, colunas_projetos, cartoes, respostas_formularios_cartoes, respostas_campos_formularios, alertas, polo_projetos, etapas_polo_projetos, pausas_polo_projeto, colunas_funil_vendas, cartoes_funil_vendas, type User, type UpsertUser, type InsertCliente, type InsertDocumentoCliente, type InsertModeloFormulario, type InsertCampoFormulario, type InsertProjeto, type InsertCartao, type InsertRespostaCampoFormulario, type InsertPoloProjeto, type InsertEtapaPoloProjeto, type InsertPausaPoloProjeto, type InsertColunaFunilVendas, type InsertCartaoFunilVendas } from "../shared/schema";
 
 export interface IStorage {
   // Users
@@ -87,6 +88,11 @@ export interface IStorage {
     timelineStart: Date | null;
     timelineEnd: Date | null;
   }>;
+
+  // Polo Project Pauses
+  getPoloProjectPauses(id_polo_projeto: number): Promise<typeof pausas_polo_projeto.$inferSelect[]>;
+  createPoloProjectPause(pause: InsertPausaPoloProjeto): Promise<typeof pausas_polo_projeto.$inferSelect>;
+  updatePoloProjectPause(id: number, updates: Partial<InsertPausaPoloProjeto>): Promise<typeof pausas_polo_projeto.$inferSelect>;
 
   // Sales Funnel
   getSalesFunnelColumns(): Promise<typeof colunas_funil_vendas.$inferSelect[]>;

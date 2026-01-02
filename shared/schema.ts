@@ -213,6 +213,18 @@ export const etapas_polo_projetos = mysqlTable("etapas_polo_projetos", {
   criado_em: timestamp("criado_em").defaultNow(),
 });
 
+
+export const pausas_polo_projeto = mysqlTable("pausas_polo_projeto", {
+  id: int("id").primaryKey().autoincrement(),
+  id_polo_projeto: int("id_polo_projeto").references(() => polo_projetos.id).notNull(),
+  motivo: text("motivo").notNull(),
+  data_pausa: date("data_pausa", { mode: 'string' }).notNull(),
+  data_retomada: date("data_retomada", { mode: 'string' }),
+  criado_por: varchar("criado_por", { length: 255 }).notNull(),
+  criado_em: timestamp("criado_em").defaultNow(),
+  atualizado_em: timestamp("atualizado_em").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   projetos: many(projetos, { relationName: "techLead" }),
@@ -312,6 +324,7 @@ export const poloProjetosRelations = relations(polo_projetos, ({ one, many }) =>
     references: [users.id],
   }),
   etapas: many(etapas_polo_projetos),
+  pausas: many(pausas_polo_projeto),
 }));
 
 export const etapasPoloProjetosRelations = relations(etapas_polo_projetos, ({ one, many }) => ({
@@ -330,6 +343,17 @@ export const etapasPoloProjetosRelations = relations(etapas_polo_projetos, ({ on
   }),
   sub_etapas: many(etapas_polo_projetos, {
     relationName: "subEtapas",
+  }),
+}));
+
+export const pausasPoloProjetoRelations = relations(pausas_polo_projeto, ({ one }) => ({
+  polo_projeto: one(polo_projetos, {
+    fields: [pausas_polo_projeto.id_polo_projeto],
+    references: [polo_projetos.id],
+  }),
+  criado_por_usuario: one(users, {
+    fields: [pausas_polo_projeto.criado_por],
+    references: [users.id],
   }),
 }));
 
@@ -356,6 +380,7 @@ export const insertRespostaCampoFormularioSchema = createInsertSchema(respostas_
 export const insertAlertaSchema = createInsertSchema(alertas).omit({ id: true, criado_em: true, resolvido_em: true });
 export const insertPoloProjetoSchema = createInsertSchema(polo_projetos).omit({ id: true, criado_em: true });
 export const insertEtapaPoloProjetoSchema = createInsertSchema(etapas_polo_projetos).omit({ id: true, criado_em: true });
+export const insertPausaPoloProjetoSchema = createInsertSchema(pausas_polo_projeto).omit({ id: true, criado_em: true, atualizado_em: true });
 
 export type Cliente = typeof clientes.$inferSelect;
 export type InsertCliente = z.infer<typeof insertClienteSchema>;
@@ -381,6 +406,8 @@ export type PoloProjeto = typeof polo_projetos.$inferSelect;
 export type InsertPoloProjeto = z.infer<typeof insertPoloProjetoSchema>;
 export type EtapaPoloProjeto = typeof etapas_polo_projetos.$inferSelect;
 export type InsertEtapaPoloProjeto = z.infer<typeof insertEtapaPoloProjetoSchema>;
+export type PausaPoloProjeto = typeof pausas_polo_projeto.$inferSelect;
+export type InsertPausaPoloProjeto = z.infer<typeof insertPausaPoloProjetoSchema>;
 
 // ✨ EXEMPLO: Nova Tabela de Tarefas Internas
 export const tarefas_internas = mysqlTable("tarefas_internas", {

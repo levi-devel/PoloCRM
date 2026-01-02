@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calendar, Plus } from "lucide-react";
+import { ArrowLeft, Calendar, Plus, History } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
 import {
@@ -50,6 +50,14 @@ export default function PoloProjectGantt() {
         activityDescription: "",
     });
 
+    // Pause modal state
+    const [isPauseModalOpen, setIsPauseModalOpen] = useState(false);
+    const [pauseFormData, setPauseFormData] = useState({
+        motivo: "",
+        data_pausa: "",
+        data_retomada: "",
+    });
+
     // Query para buscar usuários
     const { data: users } = useQuery({
         queryKey: ["/api/users"],
@@ -66,6 +74,18 @@ export default function PoloProjectGantt() {
             if (!projectId) throw new Error("Invalid project ID");
             const response = await fetch(`/api/polo-projetos/${projectId}/gantt`);
             if (!response.ok) throw new Error("Failed to fetch Gantt data");
+            return response.json();
+        },
+        enabled: !!projectId,
+    });
+
+    // Query para buscar pausas
+    const { data: pausas = [] } = useQuery({
+        queryKey: [`/api/polo-projetos/${projectId}/pausas`],
+        queryFn: async () => {
+            if (!projectId) throw new Error("Invalid project ID");
+            const response = await fetch(`/api/polo-projetos/${projectId}/pausas`);
+            if (!response.ok) throw new Error("Failed to fetch pauses");
             return response.json();
         },
         enabled: !!projectId,
@@ -219,6 +239,74 @@ export default function PoloProjectGantt() {
             });
         },
     });
+
+    // Mutations for pauses
+    const createPauseMutation = useMutation({
+        mutationFn: async (pauseData: { motivo: string; data_pausa: string }) => {
+            const response = await fetch(`/api/polo-projetos/${projectId}/pausas`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(pauseData),
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || "Erro ao criar pausa");
+            }
+            return response.json();
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [`/api/polo-projetos/${projectId}/pausas`] });
+            toast({
+                title: "Pausa registrada",
+                description: "O motivo de pausa foi registrado com sucesso.",
+            });
+            setPauseFormData({ motivo: "", data_pausa: "", data_retomada: "" });
+        },
+        onError: (error: Error) => {
+            toast({
+                title: "Erro",
+                description: error.message,
+                variant: "destructive",
+            });
+        },
+    });
+
+    const updatePauseMutation = useMutation({
+        mutationFn: async ({ id, data_retomada }: { id: number; data_retomada: string }) => {
+            const response = await fetch(`/api/pausas/${id}/retomar`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ data_retomada }),
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || "Erro ao marcar retomada");
+            }
+            return response.json();
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [`/api/polo-projetos/${projectId}/pausas`] });
+            toast({
+                title: "Retomada registrada",
+                description: "O projeto foi marcado como retomado.",
+            });
+        },
+        onError: (error: Error) => {
+            toast({
+                title: "Erro",
+                description: error.message,
+                variant: "destructive",
+            });
+        },
+    });
+
+    // Helper function to format date string without timezone conversion
+    const formatDateWithoutTimezone = (dateString: string): string => {
+        if (!dateString) return '';
+        // dateString is in format "YYYY-MM-DD"
+        const [year, month, day] = dateString.split('-');
+        return `${day}/${month}/${year}`;
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -489,6 +577,20 @@ export default function PoloProjectGantt() {
                                             'Sem datas definidas'
                                         )}
                                     </span>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="text-orange-600 border-orange-300 hover:bg-orange-50"
+                                        onClick={() => setIsPauseModalOpen(true)}
+                                    >
+                                        <History className="w-4 h-4 mr-2" />
+                                        Motivos de Pausa
+                                        {pausas.some((p: any) => !p.data_retomada) && (
+                                            <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">
+                                                !
+                                            </span>
+                                        )}
+                                    </Button>
                                 </div>
                             </div>
                             <Button
@@ -853,6 +955,154 @@ export default function PoloProjectGantt() {
                                 </Button>
                             </DialogFooter>
                         </form>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Dialog para Motivos de Pausa */}
+                <Dialog open={isPauseModalOpen} onOpenChange={setIsPauseModalOpen}>
+                    <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                        <DialogHeader>
+                            <DialogTitle className="text-2xl">Motivos de Pausa</DialogTitle>
+                            <DialogDescription>
+                                Registre os motivos pelos quais o projeto foi pausado e acompanhe o histórico
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="space-y-6">
+                            {/* Form to add new pause */}
+                            <div className="border rounded-lg p-4 bg-orange-50">
+                                <h3 className="font-semibold text-gray-900 mb-3">Adicionar Nova Pausa</h3>
+                                <form
+                                    onSubmit={(e) => {
+                                        e.preventDefault();
+                                        if (pauseFormData.motivo && pauseFormData.data_pausa) {
+                                            createPauseMutation.mutate({
+                                                motivo: pauseFormData.motivo,
+                                                data_pausa: pauseFormData.data_pausa,
+                                            });
+                                        }
+                                    }}
+                                    className="space-y-3"
+                                >
+                                    <div>
+                                        <Label htmlFor="motivo">Motivo da Pausa *</Label>
+                                        <Textarea
+                                            id="motivo"
+                                            value={pauseFormData.motivo}
+                                            onChange={(e) => setPauseFormData({ ...pauseFormData, motivo: e.target.value })}
+                                            placeholder="Descreva o motivo da pausa..."
+                                            rows={3}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="data_pausa">Data da Pausa *</Label>
+                                        <Input
+                                            id="data_pausa"
+                                            type="date"
+                                            value={pauseFormData.data_pausa}
+                                            onChange={(e) => setPauseFormData({ ...pauseFormData, data_pausa: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                    <Button
+                                        type="submit"
+                                        className="w-full bg-orange-600 hover:bg-orange-700"
+                                        disabled={createPauseMutation.isPending}
+                                    >
+                                        {createPauseMutation.isPending ? "Registrando..." : "Registrar Pausa"}
+                                    </Button>
+                                </form>
+                            </div>
+
+                            {/* Historical list of pauses */}
+                            <div>
+                                <h3 className="font-semibold text-gray-900 mb-3">Histórico de Pausas</h3>
+                                {pausas && pausas.length > 0 ? (
+                                    <div className="space-y-3">
+                                        {pausas.map((pausa: any) => (
+                                            <div
+                                                key={pausa.id}
+                                                className={`border rounded-lg p-4 ${!pausa.data_retomada ? 'bg-yellow-50 border-yellow-300' : 'bg-gray-50'
+                                                    }`}
+                                            >
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div className="flex items-center gap-2">
+                                                        {!pausa.data_retomada ? (
+                                                            <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-yellow-800 bg-yellow-200 rounded">
+                                                                ⏸️ Em Pausa
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-green-800 bg-green-200 rounded">
+                                                                ✓ Retomado
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <span className="text-xs text-gray-500">
+                                                        {new Date(pausa.criado_em).toLocaleString('pt-BR')}
+                                                    </span>
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <div>
+                                                        <span className="text-xs font-semibold text-gray-600">Motivo:</span>
+                                                        <p className="text-sm text-gray-900 mt-1">{pausa.motivo}</p>
+                                                    </div>
+
+                                                    <div className="flex gap-4 text-sm">
+                                                        <div>
+                                                            <span className="text-xs font-semibold text-gray-600">Pausado em:</span>
+                                                            <p className="text-gray-900">
+                                                                {formatDateWithoutTimezone(pausa.data_pausa)}
+                                                            </p>
+                                                        </div>
+                                                        {pausa.data_retomada && (
+                                                            <div>
+                                                                <span className="text-xs font-semibold text-gray-600">Retomado em:</span>
+                                                                <p className="text-gray-900">
+                                                                    {formatDateWithoutTimezone(pausa.data_retomada)}
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {!pausa.data_retomada && (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="mt-2 text-green-600 border-green-300 hover:bg-green-50"
+                                                            onClick={() => {
+                                                                const today = new Date().toISOString().split('T')[0];
+                                                                updatePauseMutation.mutate({
+                                                                    id: pausa.id,
+                                                                    data_retomada: today,
+                                                                });
+                                                            }}
+                                                            disabled={updatePauseMutation.isPending}
+                                                        >
+                                                            {updatePauseMutation.isPending ? "Marcando..." : "Marcar como Retomado"}
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-8 text-gray-500">
+                                        <p>Nenhuma pausa registrada ainda</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <DialogFooter>
+                            <Button
+                                variant="outline"
+                                onClick={() => setIsPauseModalOpen(false)}
+                            >
+                                Fechar
+                            </Button>
+                        </DialogFooter>
                     </DialogContent>
                 </Dialog>
             </div>

@@ -469,6 +469,45 @@ export async function registerRoutes(
     }
   });
 
+  // Polo Project Pauses
+  app.get("/api/polo-projetos/:id/pausas", async (req, res) => {
+    try {
+      const pausas = await storage.getPoloProjectPauses(Number(req.params.id));
+      res.json(pausas);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to get pause history" });
+    }
+  });
+
+  app.post("/api/polo-projetos/:id/pausas", isAuthenticated, async (req, res) => {
+    try {
+      const user = (req.session as any).user || await storage.getUser((req.session as any).userId);
+
+      const pause = await storage.createPoloProjectPause({
+        id_polo_projeto: Number(req.params.id),
+        motivo: req.body.motivo,
+        data_pausa: req.body.data_pausa,
+        criado_por: user.id,
+      });
+
+      res.status(201).json(pause);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to create pause" });
+    }
+  });
+
+  app.patch("/api/pausas/:id/retomar", isAuthenticated, async (req, res) => {
+    try {
+      const pause = await storage.updatePoloProjectPause(Number(req.params.id), {
+        data_retomada: req.body.data_retomada,
+      });
+
+      res.json(pause);
+    } catch (error: any) {
+      res.status(404).json({ message: error.message || "Pause not found" });
+    }
+  });
+
 
   // Sales Funnel Routes
   app.get(api.salesFunnel.columns.list.path, async (req, res) => {

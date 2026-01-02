@@ -14,6 +14,7 @@ import {
     alertas,
     polo_projetos,
     etapas_polo_projetos,
+    pausas_polo_projeto,
     colunas_funil_vendas,
     cartoes_funil_vendas,
     type User,
@@ -27,6 +28,7 @@ import {
     type InsertRespostaCampoFormulario,
     type InsertPoloProjeto,
     type InsertEtapaPoloProjeto,
+    type InsertPausaPoloProjeto,
     type InsertColunaFunilVendas,
     type InsertCartaoFunilVendas,
 } from "../shared/schema";
@@ -906,6 +908,41 @@ export class DatabaseStorage implements IStorage {
             timelineStart: timelineStart || null,
             timelineEnd: timelineEnd || null,
         };
+    }
+
+    // Polo Project Pauses
+    async getPoloProjectPauses(id_polo_projeto: number) {
+        return await db
+            .select()
+            .from(pausas_polo_projeto)
+            .where(eq(pausas_polo_projeto.id_polo_projeto, id_polo_projeto))
+            .orderBy(desc(pausas_polo_projeto.data_pausa));
+    }
+
+    async createPoloProjectPause(pause: InsertPausaPoloProjeto) {
+        await db.insert(pausas_polo_projeto).values(pause);
+        const created = await db
+            .select()
+            .from(pausas_polo_projeto)
+            .orderBy(desc(pausas_polo_projeto.id))
+            .limit(1);
+        return created[0];
+    }
+
+    async updatePoloProjectPause(id: number, updates: Partial<InsertPausaPoloProjeto>) {
+        await db
+            .update(pausas_polo_projeto)
+            .set({ ...updates, atualizado_em: new Date() })
+            .where(eq(pausas_polo_projeto.id, id));
+
+        const updated = await db
+            .select()
+            .from(pausas_polo_projeto)
+            .where(eq(pausas_polo_projeto.id, id))
+            .limit(1);
+
+        if (!updated[0]) throw new Error("Pause record not found");
+        return updated[0];
     }
 
     // Sales Funnel
