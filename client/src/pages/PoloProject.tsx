@@ -239,7 +239,12 @@ export default function PoloProject() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(data),
             });
-            if (!response.ok) throw new Error("Failed to update project");
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || "Failed to update project");
+            }
+
             return response.json();
         },
         onSuccess: () => {
@@ -817,8 +822,8 @@ export default function PoloProject() {
                                             updatePoloProjectMutation.mutate({
                                                 id: editingProject.id,
                                                 data: {
-                                                    nome: editingProject.nome,
-                                                    descricao: editingProject.descricao,
+                                                    nome: editingProject.nome.trim(),
+                                                    descricao: editingProject.descricao?.trim(),
                                                     status: editingProject.status,
                                                     data_inicial: editingProject.data_inicial || null,
                                                     data_final: editingProject.data_final || null

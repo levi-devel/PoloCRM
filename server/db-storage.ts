@@ -720,9 +720,39 @@ export class DatabaseStorage implements IStorage {
     }
 
     async updatePoloProject(id: number, updates: Partial<InsertPoloProjeto>) {
+        // Helper function to convert date to Date object or null
+        const formatDateForDB = (dateValue: any): Date | null => {
+            if (!dateValue || dateValue === "") return null;
+
+            // If it's already a Date object
+            if (dateValue instanceof Date) {
+                return dateValue;
+            }
+
+            // If it's a string (could be ISO format or YYYY-MM-DD)
+            if (typeof dateValue === 'string') {
+                // Parse the string to a Date object
+                const parsed = new Date(dateValue);
+                // Check if it's a valid date
+                if (!isNaN(parsed.getTime())) {
+                    return parsed;
+                }
+            }
+
+            return null;
+        };
+
+        // Sanitizar e formatar campos de data
+        const sanitizedUpdates = {
+            ...updates,
+            data_inicial: formatDateForDB(updates.data_inicial),
+            data_final: formatDateForDB(updates.data_final),
+            data_atualizacao: new Date()
+        };
+
         await db
             .update(polo_projetos)
-            .set(updates)
+            .set(sanitizedUpdates)
             .where(eq(polo_projetos.id, id));
 
         const updated = await db.select().from(polo_projetos).where(eq(polo_projetos.id, id)).limit(1);

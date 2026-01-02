@@ -389,9 +389,35 @@ export async function registerRoutes(
 
   app.put(api.polo_projetos.update.path, async (req, res) => {
     try {
-      const project = await storage.updatePoloProject(Number(req.params.id), req.body);
+      // Validação dos dados recebidos
+      const updateSchema = z.object({
+        nome: z.string().min(1, "Nome é obrigatório"),
+        descricao: z.string().optional(),
+        status: z.enum(["Ativo", "Pausado", "Concluído", "Cancelado"]),
+        data_inicial: z.string().nullable().optional(),
+        data_final: z.string().nullable().optional()
+      });
+
+      const validatedData = updateSchema.parse(req.body);
+
+      // Converter strings de data para Date objects
+      const dataToUpdate = {
+        nome: validatedData.nome,
+        descricao: validatedData.descricao,
+        status: validatedData.status,
+        data_inicial: validatedData.data_inicial ? new Date(validatedData.data_inicial) : null,
+        data_final: validatedData.data_final ? new Date(validatedData.data_final) : null
+      };
+
+      const project = await storage.updatePoloProject(Number(req.params.id), dataToUpdate);
       res.json(project);
     } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          message: "Dados inválidos",
+          errors: error.errors
+        });
+      }
       res.status(404).json({ message: error.message || "Polo Project not found" });
     }
   });
