@@ -189,8 +189,8 @@ export const polo_projetos = mysqlTable("polo_projetos", {
   descricao: text("descricao"),
   status: varchar("status", { length: 100 }).default("Ativo").notNull(), // Ativo, Concluído, Pausado, Cancelado
   progresso_geral: int("progresso_geral").default(0), // 0-100
-  data_inicial: date("data_inicial"),
-  data_final: date("data_final"),
+  data_inicial: date("data_inicial", { mode: 'string' }),
+  data_final: date("data_final", { mode: 'string' }),
   criado_por: varchar("criado_por", { length: 255 }).references(() => users.id),
   criado_em: timestamp("criado_em").defaultNow(),
   atualizado_em: timestamp("atualizado_em").defaultNow(),
@@ -201,8 +201,8 @@ export const etapas_polo_projetos = mysqlTable("etapas_polo_projetos", {
   id_polo_projeto: int("id_polo_projeto").references(() => polo_projetos.id).notNull(),
   nome: text("nome").notNull(),
   descricao: text("descricao"),
-  data_inicio: date("data_inicio").notNull(),
-  data_fim: date("data_fim").notNull(),
+  data_inicio: date("data_inicio", { mode: 'string' }).notNull(),
+  data_fim: date("data_fim", { mode: 'string' }).notNull(),
   ordem: int("ordem").notNull(),
   nivel: int("nivel").notNull().default(1), // 1 = Etapa Principal, 2 = Sub-Etapa
   id_etapa_pai: int("id_etapa_pai"), // Referência à etapa principal (apenas para level 2)
@@ -212,7 +212,6 @@ export const etapas_polo_projetos = mysqlTable("etapas_polo_projetos", {
   descricao_atividade: text("descricao_atividade"), // Descrição da atividade realizada
   criado_em: timestamp("criado_em").defaultNow(),
 });
-
 
 export const pausas_polo_projeto = mysqlTable("pausas_polo_projeto", {
   id: int("id").primaryKey().autoincrement(),

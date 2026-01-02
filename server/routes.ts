@@ -400,13 +400,13 @@ export async function registerRoutes(
 
       const validatedData = updateSchema.parse(req.body);
 
-      // Converter strings de data para Date objects
+      // Manter strings de data sem conversão para Date objects
       const dataToUpdate = {
         nome: validatedData.nome,
         descricao: validatedData.descricao,
         status: validatedData.status,
-        data_inicial: validatedData.data_inicial ? new Date(validatedData.data_inicial) : null,
-        data_final: validatedData.data_final ? new Date(validatedData.data_final) : null
+        data_inicial: validatedData.data_inicial,
+        data_final: validatedData.data_final
       };
 
       const project = await storage.updatePoloProject(Number(req.params.id), dataToUpdate);

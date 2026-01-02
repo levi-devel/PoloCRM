@@ -671,12 +671,22 @@ export class DatabaseStorage implements IStorage {
                     .orderBy(asc(etapas_polo_projetos.ordem));
 
                 // Calcular prazo final: priorizar data_final do projeto, senão usar maior data_fim das etapas
-                const prazo_final = project.data_final
-                    ? (typeof project.data_final === 'string' ? project.data_final : project.data_final.toISOString().split('T')[0])
-                    : (stages.length > 0
-                        ? stages.reduce((latest, s) =>
-                            s.data_fim && (!latest || s.data_fim > latest) ? s.data_fim : latest, null as string | null)
-                        : null);
+                // Determine deadline: prioritize project data_final, otherwise use latest stage data_fim
+                let prazo_final: string | null = null;
+
+                if (project.data_final) {
+                    prazo_final = project.data_final;
+                } else if (stages.length > 0) {
+                    const latestDate = stages.reduce((latest: string | null, s) => {
+                        if (!s.data_fim) return latest;
+                        if (!latest) return s.data_fim;
+                        return s.data_fim > latest ? s.data_fim : latest;
+                    }, null);
+
+                    if (latestDate) {
+                        prazo_final = latestDate;
+                    }
+                }
 
                 return {
                     ...project,
@@ -722,35 +732,15 @@ export class DatabaseStorage implements IStorage {
     }
 
     async updatePoloProject(id: number, updates: Partial<InsertPoloProjeto>) {
-        // Helper function to convert date to Date object or null
-        const formatDateForDB = (dateValue: any): Date | null => {
-            if (!dateValue || dateValue === "") return null;
-
-            // If it's already a Date object
-            if (dateValue instanceof Date) {
-                return dateValue;
-            }
-
-            // If it's a string (could be ISO format or YYYY-MM-DD)
-            if (typeof dateValue === 'string') {
-                // Parse the string to a Date object
-                const parsed = new Date(dateValue);
-                // Check if it's a valid date
-                if (!isNaN(parsed.getTime())) {
-                    return parsed;
-                }
-            }
-
-            return null;
-        };
-
+        // No modification needed, updates contains strings and schema expects strings.
         // Sanitizar e formatar campos de data
         const sanitizedUpdates = {
             ...updates,
-            data_inicial: formatDateForDB(updates.data_inicial),
-            data_final: formatDateForDB(updates.data_final),
             data_atualizacao: new Date()
         };
+
+        if (sanitizedUpdates.data_inicial === "") sanitizedUpdates.data_inicial = null;
+        if (sanitizedUpdates.data_final === "") sanitizedUpdates.data_final = null;
 
         await db
             .update(polo_projetos)
@@ -827,12 +817,17 @@ export class DatabaseStorage implements IStorage {
             }
         }
 
+        // Also delete sub-stages if any (although level 2 shouldn't have children in this logic)
+        await db.delete(etapas_polo_projetos).where(eq(etapas_polo_projetos.id_etapa_pai, id));
+
         await db.delete(etapas_polo_projetos).where(eq(etapas_polo_projetos.id, id));
     }
 
     async deletePoloProject(id: number) {
         // Delete stages first
         await db.delete(etapas_polo_projetos).where(eq(etapas_polo_projetos.id_polo_projeto, id));
+        // Delete pauses
+        await db.delete(pausas_polo_projeto).where(eq(pausas_polo_projeto.id_polo_projeto, id));
         // Delete project
         await db.delete(polo_projetos).where(eq(polo_projetos.id, id));
     }
@@ -840,31 +835,53 @@ export class DatabaseStorage implements IStorage {
     async getPoloProjectDashboardStats() {
         const projects = await this.getPoloProjects();
 
-        // Contagem por status
         const totalProjetos = projects.length;
-        const ativosCount = projects.filter(p => p.status === "Ativo").length;
-        const pausadosCount = projects.filter(p => p.status === "Pausado").length;
-        const concluidosCount = projects.filter(p => p.status === "Concluído").length;
-        const canceladosCount = projects.filter(p => p.status === "Cancelado").length;
+        const ativosCount = projects.filter(p => p.status === 'Ativo').length;
+        const pausadosCount = projects.filter(p => p.status === 'Pausado').length;
+        const concluidosCount = projects.filter(p => p.status === 'Concluído').length;
+        const canceladosCount = projects.filter(p => p.status === 'Cancelado').length;
 
-        // Próximo prazo mais urgente (usando prazo final dos projetos)
-        const allDeadlines = projects
-            .filter(p => p.prazo_final)
-            .map(p => ({
-                stageName: p.nome,
-                projectName: p.nome,
-                endDate: p.prazo_final as string,
-                daysUntil: Math.ceil((new Date(p.prazo_final as string).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-            }))
-            .sort((a, b) => a.daysUntil - b.daysUntil);
+        // Calculate upcoming deadlines (next 7 days)
+        const now = new Date();
+        const nextWeek = new Date();
+        nextWeek.setDate(now.getDate() + 7);
 
-        const upcomingDeadlines = allDeadlines.slice(0, 5); // Top 5
+        const upcomingDeadlines: any[] = [];
 
-        // Progresso geral médio
-        const activeProjectsList = projects.filter(p => p.status === "Ativo");
-        const progresso_geral = activeProjectsList.length > 0
-            ? Math.round(activeProjectsList.reduce((sum, p) => sum + (p.progresso_geral || 0), 0) / activeProjectsList.length)
-            : 0;
+        projects.forEach(project => {
+            if (project.stages) {
+                project.stages.forEach(stage => {
+                    if (!stage.concluida && stage.data_fim) {
+                        // Compare strings directly since they are YYYY-MM-DD
+                        // We need to parse to compare with Now+7days though
+                        const stageDate = new Date(stage.data_fim + "T00:00:00");
+                        // Adding time to ensure it parses as local day start if browser, but in Node with T00:00:00 it might be local
+                        // Safest for deadline calc:
+                        const [sYear, sMonth, sDay] = stage.data_fim.split('-').map(Number);
+                        const deadline = new Date(sYear, sMonth - 1, sDay);
+
+                        if (deadline >= now && deadline <= nextWeek) {
+                            const diffTime = deadline.getTime() - now.getTime();
+                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                            upcomingDeadlines.push({
+                                stageName: stage.nome,
+                                projectName: project.nome,
+                                endDate: stage.data_fim,
+                                daysUntil: diffDays
+                            });
+                        }
+                    }
+                });
+            }
+        });
+
+        // Sort by closest deadline
+        upcomingDeadlines.sort((a, b) => a.daysUntil - b.daysUntil);
+
+        // Calculate overall average progress
+        const totalProgress = projects.reduce((acc, curr) => acc + (curr.progresso_geral || 0), 0);
+        const progresso_geral = totalProjetos > 0 ? Math.round(totalProgress / totalProjetos) : 0;
 
         return {
             totalProjetos,
@@ -872,7 +889,7 @@ export class DatabaseStorage implements IStorage {
             pausadosCount,
             concluidosCount,
             canceladosCount,
-            upcomingDeadlines,
+            upcomingDeadlines: upcomingDeadlines.slice(0, 5),
             progresso_geral
         };
     }
@@ -881,32 +898,34 @@ export class DatabaseStorage implements IStorage {
         const project = await this.getPoloProject(id);
         if (!project) throw new Error("Polo Project not found");
 
-        // Calculate timeline from stages
-        let timelineStart = null;
-        let timelineEnd = null;
+        let minDate = "";
+        let maxDate = "";
 
+        // Determine timeline range
         if (project.stages && project.stages.length > 0) {
-            const startDates = project.stages.map(s => s.data_inicio).filter(Boolean);
-            const endDates = project.stages.map(s => s.data_fim).filter(Boolean);
+            project.stages.forEach(stage => {
+                if (stage.data_inicio && (!minDate || stage.data_inicio < minDate)) {
+                    minDate = stage.data_inicio;
+                }
+                if (stage.data_fim && (!maxDate || stage.data_fim > maxDate)) {
+                    maxDate = stage.data_fim;
+                }
+            });
+        }
 
-            if (startDates.length > 0) {
-                timelineStart = startDates.reduce((earliest, current) =>
-                    current < earliest ? current : earliest
-                );
-            }
-
-            if (endDates.length > 0) {
-                timelineEnd = endDates.reduce((latest, current) =>
-                    current > latest ? current : latest
-                );
-            }
+        // Add project dates if available
+        if (project.data_inicial && (!minDate || project.data_inicial < minDate)) {
+            minDate = project.data_inicial;
+        }
+        if (project.data_final && (!maxDate || project.data_final > maxDate)) {
+            maxDate = project.data_final;
         }
 
         return {
-            project: { ...project, stages: undefined } as any,
-            stages: project.stages || [],
-            timelineStart: timelineStart || null,
-            timelineEnd: timelineEnd || null,
+            project,
+            stages: project.stages,
+            timelineStart: minDate || null,
+            timelineEnd: maxDate || null
         };
     }
 

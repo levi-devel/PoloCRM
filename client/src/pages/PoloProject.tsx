@@ -274,13 +274,20 @@ export default function PoloProject() {
 
     const handleEditClick = (project: any, e: React.MouseEvent) => {
         e.stopPropagation();
+
+        // Helper to format date for input type="date" (YYYY-MM-DD)
+        const formatDateForInput = (dateStr: string | null) => {
+            if (!dateStr) return "";
+            return dateStr.toString().split('T')[0];
+        };
+
         setEditingProject({
             id: project.id,
             nome: project.nome,
             descricao: project.descricao,
             status: project.status,
-            data_inicial: project.data_inicial || "",
-            data_final: project.data_final || ""
+            data_inicial: formatDateForInput(project.data_inicial),
+            data_final: formatDateForInput(project.data_final)
         });
         setEditDialogOpen(true);
     };
@@ -605,7 +612,10 @@ export default function PoloProject() {
                                                     };
 
                                                     const now = new Date();
-                                                    const deadline = new Date(prazo_final);
+                                                    // Fix: Parse date manually to avoid UTC conversion offset
+                                                    const dateParts = prazo_final.toString().split('T')[0].split('-');
+                                                    const deadline = new Date(Number(dateParts[0]), Number(dateParts[1]) - 1, Number(dateParts[2]));
+
                                                     const diffTime = deadline.getTime() - now.getTime();
                                                     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
@@ -643,8 +653,9 @@ export default function PoloProject() {
                                                 const formatDate = (dateStr: string | null) => {
                                                     if (!dateStr) return '--/--/----';
                                                     // Parse date without timezone conversion
-                                                    const [year, month, day] = dateStr.split('-');
-                                                    return `${day}/${month}/${year}`;
+                                                    const dateParts = dateStr.toString().split('T')[0].split('-');
+                                                    // dateParts is [year, month, day]
+                                                    return `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
                                                 };
 
                                                 const formatUpdateDate = (dateStr: string) => {
