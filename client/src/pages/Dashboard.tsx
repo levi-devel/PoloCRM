@@ -24,9 +24,18 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock,
-  Calendar
+  Calendar,
+  Search
 } from "lucide-react";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { CalendarIcon } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   Select,
@@ -50,6 +59,10 @@ export default function Dashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState<string>("month");
   const [selectedTechnicianId, setSelectedTechnicianId] = useState<string>("all");
   const [trendPeriod, setTrendPeriod] = useState<TrendPeriod>('week');
+  const [customStartDate, setCustomStartDate] = useState<Date | undefined>();
+  const [customEndDate, setCustomEndDate] = useState<Date | undefined>();
+  const [confirmedStartDate, setConfirmedStartDate] = useState<Date | undefined>();
+  const [confirmedEndDate, setConfirmedEndDate] = useState<Date | undefined>();
 
   // Calculate date range based on selected period
   const getDateRange = () => {
@@ -63,17 +76,26 @@ export default function Dashboard() {
     } else if (selectedPeriod === "year") {
       startDate = new Date(now.getFullYear(), 0, 1);
       endDate = now;
+    } else if (selectedPeriod === "custom") {
+      // Use confirmed dates instead of the ones being edited
+      startDate = confirmedStartDate;
+      endDate = confirmedEndDate;
     }
-    // "custom" would need date picker inputs - not implemented yet
 
     return { startDate, endDate };
+  };
+
+  // Handle custom period search
+  const handleCustomSearch = () => {
+    setConfirmedStartDate(customStartDate);
+    setConfirmedEndDate(customEndDate);
   };
 
   const { startDate, endDate } = getDateRange();
 
   // Fetch dashboard stats
   const { data: dashboardStats } = useQuery({
-    queryKey: ['/api/dashboard/stats', selectedProjectId, selectedTechnicianId, selectedPeriod],
+    queryKey: ['/api/dashboard/stats', selectedProjectId, selectedTechnicianId, selectedPeriod, confirmedStartDate, confirmedEndDate],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (selectedProjectId !== "all") {
@@ -173,6 +195,85 @@ export default function Dashboard() {
               </SelectContent>
             </Select>
           </div>
+
+          {/* Custom Date Range Pickers */}
+          {selectedPeriod === "custom" && (
+            <>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-foreground">Data Inicial</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-[200px] justify-start text-left font-normal",
+                        !customStartDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {customStartDate ? (
+                        format(customStartDate, "dd/MM/yyyy", { locale: ptBR })
+                      ) : (
+                        <span>Selecione a data</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={customStartDate}
+                      onSelect={setCustomStartDate}
+                      initialFocus
+                      locale={ptBR}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-foreground">Data Final</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-[200px] justify-start text-left font-normal",
+                        !customEndDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {customEndDate ? (
+                        format(customEndDate, "dd/MM/yyyy", { locale: ptBR })
+                      ) : (
+                        <span>Selecione a data</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={customEndDate}
+                      onSelect={setCustomEndDate}
+                      initialFocus
+                      locale={ptBR}
+                      disabled={(date) =>
+                        customStartDate ? date < customStartDate : false
+                      }
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <Button
+                onClick={handleCustomSearch}
+                className="flex items-center gap-2"
+                disabled={!customStartDate || !customEndDate}
+              >
+                <Search className="h-4 w-4" />
+                Buscar
+              </Button>
+            </>
+          )}
 
           <div className="flex items-center gap-2">
             <label className="text-sm font-medium text-foreground">Técnico</label>
