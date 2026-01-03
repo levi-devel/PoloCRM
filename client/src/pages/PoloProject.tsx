@@ -530,39 +530,7 @@ export default function PoloProject() {
                         </Card>
                     </div>
 
-                    {/* Próximos Prazos - Card separado em largura completa */}
-                    <Card className="bg-white shadow-sm mb-8">
-                        <CardHeader>
-                            <CardTitle className="text-lg font-semibold text-gray-800 flex items-center">
-                                <Calendar className="w-5 h-5 mr-2" />
-                                Próximos Prazos
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {isLoading ? (
-                                <div className="animate-pulse space-y-2">
-                                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                                </div>
-                            ) : dashboardStats?.upcomingDeadlines && dashboardStats.upcomingDeadlines.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {dashboardStats.upcomingDeadlines.map((deadline: any, index: number) => (
-                                        <div key={index} className="flex justify-between items-start border-l-2 border-blue-300 pl-3 py-1">
-                                            <div className="flex-1">
-                                                <div className="text-sm font-medium text-gray-700">{deadline.stageName}</div>
-                                                <div className="text-xs text-gray-500">{deadline.projectName}</div>
-                                            </div>
-                                            <div className={`text-sm font-semibold ${deadline.daysUntil <= 3 ? 'text-red-500' : 'text-gray-500'}`}>
-                                                {deadline.daysUntil === 0 ? 'Hoje' : deadline.daysUntil === 1 ? 'Amanhã' : `${deadline.daysUntil}d`}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="text-sm text-gray-500">Nenhum prazo próximo</p>
-                            )}
-                        </CardContent>
-                    </Card>
+
 
                     {/* Projects List */}
                     <Card className="bg-white shadow-sm">
