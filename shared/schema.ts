@@ -185,6 +185,7 @@ export const alertas = mysqlTable("alertas", {
 export const polo_projetos = mysqlTable("polo_projetos", {
   id: int("id").primaryKey().autoincrement(),
   id_cartao: int("id_cartao").references(() => cartoes.id).notNull(),
+  id_cliente: int("id_cliente").references(() => clientes.id),
   nome: text("nome").notNull(),
   descricao: text("descricao"),
   status: varchar("status", { length: 100 }).default("Ativo").notNull(), // Ativo, Concluído, Pausado, Cancelado
@@ -317,6 +318,10 @@ export const poloProjetosRelations = relations(polo_projetos, ({ one, many }) =>
   cartao: one(cartoes, {
     fields: [polo_projetos.id_cartao],
     references: [cartoes.id],
+  }),
+  cliente: one(clientes, {
+    fields: [polo_projetos.id_cliente],
+    references: [clientes.id],
   }),
   criado_por_usuario: one(users, {
     fields: [polo_projetos.criado_por],

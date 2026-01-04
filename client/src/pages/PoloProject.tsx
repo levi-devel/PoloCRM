@@ -35,6 +35,42 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { useClients } from "@/hooks/use-clients";
+
+// Client Selector Component
+interface ClientSelectorProps {
+    value: string;
+    onChange: (value: string) => void;
+    required?: boolean;
+}
+
+function ClientSelector({ value, onChange, required }: ClientSelectorProps) {
+    const { data: clients, isLoading } = useClients();
+
+    if (isLoading) {
+        return (
+            <select className="w-full p-2 border rounded-md" disabled>
+                <option>Carregando clientes...</option>
+            </select>
+        );
+    }
+
+    return (
+        <select
+            className="w-full p-2 border rounded-md"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            required={required}
+        >
+            <option value="">Selecione um cliente...</option>
+            {clients?.map((client) => (
+                <option key={client.id} value={client.id.toString()}>
+                    {client.nome}
+                </option>
+            ))}
+        </select>
+    );
+}
 
 export default function PoloProject() {
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -46,6 +82,7 @@ export default function PoloProject() {
         status: "Ativo",
         startDate: "",
         endDate: "",
+        clientId: "",
     });
 
     const queryClient = useQueryClient();
@@ -92,7 +129,7 @@ export default function PoloProject() {
     });
 
     const createPoloProjectMutation = useMutation({
-        mutationFn: async (data: { name: string; description: string; status: string; startDate?: string; endDate?: string }) => {
+        mutationFn: async (data: { name: string; description: string; status: string; startDate?: string; endDate?: string; clientId?: string }) => {
             // First, ensure we have a project to associate with
             let targetProject = availableProjects?.find((p: any) => p.nome === "Projetos Polo");
             let projectId = targetProject?.id;
@@ -178,6 +215,7 @@ export default function PoloProject() {
                     status: data.status,
                     data_inicial: data.startDate || null,
                     data_final: data.endDate || null,
+                    id_cliente: data.clientId ? parseInt(data.clientId) : null,
                 }),
             });
 
@@ -196,7 +234,7 @@ export default function PoloProject() {
                 description: "O Polo Project foi criado com sucesso.",
             });
             setDialogOpen(false);
-            setFormData({ name: "", description: "", status: "Ativo", startDate: "", endDate: "" });
+            setFormData({ name: "", description: "", status: "Ativo", startDate: "", endDate: "", clientId: "" });
         },
         onError: (error: any) => {
             toast({
@@ -236,7 +274,7 @@ export default function PoloProject() {
     });
 
     const updatePoloProjectMutation = useMutation({
-        mutationFn: async ({ id, data }: { id: number; data: { nome: string; descricao?: string; status: string; data_inicial?: string | null; data_final?: string | null } }) => {
+        mutationFn: async ({ id, data }: { id: number; data: { nome: string; descricao?: string; status: string; data_inicial?: string | null; data_final?: string | null; id_cliente?: number | null } }) => {
             const response = await fetch(`/api/polo-projetos/${id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
@@ -287,7 +325,8 @@ export default function PoloProject() {
             descricao: project.descricao,
             status: project.status,
             data_inicial: formatDateForInput(project.data_inicial),
-            data_final: formatDateForInput(project.data_final)
+            data_final: formatDateForInput(project.data_final),
+            id_cliente: project.id_cliente?.toString() || ""
         });
         setEditDialogOpen(true);
     };
@@ -355,6 +394,16 @@ export default function PoloProject() {
                                                 setFormData({ ...formData, description: e.target.value })
                                             }
                                             rows={3}
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="client">Cliente</Label>
+                                        <ClientSelector
+                                            value={formData.clientId}
+                                            onChange={(value) =>
+                                                setFormData({ ...formData, clientId: value })
+                                            }
                                         />
                                     </div>
 
@@ -819,6 +868,13 @@ export default function PoloProject() {
                                         placeholder="Descreva o projeto (opcional)"
                                     />
                                 </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="edit-client">Cliente</Label>
+                                    <ClientSelector
+                                        value={editingProject?.id_cliente || ""}
+                                        onChange={(value) => setEditingProject((prev: any) => ({ ...prev, id_cliente: value }))}
+                                    />
+                                </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="edit-startDate">Data Inicial</Label>
@@ -867,7 +923,8 @@ export default function PoloProject() {
                                                     descricao: editingProject.descricao?.trim(),
                                                     status: editingProject.status,
                                                     data_inicial: editingProject.data_inicial || null,
-                                                    data_final: editingProject.data_final || null
+                                                    data_final: editingProject.data_final || null,
+                                                    id_cliente: editingProject.id_cliente ? parseInt(editingProject.id_cliente) : null
                                                 }
                                             });
                                         }

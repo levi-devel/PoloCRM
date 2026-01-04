@@ -395,7 +395,8 @@ export async function registerRoutes(
         descricao: z.string().optional(),
         status: z.enum(["Ativo", "Pausado", "Concluído", "Cancelado"]),
         data_inicial: z.string().nullable().optional(),
-        data_final: z.string().nullable().optional()
+        data_final: z.string().nullable().optional(),
+        id_cliente: z.number().nullable().optional()
       });
 
       const validatedData = updateSchema.parse(req.body);
@@ -406,7 +407,8 @@ export async function registerRoutes(
         descricao: validatedData.descricao,
         status: validatedData.status,
         data_inicial: validatedData.data_inicial,
-        data_final: validatedData.data_final
+        data_final: validatedData.data_final,
+        id_cliente: validatedData.id_cliente
       };
 
       const project = await storage.updatePoloProject(Number(req.params.id), dataToUpdate);
