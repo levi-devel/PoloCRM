@@ -181,13 +181,6 @@ export default function SalesFunnelDashboard() {
 
     const maxCount = Math.max(...stats.columnStats.map((c: any) => c.count), 1);
 
-    const stageColors = [
-        { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-l-blue-500' },
-        { bg: 'bg-green-50', text: 'text-green-700', border: 'border-l-green-500' },
-        { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-l-orange-500' },
-        { bg: 'bg-red-50', text: 'text-red-700', border: 'border-l-red-500' },
-    ];
-
     const chartColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
 
     return (
@@ -271,117 +264,86 @@ export default function SalesFunnelDashboard() {
                     )}
                 </Card>
 
-                {/* Main Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Left Column - Funnel Stages */}
+                {/* Main Content */}
+                <div className="space-y-6">
+                    {/* Distribution Chart */}
                     <Card className="p-6 bg-white border border-gray-100 shadow-sm">
-                        <h3 className="font-bold text-gray-800 mb-6">Estágios do Funil</h3>
-                        <div className="space-y-4">
+                        <h3 className="font-bold text-gray-800 mb-6">Distribuição por Estágio</h3>
+                        <div id="chart-distribution" ref={chartRef} className="flex items-end justify-around gap-4" style={{ height: '256px' }}>
                             {stats.columnStats.map((col: any, index: number) => {
-                                const colorScheme = stageColors[index % stageColors.length];
+                                const heightPx = maxCount > 0 ? Math.floor((col.count / maxCount) * 200) : 0;
                                 return (
-                                    <div
-                                        key={col.id_coluna}
-                                        className={`${colorScheme.bg} border-l-4 ${colorScheme.border} rounded-lg p-4`}
-                                    >
-                                        <div className={`text-sm font-medium ${colorScheme.text} mb-2`}>
+                                    <div key={col.id_coluna} className="flex flex-col items-center gap-3 flex-1 max-w-[120px]">
+                                        <div
+                                            className="w-full rounded-t-lg transition-all duration-500 shadow-sm"
+                                            style={{
+                                                height: `${Math.max(heightPx, col.count > 0 ? 30 : 0)}px`,
+                                                backgroundColor: chartColors[index % chartColors.length],
+                                            }}
+                                        />
+                                        <div className="text-xs text-center text-gray-600 font-medium leading-tight">
                                             {col.columnName}
                                         </div>
-                                        <div className="flex items-baseline justify-between">
-                                            <div className={`text-3xl font-bold ${colorScheme.text}`}>
-                                                {col.count}
-                                            </div>
-                                            <div className={`text-sm font-semibold ${colorScheme.text}`}>
-                                                {formatCurrency(col.totalValue)}
-                                            </div>
-                                        </div>
+                                        <div className="text-lg font-bold text-gray-800">{col.count}</div>
                                     </div>
                                 );
                             })}
                         </div>
                     </Card>
 
-                    {/* Right Column */}
-                    <div className="lg:col-span-2 space-y-6">
-                        {/* Distribution Chart */}
-                        <Card className="p-6 bg-white border border-gray-100 shadow-sm">
-                            <h3 className="font-bold text-gray-800 mb-6">Distribuição por Estágio</h3>
-                            <div id="chart-distribution" ref={chartRef} className="flex items-end justify-around gap-4" style={{ height: '256px' }}>
-                                {stats.columnStats.map((col: any, index: number) => {
-                                    const heightPx = maxCount > 0 ? Math.floor((col.count / maxCount) * 200) : 0;
-                                    return (
-                                        <div key={col.id_coluna} className="flex flex-col items-center gap-3 flex-1 max-w-[120px]">
-                                            <div
-                                                className="w-full rounded-t-lg transition-all duration-500 shadow-sm"
-                                                style={{
-                                                    height: `${Math.max(heightPx, col.count > 0 ? 30 : 0)}px`,
-                                                    backgroundColor: chartColors[index % chartColors.length],
-                                                }}
-                                            />
-                                            <div className="text-xs text-center text-gray-600 font-medium leading-tight">
-                                                {col.columnName}
-                                            </div>
-                                            <div className="text-lg font-bold text-gray-800">{col.count}</div>
+                    {/* Contract Type Distribution Chart */}
+                    <Card className="p-6 bg-white border border-gray-100 shadow-sm">
+                        <h3 className="font-bold text-gray-800 mb-6">Distribuição por Tipo de Contrato</h3>
+                        <div className="flex items-end justify-around gap-4" style={{ height: '256px' }}>
+                            {stats.contractTypeStats && stats.contractTypeStats.map((typeData: any, index: number) => {
+                                const contractTypeColors = ['#9333ea', '#06b6d4', '#ec4899']; // Purple, Cyan, Pink
+                                const maxTypeCount = Math.max(...stats.contractTypeStats.map((t: any) => t.count), 1);
+                                const heightPx = maxTypeCount > 0 ? Math.floor((typeData.count / maxTypeCount) * 200) : 0;
+
+                                return (
+                                    <div key={typeData.type} className="flex flex-col items-center gap-3 flex-1 max-w-[80px]">
+                                        <div
+                                            className="w-full rounded-t-lg transition-all duration-500 shadow-sm"
+                                            style={{
+                                                height: `${Math.max(heightPx, typeData.count > 0 ? 30 : 0)}px`,
+                                                backgroundColor: contractTypeColors[index % contractTypeColors.length],
+                                            }}
+                                        />
+                                        <div className="text-xs text-center text-gray-600 font-medium leading-tight">
+                                            {typeData.type}
                                         </div>
-                                    );
-                                })}
-                            </div>
-                        </Card>
-
-                        {/* Contract Type Distribution Chart */}
-                        <Card className="p-6 bg-white border border-gray-100 shadow-sm">
-                            <h3 className="font-bold text-gray-800 mb-6">Distribuição por Tipo de Contrato</h3>
-                            <div className="flex items-end justify-around gap-4" style={{ height: '256px' }}>
-                                {stats.contractTypeStats && stats.contractTypeStats.map((typeData: any, index: number) => {
-                                    const contractTypeColors = ['#9333ea', '#06b6d4', '#ec4899']; // Purple, Cyan, Pink
-                                    const maxTypeCount = Math.max(...stats.contractTypeStats.map((t: any) => t.count), 1);
-                                    const heightPx = maxTypeCount > 0 ? Math.floor((typeData.count / maxTypeCount) * 200) : 0;
-
-                                    return (
-                                        <div key={typeData.type} className="flex flex-col items-center gap-3 flex-1 max-w-[80px]">
-                                            <div
-                                                className="w-full rounded-t-lg transition-all duration-500 shadow-sm"
-                                                style={{
-                                                    height: `${Math.max(heightPx, typeData.count > 0 ? 30 : 0)}px`,
-                                                    backgroundColor: contractTypeColors[index % contractTypeColors.length],
-                                                }}
-                                            />
-                                            <div className="text-xs text-center text-gray-600 font-medium leading-tight">
-                                                {typeData.type}
-                                            </div>
-                                            <div className="text-lg font-bold text-gray-800">{typeData.count}</div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </Card>
-
-                        {/* Key Indicators */}
-                        <Card className="p-6 bg-white border border-gray-100 shadow-sm">
-                            <h3 className="font-bold text-gray-800 mb-6">Indicadores Principais</h3>
-                            <div className="grid grid-cols-2 gap-8">
-                                <div className="text-center p-4 bg-gray-50 rounded-lg">
-                                    <div className="text-sm text-gray-500 mb-2">Total de Negócios</div>
-                                    <div className="text-4xl font-bold text-gray-800">{stats.totalDeals}</div>
-                                </div>
-                                <div className="text-center p-4 bg-gray-50 rounded-lg">
-                                    <div className="text-sm text-gray-500 mb-2">Valor Total</div>
-                                    <div className="text-3xl font-bold text-gray-800">{formatCurrency(stats.totalValue)}</div>
-                                </div>
-                                <div className="text-center p-4 bg-gray-50 rounded-lg">
-                                    <div className="text-sm text-gray-500 mb-2">Taxa de Conversão</div>
-                                    <div className="text-4xl font-bold text-gray-800">
-                                        {stats.conversionRate || 0}%
-                                        <span className="text-lg ml-2">📈</span>
+                                        <div className="text-lg font-bold text-gray-800">{typeData.count}</div>
                                     </div>
-                                </div>
-                                <div className="text-center p-4 bg-gray-50 rounded-lg">
-                                    <div className="text-sm text-gray-500 mb-2">Valor Médio</div>
-                                    <div className="text-3xl font-bold text-gray-800">{formatCurrency(stats.averageValue)}</div>
+                                );
+                            })}
+                        </div>
+                    </Card>
+
+                    {/* Key Indicators */}
+                    <Card className="p-6 bg-white border border-gray-100 shadow-sm">
+                        <h3 className="font-bold text-gray-800 mb-6">Indicadores Principais</h3>
+                        <div className="grid grid-cols-2 gap-8">
+                            <div className="text-center p-4 bg-gray-50 rounded-lg">
+                                <div className="text-sm text-gray-500 mb-2">Total de Negócios</div>
+                                <div className="text-4xl font-bold text-gray-800">{stats.totalDeals}</div>
+                            </div>
+                            <div className="text-center p-4 bg-gray-50 rounded-lg">
+                                <div className="text-sm text-gray-500 mb-2">Valor Total</div>
+                                <div className="text-3xl font-bold text-gray-800">{formatCurrency(stats.totalValue)}</div>
+                            </div>
+                            <div className="text-center p-4 bg-gray-50 rounded-lg">
+                                <div className="text-sm text-gray-500 mb-2">Taxa de Conversão</div>
+                                <div className="text-4xl font-bold text-gray-800">
+                                    {stats.conversionRate || 0}%
+                                    <span className="text-lg ml-2">📈</span>
                                 </div>
                             </div>
-                        </Card>
-                    </div>
+                            <div className="text-center p-4 bg-gray-50 rounded-lg">
+                                <div className="text-sm text-gray-500 mb-2">Valor Médio</div>
+                                <div className="text-3xl font-bold text-gray-800">{formatCurrency(stats.averageValue)}</div>
+                            </div>
+                        </div>
+                    </Card>
                 </div>
 
                 {/* Details Table */}
@@ -439,6 +401,6 @@ export default function SalesFunnelDashboard() {
                     </div>
                 </Card>
             </div>
-        </Layout>
+        </Layout >
     );
 }
