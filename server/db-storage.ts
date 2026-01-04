@@ -1064,6 +1064,19 @@ export class DatabaseStorage implements IStorage {
 
         const averageValue = totalDeals > 0 ? totalValue / totalDeals : 0;
 
+        // Contract Type Statistics
+        const contractTypes = ['Novo', 'UPSELL', 'CROSSELL'];
+        const contractTypeStats = contractTypes.map(type => {
+            const cardsOfType = allCards.filter(c => c.tipo_contrato === type);
+            const totalValue = cardsOfType.reduce((sum, c) => sum + (c.valor || 0), 0);
+
+            return {
+                type,
+                count: cardsOfType.length,
+                totalValue,
+            };
+        });
+
         return {
             columnStats,
             totalDeals,
@@ -1071,6 +1084,7 @@ export class DatabaseStorage implements IStorage {
             conversionRate,
             averageValue,
             allCards,
+            contractTypeStats,
         };
     }
 }

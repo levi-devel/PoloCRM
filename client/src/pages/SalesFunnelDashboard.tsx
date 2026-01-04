@@ -328,6 +328,34 @@ export default function SalesFunnelDashboard() {
                             </div>
                         </Card>
 
+                        {/* Contract Type Distribution Chart */}
+                        <Card className="p-6 bg-white border border-gray-100 shadow-sm">
+                            <h3 className="font-bold text-gray-800 mb-6">Distribuição por Tipo de Contrato</h3>
+                            <div className="flex items-end justify-around gap-4" style={{ height: '256px' }}>
+                                {stats.contractTypeStats && stats.contractTypeStats.map((typeData: any, index: number) => {
+                                    const contractTypeColors = ['#9333ea', '#06b6d4', '#ec4899']; // Purple, Cyan, Pink
+                                    const maxTypeCount = Math.max(...stats.contractTypeStats.map((t: any) => t.count), 1);
+                                    const heightPx = maxTypeCount > 0 ? Math.floor((typeData.count / maxTypeCount) * 200) : 0;
+
+                                    return (
+                                        <div key={typeData.type} className="flex flex-col items-center gap-3 flex-1 max-w-[80px]">
+                                            <div
+                                                className="w-full rounded-t-lg transition-all duration-500 shadow-sm"
+                                                style={{
+                                                    height: `${Math.max(heightPx, typeData.count > 0 ? 30 : 0)}px`,
+                                                    backgroundColor: contractTypeColors[index % contractTypeColors.length],
+                                                }}
+                                            />
+                                            <div className="text-xs text-center text-gray-600 font-medium leading-tight">
+                                                {typeData.type}
+                                            </div>
+                                            <div className="text-lg font-bold text-gray-800">{typeData.count}</div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </Card>
+
                         {/* Key Indicators */}
                         <Card className="p-6 bg-white border border-gray-100 shadow-sm">
                             <h3 className="font-bold text-gray-800 mb-6">Indicadores Principais</h3>
