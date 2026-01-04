@@ -619,7 +619,22 @@ export default function PoloProject() {
                                                 };
 
                                                 // Helper function to calculate deadline status
-                                                const getDeadlineStatus = (prazo_final: string | null) => {
+                                                const getDeadlineStatus = (prazo_final: string | null, progress: number, data_atualizacao: string) => {
+                                                    // Se o projeto está 100% completo, mostrar como concluído independente do prazo
+                                                    if (progress === 100) {
+                                                        // Formatar data de conclusão inline
+                                                        const date = new Date(data_atualizacao);
+                                                        const completionDate = date.toLocaleDateString('pt-BR');
+
+                                                        return {
+                                                            color: 'green',
+                                                            text: `Concluído em ${completionDate}`,
+                                                            days: null,
+                                                            bgColor: '#f0fdf4',
+                                                            textColor: '#10b981'
+                                                        };
+                                                    }
+
                                                     if (!prazo_final) return {
                                                         color: 'gray',
                                                         text: 'Sem prazo',
@@ -636,6 +651,7 @@ export default function PoloProject() {
                                                     const diffTime = deadline.getTime() - now.getTime();
                                                     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
+                                                    // Projeto não está completo (progresso < 100%)
                                                     if (diffDays < 0) {
                                                         return {
                                                             color: 'red',
@@ -664,7 +680,11 @@ export default function PoloProject() {
                                                 };
 
                                                 const progressColor = getProgressColor(project.progresso_geral || 0);
-                                                const deadlineStatus = getDeadlineStatus(project.prazo_final);
+                                                const deadlineStatus = getDeadlineStatus(
+                                                    project.prazo_final,
+                                                    project.progresso_geral || 0,
+                                                    project.data_atualizacao || project.criado_em
+                                                );
 
                                                 // Format date for display
                                                 const formatDate = (dateStr: string | null) => {
