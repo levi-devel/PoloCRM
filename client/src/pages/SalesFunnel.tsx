@@ -609,6 +609,9 @@ export default function SalesFunnel() {
                                                         <SelectItem value="Pabx IPPolo Enterprise">Pabx IPPolo Enterprise</SelectItem>
                                                         <SelectItem value="Pabx IPPolo Profissional">Pabx IPPolo Profissional</SelectItem>
                                                         <SelectItem value="Desenvolvimento de Sistema">Desenvolvimento de Sistema</SelectItem>
+                                                        <SelectItem value="Desenvolvimento de Agente IA">Desenvolvimento de Agente IA</SelectItem>
+                                                        <SelectItem value="Desenvolvimento de API">Desenvolvimento de API</SelectItem>
+                                                        <SelectItem value="Setup de desenvolvimento">Setup de desenvolvimento</SelectItem>
                                                         <SelectItem value="Produtos">Produtos</SelectItem>
                                                         <SelectItem value="Linha Voip">Linha Voip</SelectItem>
                                                     </SelectContent>
@@ -895,6 +898,9 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
                                         <SelectItem value="Pabx IPPolo Enterprise">Pabx IPPolo Enterprise</SelectItem>
                                         <SelectItem value="Pabx IPPolo Profissional">Pabx IPPolo Profissional</SelectItem>
                                         <SelectItem value="Desenvolvimento de Sistema">Desenvolvimento de Sistema</SelectItem>
+                                        <SelectItem value="Desenvolvimento de Agente IA">Desenvolvimento de Agente IA</SelectItem>
+                                        <SelectItem value="Desenvolvimento de API">Desenvolvimento de API</SelectItem>
+                                        <SelectItem value="Setup de desenvolvimento">Setup de desenvolvimento</SelectItem>
                                         <SelectItem value="Produtos">Produtos</SelectItem>
                                         <SelectItem value="Linha Voip">Linha Voip</SelectItem>
                                     </SelectContent>
