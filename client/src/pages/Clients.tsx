@@ -771,11 +771,6 @@ export default function Clients() {
                         Excluir
                       </Button>
                     )}
-                    <Link href={`/clients/${client.id}`}>
-                      <Button variant="ghost" size="sm">
-                        Ver Detalhes
-                      </Button>
-                    </Link>
                   </div>
                 </div>
 
