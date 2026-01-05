@@ -276,6 +276,7 @@ const cardSchema = z.object({
     valor: z.string().nullable().optional(),
     observacoes: z.string().nullable().optional(),
     produto: z.string().nullable().optional(),
+    produto_especifico: z.string().nullable().optional(),
     tipo_contrato: z.string().nullable().optional(),
     data_assinatura_contrato: z.string().nullable().optional(),
     id_coluna: z.number(),
@@ -305,6 +306,7 @@ export default function SalesFunnel() {
             valor: "",
             observacoes: "",
             produto: "",
+            produto_especifico: "",
             tipo_contrato: "",
             data_assinatura_contrato: "",
             id_coluna: 0,
@@ -332,6 +334,7 @@ export default function SalesFunnel() {
             valor: "",
             observacoes: "",
             produto: "",
+            produto_especifico: "",
             tipo_contrato: "",
             data_assinatura_contrato: "",
             id_coluna: columnId,
@@ -358,6 +361,7 @@ export default function SalesFunnel() {
             valor: valueInCents,
             observacoes: data.observacoes || null,
             produto: data.produto || null,
+            produto_especifico: data.produto_especifico || null,
             tipo_contrato: data.tipo_contrato || null,
             data_assinatura_contrato: data.data_assinatura_contrato || null,
             criado_por: null,
@@ -621,6 +625,38 @@ export default function SalesFunnel() {
                                     />
                                     <FormField
                                         control={form.control}
+                                        name="produto_especifico"
+                                        render={({ field }) => {
+                                            const produtoSelecionado = form.watch("produto");
+                                            if (produtoSelecionado !== "Produtos") return <></>;
+
+                                            return (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Produto Específico</FormLabel>
+                                                    <Select onValueChange={field.onChange} value={field.value || ''}>
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Selecione o produto" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            <SelectItem value="Gateway GSM">Gateway GSM</SelectItem>
+                                                            <SelectItem value="Gateway FXS">Gateway FXS</SelectItem>
+                                                            <SelectItem value="Gateway FXO">Gateway FXO</SelectItem>
+                                                            <SelectItem value="Gateway E1">Gateway E1</SelectItem>
+                                                            <SelectItem value="Aparelho IP">Aparelho IP</SelectItem>
+                                                            <SelectItem value="Headset">Headset</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </FormItem>
+                                            );
+                                        }}
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <FormField
+                                        control={form.control}
                                         name="tipo_contrato"
                                         render={({ field }) => (
                                             <FormItem>
@@ -731,6 +767,7 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
             data_envio: formatDateForInput(card.data_envio),
             observacoes: card.observacoes || '',
             produto: card.produto || '',
+            produto_especifico: card.produto_especifico || '',
             tipo_contrato: card.tipo_contrato || '',
             data_assinatura_contrato: formatDateForInput(card.data_assinatura_contrato),
         }
@@ -754,6 +791,7 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
                     data_envio: data.data_envio || null,
                     observacoes: data.observacoes || null,
                     produto: data.produto || null,
+                    produto_especifico: data.produto_especifico || null,
                     tipo_contrato: data.tipo_contrato || null,
                     data_assinatura_contrato: data.data_assinatura_contrato || null,
                 },
@@ -907,6 +945,36 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
                                 </Select>
                             </FormItem>
                         )}
+                    />
+
+                    <FormField
+                        control={editForm.control}
+                        name="produto_especifico"
+                        render={({ field }) => {
+                            const produtoSelecionado = editForm.watch("produto");
+                            if (produtoSelecionado !== "Produtos") return <></>;
+
+                            return (
+                                <FormItem>
+                                    <FormLabel className="text-[10px] font-bold uppercase text-muted-foreground">Produto Específico</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value || ''}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Selecione o produto" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="Gateway GSM">Gateway GSM</SelectItem>
+                                            <SelectItem value="Gateway FXS">Gateway FXS</SelectItem>
+                                            <SelectItem value="Gateway FXO">Gateway FXO</SelectItem>
+                                            <SelectItem value="Gateway E1">Gateway E1</SelectItem>
+                                            <SelectItem value="Aparelho IP">Aparelho IP</SelectItem>
+                                            <SelectItem value="Headset">Headset</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </FormItem>
+                            );
+                        }}
                     />
 
                     <FormField
