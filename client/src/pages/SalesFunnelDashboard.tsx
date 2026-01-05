@@ -325,26 +325,36 @@ export default function SalesFunnelDashboard() {
                         </Card>
                     </div>
 
-                    {/* Charts Side by Side */}
+                    {/* Charts Side by Side - Modern Design */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Distribution by Stage Chart */}
-                        <Card className="p-6 bg-white border border-gray-100 shadow-sm">
-                            <div className="mb-2">
+                        <Card className="p-6 bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                            <div className="mb-4">
                                 <h3 className="font-bold text-gray-800">Distribuição por Estágio</h3>
                                 <p className="text-sm text-gray-500">Volume por etapa do funil</p>
                             </div>
-                            <div id="chart-distribution" ref={chartRef} className="flex items-end justify-around gap-4 mb-4" style={{ height: '200px' }}>
+                            <div id="chart-distribution" ref={chartRef} className="flex items-end justify-around gap-3 mb-5" style={{ height: '200px' }}>
                                 {stats.columnStats.map((col: any, index: number) => {
                                     const heightPx = maxCount > 0 ? Math.floor((col.count / maxCount) * 160) : 0;
+                                    const gradients = [
+                                        'linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%)', // Blue gradient
+                                        'linear-gradient(180deg, #34d399 0%, #10b981 100%)', // Green gradient
+                                        'linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%)', // Orange gradient
+                                    ];
+
                                     return (
-                                        <div key={col.id_coluna} className="flex flex-col items-center gap-2 flex-1 max-w-[100px]">
+                                        <div key={col.id_coluna} className="flex flex-col items-center gap-2 flex-1 max-w-[100px] group">
                                             <div
-                                                className="w-full rounded-t-lg transition-all duration-500 shadow-sm"
+                                                className="w-full rounded-xl transition-all duration-300 hover:scale-105 cursor-pointer relative overflow-hidden"
                                                 style={{
                                                     height: `${Math.max(heightPx, col.count > 0 ? 30 : 0)}px`,
-                                                    backgroundColor: chartColors[index % chartColors.length],
+                                                    background: gradients[index % gradients.length],
+                                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
                                                 }}
-                                            />
+                                            >
+                                                {/* Shine effect */}
+                                                <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white opacity-20"></div>
+                                            </div>
                                             <div className="text-xs text-center text-gray-600 font-medium leading-tight">
                                                 {col.columnName}
                                             </div>
@@ -352,45 +362,59 @@ export default function SalesFunnelDashboard() {
                                     );
                                 })}
                             </div>
-                            <div className="text-xs text-center text-gray-500 mb-3">■ Quantidade</div>
+                            <div className="text-xs text-center text-gray-500 mb-4 flex items-center justify-center gap-1">
+                                <span className="inline-block w-2 h-2 rounded-full bg-gray-400"></span>
+                                <span>Quantidade</span>
+                            </div>
                             {/* Quantity Cards Below Chart */}
-                            <div className="grid grid-cols-3 gap-3">
-                                {stats.columnStats.slice(0, 3).map((col: any, index: number) => (
-                                    <div key={col.id_coluna} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-                                        <div
-                                            className="w-3 h-3 rounded"
-                                            style={{ backgroundColor: chartColors[index % chartColors.length] }}
-                                        />
-                                        <div className="flex-1 min-w-0">
-                                            <div className="text-xs text-gray-500 truncate">{col.columnName}</div>
-                                            <div className="text-lg font-bold text-gray-800">{col.count}</div>
+                            <div className="grid grid-cols-3 gap-2">
+                                {stats.columnStats.slice(0, 3).map((col: any, index: number) => {
+                                    const colors = ['#3b82f6', '#10b981', '#f59e0b'];
+                                    return (
+                                        <div key={col.id_coluna} className="flex items-center gap-2 p-2.5 bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-lg border border-gray-100 hover:border-gray-200 transition-colors">
+                                            <div
+                                                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                                                style={{ backgroundColor: colors[index % colors.length] }}
+                                            />
+                                            <div className="flex-1 min-w-0">
+                                                <div className="text-[10px] text-gray-500 truncate font-medium">{col.columnName}</div>
+                                                <div className="text-base font-bold text-gray-800">{col.count}</div>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </Card>
 
                         {/* Distribution by Contract Type Chart */}
-                        <Card className="p-6 bg-white border border-gray-100 shadow-sm">
-                            <div className="mb-2">
+                        <Card className="p-6 bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                            <div className="mb-4">
                                 <h3 className="font-bold text-gray-800">Distribuição por Tipo de Contrato</h3>
                                 <p className="text-sm text-gray-500">Mix de contratos no período</p>
                             </div>
-                            <div className="flex items-end justify-around gap-4 mb-4" style={{ height: '200px' }}>
+                            <div className="flex items-end justify-around gap-3 mb-5" style={{ height: '200px' }}>
                                 {stats.contractTypeStats && stats.contractTypeStats.map((typeData: any, index: number) => {
-                                    const contractTypeColors = ['#9333ea', '#06b6d4', '#ec4899']; // Purple, Cyan, Pink
+                                    const gradients = [
+                                        'linear-gradient(180deg, #a78bfa 0%, #9333ea 100%)', // Purple gradient
+                                        'linear-gradient(180deg, #22d3ee 0%, #06b6d4 100%)', // Cyan gradient
+                                        'linear-gradient(180deg, #f472b6 0%, #ec4899 100%)', // Pink gradient
+                                    ];
                                     const maxTypeCount = Math.max(...stats.contractTypeStats.map((t: any) => t.count), 1);
                                     const heightPx = maxTypeCount > 0 ? Math.floor((typeData.count / maxTypeCount) * 160) : 0;
 
                                     return (
-                                        <div key={typeData.type} className="flex flex-col items-center gap-2 flex-1 max-w-[80px]">
+                                        <div key={typeData.type} className="flex flex-col items-center gap-2 flex-1 max-w-[90px] group">
                                             <div
-                                                className="w-full rounded-t-lg transition-all duration-500 shadow-sm"
+                                                className="w-full rounded-xl transition-all duration-300 hover:scale-105 cursor-pointer relative overflow-hidden"
                                                 style={{
                                                     height: `${Math.max(heightPx, typeData.count > 0 ? 30 : 0)}px`,
-                                                    backgroundColor: contractTypeColors[index % contractTypeColors.length],
+                                                    background: gradients[index % gradients.length],
+                                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
                                                 }}
-                                            />
+                                            >
+                                                {/* Shine effect */}
+                                                <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white opacity-20"></div>
+                                            </div>
                                             <div className="text-xs text-center text-gray-600 font-medium leading-tight">
                                                 {typeData.type}
                                             </div>
@@ -398,20 +422,23 @@ export default function SalesFunnelDashboard() {
                                     );
                                 })}
                             </div>
-                            <div className="text-xs text-center text-gray-500 mb-3">■ Quantidade</div>
+                            <div className="text-xs text-center text-gray-500 mb-4 flex items-center justify-center gap-1">
+                                <span className="inline-block w-2 h-2 rounded-full bg-gray-400"></span>
+                                <span>Quantidade</span>
+                            </div>
                             {/* Quantity Cards Below Chart */}
-                            <div className="grid grid-cols-3 gap-3">
+                            <div className="grid grid-cols-3 gap-2">
                                 {stats.contractTypeStats && stats.contractTypeStats.map((typeData: any, index: number) => {
-                                    const contractTypeColors = ['#9333ea', '#06b6d4', '#ec4899'];
+                                    const colors = ['#9333ea', '#06b6d4', '#ec4899'];
                                     return (
-                                        <div key={typeData.type} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                                        <div key={typeData.type} className="flex items-center gap-2 p-2.5 bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-lg border border-gray-100 hover:border-gray-200 transition-colors">
                                             <div
-                                                className="w-3 h-3 rounded"
-                                                style={{ backgroundColor: contractTypeColors[index % contractTypeColors.length] }}
+                                                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                                                style={{ backgroundColor: colors[index % colors.length] }}
                                             />
                                             <div className="flex-1 min-w-0">
-                                                <div className="text-xs text-gray-500 truncate">{typeData.type}</div>
-                                                <div className="text-lg font-bold text-gray-800">{typeData.count}</div>
+                                                <div className="text-[10px] text-gray-500 truncate font-medium">{typeData.type}</div>
+                                                <div className="text-base font-bold text-gray-800">{typeData.count}</div>
                                             </div>
                                         </div>
                                     );
