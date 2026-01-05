@@ -628,6 +628,19 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/dashboard/project-technician-stats", async (req, res) => {
+    try {
+      const projectId = req.query.projectId && req.query.projectId !== "all" ? Number(req.query.projectId) : undefined;
+      const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
+      const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
+
+      const stats = await storage.getProjectTechnicianStats(projectId, startDate, endDate);
+      res.json(stats);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to get project technician stats" });
+    }
+  });
+
   app.get("/api/dashboard/completion-trend", async (req, res) => {
     try {
       const projectId = req.query.projectId ? Number(req.query.projectId) : undefined;

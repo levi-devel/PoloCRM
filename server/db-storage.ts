@@ -658,6 +658,66 @@ export class DatabaseStorage implements IStorage {
         return [];
     }
 
+    async getProjectTechnicianStats(projectId?: number, startDate?: Date, endDate?: Date) {
+        // 1. Get all projects (or filtered one)
+        let relevantProjects;
+        if (projectId) {
+            relevantProjects = await db.select().from(projetos).where(eq(projetos.id, projectId));
+        } else {
+            relevantProjects = await db.select().from(projetos);
+        }
+
+        // 2. Get all users for mapping names
+        const allUsers = await db.select().from(users);
+        const userMap = new Map(allUsers.map(u => [u.id, `${u.firstName} ${u.lastName}`]));
+
+        // 3. Build response structure
+        const result = [];
+
+        for (const project of relevantProjects) {
+            // Build query for this project's cards
+            const conditions = [eq(cartoes.id_projeto, project.id)];
+
+            if (startDate) {
+                conditions.push(gte(cartoes.criado_em, startDate));
+            }
+            if (endDate) {
+                conditions.push(lte(cartoes.criado_em, endDate));
+            }
+
+            const projectCards = await db
+                .select({
+                    technicianId: cartoes.id_tecnico_atribuido
+                })
+                .from(cartoes)
+                .where(and(...conditions));
+
+            // Aggregate by technician
+            const techCounts = new Map<string, number>();
+
+            for (const card of projectCards) {
+                const techName = card.technicianId
+                    ? (userMap.get(card.technicianId) || "Usuário Removido")
+                    : "Não Atribuído";
+
+                techCounts.set(techName, (techCounts.get(techName) || 0) + 1);
+            }
+
+            // Convert to array
+            const data = Array.from(techCounts.entries())
+                .map(([name, value]) => ({ name, value }))
+                .sort((a, b) => b.value - a.value); // Sort by count desc
+
+            result.push({
+                id: project.id,
+                name: project.nome,
+                data
+            });
+        }
+
+        return result;
+    }
+
     // Polo Projects
     async getPoloProjects() {
         const projects = await db.select().from(polo_projetos).orderBy(desc(polo_projetos.criado_em));

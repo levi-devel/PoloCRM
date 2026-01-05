@@ -134,6 +134,26 @@ export default function Dashboard() {
     },
   });
 
+  // Fetch project technician stats
+  const { data: projectTechnicianStats = [] } = useQuery({
+    queryKey: ['/api/dashboard/project-technician-stats', selectedProjectId, confirmedStartDate, confirmedEndDate, selectedPeriod],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (selectedProjectId !== "all") {
+        params.append("projectId", selectedProjectId);
+      }
+      if (startDate) {
+        params.append("startDate", startDate.toISOString());
+      }
+      if (endDate) {
+        params.append("endDate", endDate.toISOString());
+      }
+      const res = await fetch(`/api/dashboard/project-technician-stats?${params}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch project technician stats");
+      return res.json();
+    },
+  });
+
   const activeProjects = projects?.filter(p => p.status === "Ativo").length || 0;
   const completedProjects = projects?.filter(p => p.status === "Concluído").length || 0;
   const totalClients = clients?.length || 0;
@@ -331,6 +351,67 @@ export default function Dashboard() {
           />
         </div>
 
+        {/* Project Technician Charts */}
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold font-display text-foreground">Cards por Técnico por Projeto</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {projectTechnicianStats?.map((project: any) => (
+              <Card key={project.id} className="shadow-sm border-border/60 hover:shadow-md transition-shadow duration-200">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base font-medium flex items-center justify-between">
+                    {project.name}
+                    <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                      Total: {project.data.reduce((acc: number, item: any) => acc + item.value, 0)}
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="h-[250px] pl-0">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={project.data}
+                      layout="vertical"
+                      margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
+                      <XAxis type="number" hide />
+                      <YAxis
+                        dataKey="name"
+                        type="category"
+                        width={100}
+                        tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <Tooltip
+                        cursor={{ fill: 'hsl(var(--muted)/0.3)', radius: 4 }}
+                        contentStyle={{
+                          borderRadius: '8px',
+                          border: 'none',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                          backgroundColor: 'hsl(var(--background))',
+                          fontSize: '12px'
+                        }}
+                      />
+                      <Bar
+                        dataKey="value"
+                        fill="hsl(var(--primary))"
+                        radius={[0, 4, 4, 0]}
+                        barSize={20}
+                        background={{ fill: 'hsl(var(--muted)/0.2)', radius: 4 }}
+                        label={{ position: 'right', fill: 'hsl(var(--foreground))', fontSize: 11, fontWeight: 'bold' }}
+                      >
+                        {project.data.map((entry: any, index: number) => (
+                          <Cell key={`cell-${index}`} fill="hsl(var(--primary))" />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Evolution Chart */}
@@ -476,7 +557,7 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-    </Layout>
+    </Layout >
   );
 }
 

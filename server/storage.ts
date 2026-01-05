@@ -63,6 +63,11 @@ export interface IStorage {
     period: string;
     completed: number;
   }[]>;
+  getProjectTechnicianStats(projectId?: number, startDate?: Date, endDate?: Date): Promise<{
+    id: number;
+    name: string;
+    data: { name: string; value: number }[];
+  }[]>;
 
   // Polo Projects
   getPoloProjects(): Promise<(typeof polo_projetos.$inferSelect & { stages?: typeof etapas_polo_projetos.$inferSelect[] })[]>;
