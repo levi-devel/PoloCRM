@@ -6,6 +6,10 @@ import { isAuthenticated, hashPassword } from "./auth/local-auth";
 import { api } from "../shared/routes";
 import { users } from "../shared/models/auth";
 import { z } from "zod";
+import multer from "multer";
+import path from "path";
+import fs from "fs/promises";
+
 
 export async function registerRoutes(
   httpServer: Server,
@@ -130,6 +134,215 @@ export async function registerRoutes(
       res.status(400).json({ message: error.message || "Failed to delete client" });
     }
   });
+
+  // File Upload Configuration
+  const uploadsDir = path.join(process.cwd(), "uploads", "client-specs");
+
+  // Ensure uploads directory exists
+  await fs.mkdir(uploadsDir, { recursive: true });
+
+  const fileStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, uploadsDir);
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
+      const ext = path.extname(file.originalname);
+      cb(null, `spec-${uniqueSuffix}${ext}`);
+    }
+  });
+
+  const upload = multer({
+    storage: fileStorage,
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB limit
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedMimes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'text/plain',
+        'image/png',
+        'image/jpeg',
+        'image/jpg'
+      ];
+
+      if (allowedMimes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Tipo de arquivo não permitido. Use PDF, DOCX, DOC, TXT, PNG ou JPG.'));
+      }
+    }
+  });
+
+  // Upload Technical Specification
+  app.post("/api/clientes/:id/upload-spec", upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "Nenhum arquivo enviado" });
+      }
+
+      const clientId = Number(req.params.id);
+      const client = await storage.getClient(clientId);
+
+      if (!client) {
+        // Remove uploaded file if client doesn't exist
+        await fs.unlink(req.file.path);
+        return res.status(404).json({ message: "Cliente não encontrado" });
+      }
+
+      // Delete old file if exists
+      if (client.caminho_especificacao_tecnica) {
+        const oldFilePath = path.join(uploadsDir, client.caminho_especificacao_tecnica.storedName);
+        try {
+          await fs.unlink(oldFilePath);
+        } catch (error) {
+          console.log("Old file not found or already deleted");
+        }
+      }
+
+      // Create file metadata
+      const fileMetadata = {
+        originalName: req.file.originalname,
+        storedName: req.file.filename,
+        fileSize: req.file.size,
+        uploadDate: new Date().toISOString(),
+        mimeType: req.file.mimetype
+      };
+
+      // Update client with file metadata
+      await storage.updateClient(clientId, {
+        caminho_especificacao_tecnica: fileMetadata
+      });
+
+      res.json({ success: true, file: fileMetadata });
+    } catch (error: any) {
+      // Clean up uploaded file on error
+      if (req.file) {
+        try {
+          await fs.unlink(req.file.path);
+        } catch (e) {
+          console.error("Failed to delete file on error:", e);
+        }
+      }
+      console.error("Error uploading specification:", error);
+      res.status(500).json({ message: error.message || "Falha ao fazer upload do arquivo" });
+    }
+  });
+
+  // View Technical Specification (open in browser)
+  app.get("/api/clientes/:id/view-spec", async (req, res) => {
+    try {
+      const clientId = Number(req.params.id);
+      const client = await storage.getClient(clientId);
+
+      if (!client) {
+        return res.status(404).json({ message: "Cliente não encontrado" });
+      }
+
+      if (!client.caminho_especificacao_tecnica) {
+        return res.status(404).json({ message: "Nenhum arquivo anexado" });
+      }
+
+      // Parse JSON if it's a string (MySQL returns JSON as string)
+      const fileMetadata = typeof client.caminho_especificacao_tecnica === 'string'
+        ? JSON.parse(client.caminho_especificacao_tecnica)
+        : client.caminho_especificacao_tecnica;
+
+      const filePath = path.join(uploadsDir, fileMetadata.storedName);
+
+      // Check if file exists
+      try {
+        await fs.access(filePath);
+      } catch {
+        return res.status(404).json({ message: "Arquivo não encontrado no servidor" });
+      }
+
+      // Set Content-Type and inline disposition to open in browser
+      res.setHeader('Content-Type', fileMetadata.mimeType);
+      res.setHeader('Content-Disposition', `inline; filename="${fileMetadata.originalName}"`);
+      res.sendFile(filePath);
+    } catch (error: any) {
+      console.error("Error viewing specification:", error);
+      res.status(500).json({ message: error.message || "Falha ao visualizar o arquivo" });
+    }
+  });
+
+  // Download Technical Specification
+  app.get("/api/clientes/:id/download-spec", async (req, res) => {
+    try {
+      const clientId = Number(req.params.id);
+      const client = await storage.getClient(clientId);
+
+      if (!client) {
+        return res.status(404).json({ message: "Cliente não encontrado" });
+      }
+
+      if (!client.caminho_especificacao_tecnica) {
+        return res.status(404).json({ message: "Nenhum arquivo anexado" });
+      }
+
+      // Parse JSON if it's a string (MySQL returns JSON as string)
+      const fileMetadata = typeof client.caminho_especificacao_tecnica === 'string'
+        ? JSON.parse(client.caminho_especificacao_tecnica)
+        : client.caminho_especificacao_tecnica;
+
+      const filePath = path.join(uploadsDir, fileMetadata.storedName);
+
+      // Check if file exists
+      try {
+        await fs.access(filePath);
+      } catch {
+        return res.status(404).json({ message: "Arquivo não encontrado no servidor" });
+      }
+
+      res.download(filePath, fileMetadata.originalName);
+    } catch (error: any) {
+      console.error("Error downloading specification:", error);
+      res.status(500).json({ message: error.message || "Falha ao fazer download do arquivo" });
+    }
+  });
+
+  // Delete Technical Specification
+  app.delete("/api/clientes/:id/delete-spec", async (req, res) => {
+    try {
+      const clientId = Number(req.params.id);
+      const client = await storage.getClient(clientId);
+
+      if (!client) {
+        return res.status(404).json({ message: "Cliente não encontrado" });
+      }
+
+      if (!client.caminho_especificacao_tecnica) {
+        return res.status(404).json({ message: "Nenhum arquivo anexado" });
+      }
+
+      // Parse JSON if it's a string (MySQL returns JSON as string)
+      const fileMetadata = typeof client.caminho_especificacao_tecnica === 'string'
+        ? JSON.parse(client.caminho_especificacao_tecnica)
+        : client.caminho_especificacao_tecnica;
+
+      // Delete file from disk
+      const filePath = path.join(uploadsDir, fileMetadata.storedName);
+      try {
+        await fs.unlink(filePath);
+      } catch (error) {
+        console.log("File not found or already deleted");
+      }
+
+      // Update client to remove file metadata
+      await storage.updateClient(clientId, {
+        caminho_especificacao_tecnica: null
+      });
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting specification:", error);
+      res.status(500).json({ message: error.message || "Falha ao excluir o arquivo" });
+    }
+  });
+
 
 
   // Client Docs

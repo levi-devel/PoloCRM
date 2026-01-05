@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { dateToInputValue, inputValueToDate } from "@/lib/date-utils";
+import { FileUpload } from "@/components/ui/file-upload";
+import { useClientFileUpload } from "@/hooks/use-client-file-upload";
 import {
   Dialog,
   DialogContent,
@@ -123,6 +125,70 @@ function stripHtmlTags(html: string): string {
   return tmp.textContent || tmp.innerText || '';
 }
 
+// File Upload Field Component
+function FileUploadField({
+  clientId,
+  currentFile,
+  onChange
+}: {
+  clientId?: number;
+  currentFile: any;
+  onChange: (value: any) => void;
+}) {
+  const { uploadFile, deleteFile, getDownloadUrl, getViewUrl, isUploading, isDeleting } = useClientFileUpload();
+
+  // Parse JSON if it's a string (MySQL returns JSON as string)
+  const parsedFile = currentFile
+    ? (typeof currentFile === 'string' ? JSON.parse(currentFile) : currentFile)
+    : null;
+
+  const handleFileSelect = async (file: File) => {
+    if (!clientId) {
+      // If creating new client, just store file for later upload
+      // For now, we'll show a message that file upload is only available when editing
+      alert("Por favor, salve o cliente primeiro antes de enviar arquivos.");
+      return;
+    }
+
+    const result = await uploadFile(clientId, file);
+    if (result) {
+      onChange(result);
+    }
+  };
+
+  const handleFileDelete = async () => {
+    if (!clientId) return;
+
+    const success = await deleteFile(clientId);
+    if (success) {
+      onChange(null);
+    }
+  };
+
+  const handleFileDownload = () => {
+    if (!clientId) return;
+    window.open(getDownloadUrl(clientId), '_blank');
+  };
+
+  const handleFileView = () => {
+    if (!clientId) return;
+    window.open(getViewUrl(clientId), '_blank');
+  };
+
+  return (
+    <FileUpload
+      currentFile={parsedFile}
+      onFileSelect={handleFileSelect}
+      onFileDelete={handleFileDelete}
+      onFileDownload={handleFileDownload}
+      onFileView={handleFileView}
+      isUploading={isUploading}
+      isDeleting={isDeleting}
+      disabled={!clientId}
+    />
+  );
+}
+
 function ClientFormDialog({
   client,
   isOpen,
@@ -164,7 +230,7 @@ function ClientFormDialog({
       fora_escopo: client.fora_escopo || "",
       gestores_internos: client.gestores_internos || [],
       base_conhecimento: client.base_conhecimento || "",
-      caminho_especificacao_tecnica: client.caminho_especificacao_tecnica || "",
+      caminho_especificacao_tecnica: client.caminho_especificacao_tecnica || null,
       riscos: client.riscos || "",
       pendencias_atuais: client.pendencias_atuais || "",
       incidentes_relevantes: client.incidentes_relevantes || "",
@@ -609,9 +675,13 @@ function ClientFormDialog({
                 name="caminho_especificacao_tecnica"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Caminho da Especificação Técnica</FormLabel>
+                    <FormLabel>Especificação Técnica</FormLabel>
                     <FormControl>
-                      <Input placeholder="URL ou caminho do arquivo" {...field} value={field.value || ""} />
+                      <FileUploadField
+                        clientId={client?.id}
+                        currentFile={field.value}
+                        onChange={field.onChange}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
