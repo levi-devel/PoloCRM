@@ -12,11 +12,16 @@ import {
   Menu,
   UserCog,
   TrendingUp,
-  BarChart3
+  BarChart3,
+  Lock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 import { canViewMenu, type UserRole } from "@/lib/permission-utils";
 
 
@@ -35,11 +40,94 @@ const navItems = [
 export function Sidebar() {
   const [location] = useLocation();
   const { logout, user } = useAuth();
+  const { toast } = useToast();
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
+  });
 
   // Filter menu items based on user role
   const visibleNavItems = navItems.filter(item =>
     canViewMenu(user?.role as UserRole, item.label)
   );
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Validações frontend
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+      toast({
+        title: "Erro",
+        description: "Todos os campos são obrigatórios",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (passwordForm.newPassword.length < 6) {
+      toast({
+        title: "Erro",
+        description: "A nova senha deve ter no mínimo 6 caracteres",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast({
+        title: "Erro",
+        description: "As senhas não conferem",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsChangingPassword(true);
+
+    try {
+      const response = await fetch("/api/users/me/password", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          currentPassword: passwordForm.currentPassword,
+          newPassword: passwordForm.newPassword
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Falha ao trocar senha");
+      }
+
+      toast({
+        title: "Sucesso",
+        description: "Senha alterada com sucesso!"
+      });
+
+      // Limpar formulário e fechar dialog
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: ""
+      });
+      setIsPasswordDialogOpen(false);
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Falha ao trocar senha",
+        variant: "destructive"
+      });
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
 
   const NavContent = () => (
     <div className="flex flex-col h-full">
@@ -94,6 +182,14 @@ export function Sidebar() {
             <p className="text-sm font-medium truncate">{user?.firstName} {user?.lastName}</p>
             <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsPasswordDialogOpen(true)}
+            title="Trocar Senha"
+          >
+            <Lock className="w-5 h-5 text-muted-foreground hover:text-primary transition-colors" />
+          </Button>
           <Button variant="ghost" size="icon" onClick={() => logout()} title="Sair">
             <LogOut className="w-5 h-5 text-muted-foreground hover:text-destructive transition-colors" />
           </Button>
@@ -122,6 +218,75 @@ export function Sidebar() {
           </SheetContent>
         </Sheet>
       </div>
+
+      {/* Password Change Dialog */}
+      <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Trocar Senha</DialogTitle>
+            <DialogDescription>
+              Altere sua senha de acesso ao sistema
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handlePasswordChange}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="currentPassword">Senha Atual</Label>
+                <Input
+                  id="currentPassword"
+                  type="password"
+                  value={passwordForm.currentPassword}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                  placeholder="Digite sua senha atual"
+                  disabled={isChangingPassword}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">Nova Senha</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  value={passwordForm.newPassword}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                  placeholder="Digite a nova senha (mínimo 6 caracteres)"
+                  disabled={isChangingPassword}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                  placeholder="Digite a nova senha novamente"
+                  disabled={isChangingPassword}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsPasswordDialogOpen(false);
+                  setPasswordForm({
+                    currentPassword: "",
+                    newPassword: "",
+                    confirmPassword: ""
+                  });
+                }}
+                disabled={isChangingPassword}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isChangingPassword}>
+                {isChangingPassword ? "Alterando..." : "Alterar Senha"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -54,6 +54,49 @@ export async function registerRoutes(
     }
   });
 
+  // Change Password - User changes their own password
+  app.patch(api.users.changePassword.path, isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      const { currentPassword, newPassword } = req.body;
+
+      // Validate input
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Senha atual e nova senha são obrigatórias" });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: "Nova senha deve ter no mínimo 6 caracteres" });
+      }
+
+      // Get current user
+      const user = await storage.getUser(userId);
+      if (!user || !user.password) {
+        return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+
+      // Verify current password
+      const bcrypt = await import("bcrypt");
+      const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+
+      if (!isCurrentPasswordValid) {
+        return res.status(401).json({ message: "Senha atual incorreta" });
+      }
+
+      // Hash new password
+      const hashedNewPassword = await hashPassword(newPassword);
+
+      // Update password
+      await storage.updateUser(userId, { password: hashedNewPassword });
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error changing password:", error);
+      res.status(500).json({ message: error.message || "Falha ao trocar senha" });
+    }
+  });
+
+
   // Clients
   app.get(api.clientes.list.path, async (req, res) => {
     const clients = await storage.getClients();

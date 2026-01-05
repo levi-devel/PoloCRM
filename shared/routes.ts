@@ -68,6 +68,19 @@ export const api = {
         200: z.custom<typeof users.$inferSelect>(),
       },
     },
+    changePassword: {
+      method: 'PATCH' as const,
+      path: '/api/users/me/password',
+      input: z.object({
+        currentPassword: z.string().min(1, 'Senha atual é obrigatória'),
+        newPassword: z.string().min(6, 'Nova senha deve ter no mínimo 6 caracteres')
+      }),
+      responses: {
+        200: z.object({ success: z.boolean() }),
+        400: errorSchemas.validation,
+        401: errorSchemas.validation,
+      },
+    },
   },
   clientes: {
     list: {
