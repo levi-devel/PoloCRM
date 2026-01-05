@@ -192,16 +192,6 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Cliente não encontrado" });
       }
 
-      // Delete old file if exists
-      if (client.caminho_especificacao_tecnica) {
-        const oldFilePath = path.join(uploadsDir, client.caminho_especificacao_tecnica.storedName);
-        try {
-          await fs.unlink(oldFilePath);
-        } catch (error) {
-          console.log("Old file not found or already deleted");
-        }
-      }
-
       // Create file metadata
       const fileMetadata = {
         originalName: req.file.originalname,
@@ -211,12 +201,26 @@ export async function registerRoutes(
         mimeType: req.file.mimetype
       };
 
-      // Update client with file metadata
+      // Get existing files array or create new one
+      let existingFiles: any[] = [];
+      if (client.caminho_especificacao_tecnica) {
+        const parsed = typeof client.caminho_especificacao_tecnica === 'string'
+          ? JSON.parse(client.caminho_especificacao_tecnica)
+          : client.caminho_especificacao_tecnica;
+
+        // Handle both old single-file format and new array format
+        existingFiles = Array.isArray(parsed) ? parsed : [parsed];
+      }
+
+      // Add new file to array
+      const updatedFiles = [...existingFiles, fileMetadata];
+
+      // Update client with new files array
       await storage.updateClient(clientId, {
-        caminho_especificacao_tecnica: fileMetadata
+        caminho_especificacao_tecnica: updatedFiles
       });
 
-      res.json({ success: true, file: fileMetadata });
+      res.json({ success: true, file: fileMetadata, allFiles: updatedFiles });
     } catch (error: any) {
       // Clean up uploaded file on error
       if (req.file) {
@@ -235,6 +239,7 @@ export async function registerRoutes(
   app.get("/api/clientes/:id/view-spec", async (req, res) => {
     try {
       const clientId = Number(req.params.id);
+      const storedName = req.query.file as string;
       const client = await storage.getClient(clientId);
 
       if (!client) {
@@ -246,9 +251,21 @@ export async function registerRoutes(
       }
 
       // Parse JSON if it's a string (MySQL returns JSON as string)
-      const fileMetadata = typeof client.caminho_especificacao_tecnica === 'string'
+      let filesArray = typeof client.caminho_especificacao_tecnica === 'string'
         ? JSON.parse(client.caminho_especificacao_tecnica)
         : client.caminho_especificacao_tecnica;
+
+      // Ensure it's an array
+      if (!Array.isArray(filesArray)) {
+        filesArray = [filesArray];
+      }
+
+      // Find the specific file
+      const fileMetadata = filesArray.find((f: any) => f.storedName === storedName);
+
+      if (!fileMetadata) {
+        return res.status(404).json({ message: "Arquivo não encontrado" });
+      }
 
       const filePath = path.join(uploadsDir, fileMetadata.storedName);
 
@@ -273,6 +290,7 @@ export async function registerRoutes(
   app.get("/api/clientes/:id/download-spec", async (req, res) => {
     try {
       const clientId = Number(req.params.id);
+      const storedName = req.query.file as string;
       const client = await storage.getClient(clientId);
 
       if (!client) {
@@ -284,9 +302,21 @@ export async function registerRoutes(
       }
 
       // Parse JSON if it's a string (MySQL returns JSON as string)
-      const fileMetadata = typeof client.caminho_especificacao_tecnica === 'string'
+      let filesArray = typeof client.caminho_especificacao_tecnica === 'string'
         ? JSON.parse(client.caminho_especificacao_tecnica)
         : client.caminho_especificacao_tecnica;
+
+      // Ensure it's an array
+      if (!Array.isArray(filesArray)) {
+        filesArray = [filesArray];
+      }
+
+      // Find the specific file
+      const fileMetadata = filesArray.find((f: any) => f.storedName === storedName);
+
+      if (!fileMetadata) {
+        return res.status(404).json({ message: "Arquivo não encontrado" });
+      }
 
       const filePath = path.join(uploadsDir, fileMetadata.storedName);
 
@@ -308,6 +338,7 @@ export async function registerRoutes(
   app.delete("/api/clientes/:id/delete-spec", async (req, res) => {
     try {
       const clientId = Number(req.params.id);
+      const storedName = req.query.file as string; // Which file to delete
       const client = await storage.getClient(clientId);
 
       if (!client) {
@@ -319,24 +350,39 @@ export async function registerRoutes(
       }
 
       // Parse JSON if it's a string (MySQL returns JSON as string)
-      const fileMetadata = typeof client.caminho_especificacao_tecnica === 'string'
+      let filesArray = typeof client.caminho_especificacao_tecnica === 'string'
         ? JSON.parse(client.caminho_especificacao_tecnica)
         : client.caminho_especificacao_tecnica;
 
+      // Ensure it's an array
+      if (!Array.isArray(filesArray)) {
+        filesArray = [filesArray];
+      }
+
+      // Find the file to delete
+      const fileToDelete = filesArray.find((f: any) => f.storedName === storedName);
+
+      if (!fileToDelete) {
+        return res.status(404).json({ message: "Arquivo não encontrado" });
+      }
+
       // Delete file from disk
-      const filePath = path.join(uploadsDir, fileMetadata.storedName);
+      const filePath = path.join(uploadsDir, fileToDelete.storedName);
       try {
         await fs.unlink(filePath);
       } catch (error) {
         console.log("File not found or already deleted");
       }
 
-      // Update client to remove file metadata
+      // Remove file from array
+      const updatedFiles = filesArray.filter((f: any) => f.storedName !== storedName);
+
+      // Update client with new files array (or null if empty)
       await storage.updateClient(clientId, {
-        caminho_especificacao_tecnica: null
+        caminho_especificacao_tecnica: updatedFiles.length > 0 ? updatedFiles : null
       });
 
-      res.json({ success: true });
+      res.json({ success: true, remainingFiles: updatedFiles });
     } catch (error: any) {
       console.error("Error deleting specification:", error);
       res.status(500).json({ message: error.message || "Falha ao excluir o arquivo" });

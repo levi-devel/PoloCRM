@@ -12,11 +12,11 @@ interface FileAttachment {
 }
 
 interface FileUploadProps {
-    currentFile: FileAttachment | null;
+    currentFiles: FileAttachment[];
     onFileSelect: (file: File) => void;
-    onFileDelete: () => void;
-    onFileDownload: () => void;
-    onFileView: () => void;
+    onFileDelete: (storedName: string) => void;
+    onFileDownload: (storedName: string) => void;
+    onFileView: (storedName: string) => void;
     isUploading?: boolean;
     isDeleting?: boolean;
     disabled?: boolean;
@@ -40,7 +40,7 @@ function formatDate(dateString: string): string {
 }
 
 export function FileUpload({
-    currentFile,
+    currentFiles,
     onFileSelect,
     onFileDelete,
     onFileDownload,
@@ -86,101 +86,108 @@ export function FileUpload({
         }
     };
 
-    if (currentFile) {
-        return (
-            <div className="border border-border rounded-lg p-4 bg-card">
-                <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3 flex-1">
-                        <div className="p-2 bg-primary/10 rounded-lg">
-                            <FileText className="w-5 h-5 text-primary" />
+    return (
+        <div className="space-y-3">
+            {/* List of uploaded files */}
+            {currentFiles.length > 0 && (
+                <div className="space-y-2">
+                    {currentFiles.map((file) => (
+                        <div key={file.storedName} className="border border-border rounded-lg p-3 bg-card">
+                            <div className="flex items-start justify-between">
+                                <div className="flex items-start gap-3 flex-1">
+                                    <div className="p-2 bg-primary/10 rounded-lg">
+                                        <FileText className="w-4 h-4 text-primary" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-medium text-sm truncate">{file.originalName}</p>
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                            {formatFileSize(file.fileSize)} • Enviado em {formatDate(file.uploadDate)}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-1 ml-2">
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => onFileView(file.storedName)}
+                                        disabled={disabled}
+                                        title="Visualizar arquivo"
+                                    >
+                                        <Eye className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => onFileDownload(file.storedName)}
+                                        disabled={disabled}
+                                        title="Baixar arquivo"
+                                    >
+                                        <Download className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => onFileDelete(file.storedName)}
+                                        disabled={disabled || isDeleting}
+                                        className="text-destructive hover:text-destructive"
+                                        title="Excluir arquivo"
+                                    >
+                                        {isDeleting ? (
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                            <Trash2 className="w-4 h-4" />
+                                        )}
+                                    </Button>
+                                </div>
+                            </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm truncate">{currentFile.originalName}</p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                {formatFileSize(currentFile.fileSize)} • Enviado em {formatDate(currentFile.uploadDate)}
+                    ))}
+                </div>
+            )}
+
+            {/* Upload area */}
+            <div>
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    onChange={handleFileChange}
+                    accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
+                    disabled={disabled || isUploading}
+                />
+                <div
+                    className={cn(
+                        "border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors",
+                        dragActive && "border-primary bg-primary/5",
+                        !dragActive && "border-border hover:border-primary/50",
+                        (disabled || isUploading) && "opacity-50 cursor-not-allowed"
+                    )}
+                    onDragEnter={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDragOver={handleDrag}
+                    onDrop={handleDrop}
+                    onClick={handleClick}
+                >
+                    {isUploading ? (
+                        <div className="flex flex-col items-center gap-2">
+                            <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                            <p className="text-sm text-muted-foreground">Enviando arquivo...</p>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center gap-2">
+                            <Upload className="w-8 h-8 text-muted-foreground" />
+                            <p className="text-sm font-medium">
+                                {currentFiles.length > 0 ? "Adicionar mais arquivos" : "Clique para selecionar ou arraste um arquivo"}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                PDF, DOCX, DOC, TXT, PNG ou JPG (máx. 10MB)
                             </p>
                         </div>
-                    </div>
-                    <div className="flex gap-2 ml-2">
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={onFileView}
-                            disabled={disabled}
-                            title="Visualizar arquivo"
-                        >
-                            <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={onFileDownload}
-                            disabled={disabled}
-                            title="Baixar arquivo"
-                        >
-                            <Download className="w-4 h-4" />
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={onFileDelete}
-                            disabled={disabled || isDeleting}
-                            className="text-destructive hover:text-destructive"
-                        >
-                            {isDeleting ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                                <Trash2 className="w-4 h-4" />
-                            )}
-                        </Button>
-                    </div>
+                    )}
                 </div>
-            </div>
-        );
-    }
-
-    return (
-        <div>
-            <input
-                ref={fileInputRef}
-                type="file"
-                className="hidden"
-                onChange={handleFileChange}
-                accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
-                disabled={disabled || isUploading}
-            />
-            <div
-                className={cn(
-                    "border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors",
-                    dragActive && "border-primary bg-primary/5",
-                    !dragActive && "border-border hover:border-primary/50",
-                    (disabled || isUploading) && "opacity-50 cursor-not-allowed"
-                )}
-                onDragEnter={handleDrag}
-                onDragLeave={handleDrag}
-                onDragOver={handleDrag}
-                onDrop={handleDrop}
-                onClick={handleClick}
-            >
-                {isUploading ? (
-                    <div className="flex flex-col items-center gap-2">
-                        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                        <p className="text-sm text-muted-foreground">Enviando arquivo...</p>
-                    </div>
-                ) : (
-                    <div className="flex flex-col items-center gap-2">
-                        <Upload className="w-8 h-8 text-muted-foreground" />
-                        <p className="text-sm font-medium">
-                            Clique para selecionar ou arraste um arquivo
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                            PDF, DOCX, DOC, TXT, PNG ou JPG (máx. 10MB)
-                        </p>
-                    </div>
-                )}
             </div>
         </div>
     );

@@ -34,13 +34,13 @@ export const clientes = mysqlTable("clientes", {
   fora_escopo: text("fora_escopo"),
   gestores_internos: json("gestores_internos").$type<string[]>(),
   base_conhecimento: text("base_conhecimento"),
-  caminho_especificacao_tecnica: json("caminho_especificacao_tecnica").$type<{
+  caminho_especificacao_tecnica: json("caminho_especificacao_tecnica").$type<Array<{
     originalName: string;
     storedName: string;
     fileSize: number;
     uploadDate: string;
     mimeType: string;
-  } | null>(),
+  }> | null>(),
 
   // Histórico Rápido e Observações
   riscos: text("riscos"),

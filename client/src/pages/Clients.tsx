@@ -138,46 +138,50 @@ function FileUploadField({
   const { uploadFile, deleteFile, getDownloadUrl, getViewUrl, isUploading, isDeleting } = useClientFileUpload();
 
   // Parse JSON if it's a string (MySQL returns JSON as string)
-  const parsedFile = currentFile
-    ? (typeof currentFile === 'string' ? JSON.parse(currentFile) : currentFile)
-    : null;
+  // Convert to array format
+  let filesArray: any[] = [];
+  if (currentFile) {
+    const parsed = typeof currentFile === 'string' ? JSON.parse(currentFile) : currentFile;
+    filesArray = Array.isArray(parsed) ? parsed : (parsed ? [parsed] : []);
+  }
 
   const handleFileSelect = async (file: File) => {
     if (!clientId) {
-      // If creating new client, just store file for later upload
-      // For now, we'll show a message that file upload is only available when editing
       alert("Por favor, salve o cliente primeiro antes de enviar arquivos.");
       return;
     }
 
-    const result = await uploadFile(clientId, file);
-    if (result) {
-      onChange(result);
+    const response = await uploadFile(clientId, file);
+    if (response) {
+      // Backend returns updated array, use it
+      onChange(response.allFiles || [...filesArray, response.file]);
     }
   };
 
-  const handleFileDelete = async () => {
+  const handleFileDelete = async (storedName: string) => {
     if (!clientId) return;
 
-    const success = await deleteFile(clientId);
+    const success = await deleteFile(clientId, storedName);
     if (success) {
-      onChange(null);
+      // Remove from local array
+      const updated = filesArray.filter(f => f.storedName !== storedName);
+      onChange(updated.length > 0 ? updated : null);
     }
   };
 
-  const handleFileDownload = () => {
+  const handleFileDownload = (storedName: string) => {
     if (!clientId) return;
-    window.open(getDownloadUrl(clientId), '_blank');
+    window.open(`${getDownloadUrl(clientId)}?file=${encodeURIComponent(storedName)}`, '_blank');
   };
 
-  const handleFileView = () => {
+  const handleFileView = (storedName: string) => {
     if (!clientId) return;
-    window.open(getViewUrl(clientId), '_blank');
+    window.open(`${getViewUrl(clientId)}?file=${encodeURIComponent(storedName)}`, '_blank');
   };
 
   return (
     <FileUpload
-      currentFile={parsedFile}
+      currentFiles={filesArray}
       onFileSelect={handleFileSelect}
       onFileDelete={handleFileDelete}
       onFileDownload={handleFileDownload}

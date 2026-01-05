@@ -14,7 +14,7 @@ export function useClientFileUpload() {
     const [isDeleting, setIsDeleting] = useState(false);
     const { toast } = useToast();
 
-    const uploadFile = async (clientId: number, file: File): Promise<FileAttachment | null> => {
+    const uploadFile = async (clientId: number, file: File): Promise<any> => {
         setIsUploading(true);
         try {
             const formData = new FormData();
@@ -37,7 +37,7 @@ export function useClientFileUpload() {
                 description: "Arquivo enviado com sucesso",
             });
 
-            return data.file;
+            return data; // Return full response with allFiles
         } catch (error: any) {
             toast({
                 title: "Erro",
@@ -50,10 +50,10 @@ export function useClientFileUpload() {
         }
     };
 
-    const deleteFile = async (clientId: number): Promise<boolean> => {
+    const deleteFile = async (clientId: number, storedName: string): Promise<boolean> => {
         setIsDeleting(true);
         try {
-            const response = await fetch(`/api/clientes/${clientId}/delete-spec`, {
+            const response = await fetch(`/api/clientes/${clientId}/delete-spec?file=${encodeURIComponent(storedName)}`, {
                 method: "DELETE",
             });
 
