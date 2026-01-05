@@ -7,46 +7,15 @@ import type { User } from "../../shared/models/auth";
 const SALT_ROUNDS = 10;
 
 // Predefined users - these will be initialized on server start
+// Admin credentials are loaded from environment variables for security
 export const PREDEFINED_USERS = [
     {
         id: "user-admin",
-        email: "admin@polo.com",
-        password: "senha123",
+        email: process.env.ADMIN_EMAIL || "admin@polo.com",
+        password: process.env.ADMIN_PASSWORD || "changeme123",
         firstName: "Admin",
-        lastName: "Polo",
+        lastName: "System",
         role: "Admin",
-    },
-    {
-        id: "user-1",
-        email: "carlos@polotelecom.com.br",
-        password: "Mudar@123",
-        firstName: "Carlos",
-        lastName: "Levi",
-        role: "Admin",
-    },
-    {
-        id: "user-2",
-        email: "ryan.silva@polotelecom.com.br",
-        password: "Mudar@123",
-        firstName: "Ryan",
-        lastName: "Silva",
-        role: "Técnico",
-    },
-    {
-        id: "user-3",
-        email: "celio@polotelecom.com.br",
-        password: "Mudar@123",
-        firstName: "Célio",
-        lastName: "Carvalho",
-        role: "Admin",
-    },
-    {
-        id: "user-4",
-        email: "bruno@polotelecom.com.br",
-        password: "Mudar@123",
-        firstName: "Bruno",
-        lastName: "Gomes",
-        role: "Técnico",
     },
 ];
 
