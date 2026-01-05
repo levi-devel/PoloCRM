@@ -671,6 +671,7 @@ export default function SalesFunnel() {
                                                         <SelectItem value="Novo">Novo</SelectItem>
                                                         <SelectItem value="UPSELL">UPSELL</SelectItem>
                                                         <SelectItem value="CROSSELL">CROSSELL</SelectItem>
+                                                        <SelectItem value="Aditivo">Aditivo</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             </FormItem>
@@ -993,6 +994,7 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
                                         <SelectItem value="Novo">Novo</SelectItem>
                                         <SelectItem value="UPSELL">UPSELL</SelectItem>
                                         <SelectItem value="CROSSELL">CROSSELL</SelectItem>
+                                        <SelectItem value="Aditivo">Aditivo</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </FormItem>
