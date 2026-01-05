@@ -1,7 +1,7 @@
 import { Layout } from "@/components/layout/Layout";
 import { useSalesFunnelStats } from "@/hooks/use-sales-funnel-stats";
 import { Card } from "@/components/ui/card";
-import { BarChart3, Calendar, Download, FileText, Table } from "lucide-react";
+import { BarChart3, Calendar, Download, FileText, Table, TrendingUp } from "lucide-react";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useState, useRef } from "react";
@@ -266,84 +266,159 @@ export default function SalesFunnelDashboard() {
 
                 {/* Main Content */}
                 <div className="space-y-6">
-                    {/* Distribution Chart */}
-                    <Card className="p-6 bg-white border border-gray-100 shadow-sm">
-                        <h3 className="font-bold text-gray-800 mb-6">Distribuição por Estágio</h3>
-                        <div id="chart-distribution" ref={chartRef} className="flex items-end justify-around gap-4" style={{ height: '256px' }}>
-                            {stats.columnStats.map((col: any, index: number) => {
-                                const heightPx = maxCount > 0 ? Math.floor((col.count / maxCount) * 200) : 0;
-                                return (
-                                    <div key={col.id_coluna} className="flex flex-col items-center gap-3 flex-1 max-w-[120px]">
-                                        <div
-                                            className="w-full rounded-t-lg transition-all duration-500 shadow-sm"
-                                            style={{
-                                                height: `${Math.max(heightPx, col.count > 0 ? 30 : 0)}px`,
-                                                backgroundColor: chartColors[index % chartColors.length],
-                                            }}
-                                        />
-                                        <div className="text-xs text-center text-gray-600 font-medium leading-tight">
-                                            {col.columnName}
-                                        </div>
-                                        <div className="text-lg font-bold text-gray-800">{col.count}</div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </Card>
-
-                    {/* Contract Type Distribution Chart */}
-                    <Card className="p-6 bg-white border border-gray-100 shadow-sm">
-                        <h3 className="font-bold text-gray-800 mb-6">Distribuição por Tipo de Contrato</h3>
-                        <div className="flex items-end justify-around gap-4" style={{ height: '256px' }}>
-                            {stats.contractTypeStats && stats.contractTypeStats.map((typeData: any, index: number) => {
-                                const contractTypeColors = ['#9333ea', '#06b6d4', '#ec4899']; // Purple, Cyan, Pink
-                                const maxTypeCount = Math.max(...stats.contractTypeStats.map((t: any) => t.count), 1);
-                                const heightPx = maxTypeCount > 0 ? Math.floor((typeData.count / maxTypeCount) * 200) : 0;
-
-                                return (
-                                    <div key={typeData.type} className="flex flex-col items-center gap-3 flex-1 max-w-[80px]">
-                                        <div
-                                            className="w-full rounded-t-lg transition-all duration-500 shadow-sm"
-                                            style={{
-                                                height: `${Math.max(heightPx, typeData.count > 0 ? 30 : 0)}px`,
-                                                backgroundColor: contractTypeColors[index % contractTypeColors.length],
-                                            }}
-                                        />
-                                        <div className="text-xs text-center text-gray-600 font-medium leading-tight">
-                                            {typeData.type}
-                                        </div>
-                                        <div className="text-lg font-bold text-gray-800">{typeData.count}</div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </Card>
-
-                    {/* Key Indicators */}
-                    <Card className="p-6 bg-white border border-gray-100 shadow-sm">
-                        <h3 className="font-bold text-gray-800 mb-6">Indicadores Principais</h3>
-                        <div className="grid grid-cols-2 gap-8">
-                            <div className="text-center p-4 bg-gray-50 rounded-lg">
-                                <div className="text-sm text-gray-500 mb-2">Total de Negócios</div>
-                                <div className="text-4xl font-bold text-gray-800">{stats.totalDeals}</div>
-                            </div>
-                            <div className="text-center p-4 bg-gray-50 rounded-lg">
-                                <div className="text-sm text-gray-500 mb-2">Valor Total</div>
-                                <div className="text-3xl font-bold text-gray-800">{formatCurrency(stats.totalValue)}</div>
-                            </div>
-                            <div className="text-center p-4 bg-gray-50 rounded-lg">
-                                <div className="text-sm text-gray-500 mb-2">Taxa de Conversão</div>
-                                <div className="text-4xl font-bold text-gray-800">
-                                    {stats.conversionRate || 0}%
-                                    <span className="text-lg ml-2">📈</span>
+                    {/* KPI Cards - Moved to Top */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {/* Total de Negócios */}
+                        <Card className="p-5 bg-white border border-gray-100 shadow-sm">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <div className="text-sm text-gray-500 mb-1">Total de Negócios</div>
+                                    <div className="text-3xl font-bold text-gray-800">{stats.totalDeals}</div>
+                                    <div className="text-xs text-gray-400 mt-1">Quantidade no período</div>
+                                </div>
+                                <div className="text-gray-400">
+                                    <BarChart3 className="w-6 h-6" />
                                 </div>
                             </div>
-                            <div className="text-center p-4 bg-gray-50 rounded-lg">
-                                <div className="text-sm text-gray-500 mb-2">Valor Médio</div>
-                                <div className="text-3xl font-bold text-gray-800">{formatCurrency(stats.averageValue)}</div>
+                        </Card>
+
+                        {/* Valor Total */}
+                        <Card className="p-5 bg-white border border-gray-100 shadow-sm">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <div className="text-sm text-gray-500 mb-1">Valor Total</div>
+                                    <div className="text-2xl font-bold text-gray-800">{formatCurrency(stats.totalValue)}</div>
+                                    <div className="text-xs text-gray-400 mt-1">Somatório de valores</div>
+                                </div>
+                                <div className="text-gray-400">
+                                    <TrendingUp className="w-6 h-6" />
+                                </div>
                             </div>
-                        </div>
-                    </Card>
+                        </Card>
+
+                        {/* Taxa de Conversão */}
+                        <Card className="p-5 bg-white border border-gray-100 shadow-sm">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <div className="text-sm text-gray-500 mb-1">Taxa de Conversão</div>
+                                    <div className="text-3xl font-bold text-gray-800">{stats.conversionRate || 0}%</div>
+                                    <div className="text-xs text-gray-400 mt-1">Fechados / total</div>
+                                </div>
+                                <div className="text-gray-400">
+                                    <span className="text-2xl">%</span>
+                                </div>
+                            </div>
+                        </Card>
+
+                        {/* Ticket Médio */}
+                        <Card className="p-5 bg-white border border-gray-100 shadow-sm">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <div className="text-sm text-gray-500 mb-1">Ticket Médio</div>
+                                    <div className="text-2xl font-bold text-gray-800">{formatCurrency(stats.averageValue)}</div>
+                                    <div className="text-xs text-gray-400 mt-1">Valor médio por negócio</div>
+                                </div>
+                                <div className="text-gray-400">
+                                    <BarChart3 className="w-6 h-6" />
+                                </div>
+                            </div>
+                        </Card>
+                    </div>
+
+                    {/* Charts Side by Side */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Distribution by Stage Chart */}
+                        <Card className="p-6 bg-white border border-gray-100 shadow-sm">
+                            <div className="mb-2">
+                                <h3 className="font-bold text-gray-800">Distribuição por Estágio</h3>
+                                <p className="text-sm text-gray-500">Volume por etapa do funil</p>
+                            </div>
+                            <div id="chart-distribution" ref={chartRef} className="flex items-end justify-around gap-4 mb-4" style={{ height: '200px' }}>
+                                {stats.columnStats.map((col: any, index: number) => {
+                                    const heightPx = maxCount > 0 ? Math.floor((col.count / maxCount) * 160) : 0;
+                                    return (
+                                        <div key={col.id_coluna} className="flex flex-col items-center gap-2 flex-1 max-w-[100px]">
+                                            <div
+                                                className="w-full rounded-t-lg transition-all duration-500 shadow-sm"
+                                                style={{
+                                                    height: `${Math.max(heightPx, col.count > 0 ? 30 : 0)}px`,
+                                                    backgroundColor: chartColors[index % chartColors.length],
+                                                }}
+                                            />
+                                            <div className="text-xs text-center text-gray-600 font-medium leading-tight">
+                                                {col.columnName}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <div className="text-xs text-center text-gray-500 mb-3">■ Quantidade</div>
+                            {/* Quantity Cards Below Chart */}
+                            <div className="grid grid-cols-3 gap-3">
+                                {stats.columnStats.slice(0, 3).map((col: any, index: number) => (
+                                    <div key={col.id_coluna} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                                        <div
+                                            className="w-3 h-3 rounded"
+                                            style={{ backgroundColor: chartColors[index % chartColors.length] }}
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-xs text-gray-500 truncate">{col.columnName}</div>
+                                            <div className="text-lg font-bold text-gray-800">{col.count}</div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </Card>
+
+                        {/* Distribution by Contract Type Chart */}
+                        <Card className="p-6 bg-white border border-gray-100 shadow-sm">
+                            <div className="mb-2">
+                                <h3 className="font-bold text-gray-800">Distribuição por Tipo de Contrato</h3>
+                                <p className="text-sm text-gray-500">Mix de contratos no período</p>
+                            </div>
+                            <div className="flex items-end justify-around gap-4 mb-4" style={{ height: '200px' }}>
+                                {stats.contractTypeStats && stats.contractTypeStats.map((typeData: any, index: number) => {
+                                    const contractTypeColors = ['#9333ea', '#06b6d4', '#ec4899']; // Purple, Cyan, Pink
+                                    const maxTypeCount = Math.max(...stats.contractTypeStats.map((t: any) => t.count), 1);
+                                    const heightPx = maxTypeCount > 0 ? Math.floor((typeData.count / maxTypeCount) * 160) : 0;
+
+                                    return (
+                                        <div key={typeData.type} className="flex flex-col items-center gap-2 flex-1 max-w-[80px]">
+                                            <div
+                                                className="w-full rounded-t-lg transition-all duration-500 shadow-sm"
+                                                style={{
+                                                    height: `${Math.max(heightPx, typeData.count > 0 ? 30 : 0)}px`,
+                                                    backgroundColor: contractTypeColors[index % contractTypeColors.length],
+                                                }}
+                                            />
+                                            <div className="text-xs text-center text-gray-600 font-medium leading-tight">
+                                                {typeData.type}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <div className="text-xs text-center text-gray-500 mb-3">■ Quantidade</div>
+                            {/* Quantity Cards Below Chart */}
+                            <div className="grid grid-cols-3 gap-3">
+                                {stats.contractTypeStats && stats.contractTypeStats.map((typeData: any, index: number) => {
+                                    const contractTypeColors = ['#9333ea', '#06b6d4', '#ec4899'];
+                                    return (
+                                        <div key={typeData.type} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                                            <div
+                                                className="w-3 h-3 rounded"
+                                                style={{ backgroundColor: contractTypeColors[index % contractTypeColors.length] }}
+                                            />
+                                            <div className="flex-1 min-w-0">
+                                                <div className="text-xs text-gray-500 truncate">{typeData.type}</div>
+                                                <div className="text-lg font-bold text-gray-800">{typeData.count}</div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </Card>
+                    </div>
                 </div>
 
                 {/* Details Table */}
