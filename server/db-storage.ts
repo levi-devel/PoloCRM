@@ -726,7 +726,10 @@ export class DatabaseStorage implements IStorage {
         const allUsers = await db.select().from(users);
         const userMap = new Map(allUsers.map(u => [u.id, `${u.firstName} ${u.lastName}`]));
 
-        // 2. Build query with filters
+        // 2. Get all columns to map phases
+        const allColumns = await db.select().from(colunas_projetos);
+
+        // 3. Build query with filters
         const conditions = [];
         if (projectId) {
             conditions.push(eq(cartoes.id_projeto, projectId));
@@ -742,33 +745,76 @@ export class DatabaseStorage implements IStorage {
             ? await db.select().from(cartoes).where(and(...conditions))
             : await db.select().from(cartoes);
 
-        // 3. Aggregate by technician
-        const techCounts = new Map<string, { id: string | null, name: string, count: number }>();
+        // 4. Aggregate by technician with phase breakdown
+        const techCounts = new Map<string, {
+            id: string | null,
+            name: string,
+            count: number,
+            byPhase: {
+                aFazer: number,
+                emAndamento: number,
+                pendencia: number,
+                concluido: number
+            }
+        }>();
 
         for (const card of allCards) {
             const techId = card.id_tecnico_atribuido;
             const techName = techId ? (userMap.get(techId) || "Usuário Removido") : "Não Atribuído";
 
+            // Find the column for this card
+            const column = allColumns.find(col => col.id === card.id_coluna);
+            const columnName = column?.nome || "";
+            const columnStatus = column?.status || "";
+
+            // Determine phase
+            let phaseKey: 'aFazer' | 'emAndamento' | 'pendencia' | 'concluido';
+
+            if (columnStatus === "Concluído" || columnName.toLowerCase().includes("concluído")) {
+                phaseKey = 'concluido';
+            } else if (columnName.toLowerCase().includes("a fazer") || columnName.toLowerCase().includes("fazer")) {
+                phaseKey = 'aFazer';
+            } else if (columnName.toLowerCase().includes("andamento")) {
+                phaseKey = 'emAndamento';
+            } else if (columnName.toLowerCase().includes("pendência") || columnName.toLowerCase().includes("pendencia")) {
+                phaseKey = 'pendencia';
+            } else {
+                // Default to "em andamento" for unknown columns
+                phaseKey = 'emAndamento';
+            }
+
             const existing = techCounts.get(techName);
             if (existing) {
                 existing.count++;
+                existing.byPhase[phaseKey]++;
             } else {
-                techCounts.set(techName, { id: techId, name: techName, count: 1 });
+                techCounts.set(techName, {
+                    id: techId,
+                    name: techName,
+                    count: 1,
+                    byPhase: {
+                        aFazer: phaseKey === 'aFazer' ? 1 : 0,
+                        emAndamento: phaseKey === 'emAndamento' ? 1 : 0,
+                        pendencia: phaseKey === 'pendencia' ? 1 : 0,
+                        concluido: phaseKey === 'concluido' ? 1 : 0
+                    }
+                });
             }
         }
 
-        // 4. Convert to array and sort
+        // 5. Convert to array and sort
         const ranking = Array.from(techCounts.values())
             .sort((a, b) => b.count - a.count);
 
-        // 5. Calculate percentages
+        // 6. Calculate percentages
         const maxCount = ranking[0]?.count || 1;
 
         return ranking.map(tech => ({
             technicianId: tech.id,
             name: tech.name,
             cardCount: tech.count,
-            percentage: Math.round((tech.count / maxCount) * 100)
+            percentage: Math.round((tech.count / maxCount) * 100),
+            byPhase: tech.byPhase
         }));
     }
 
