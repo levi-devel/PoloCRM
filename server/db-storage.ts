@@ -1237,6 +1237,42 @@ export class DatabaseStorage implements IStorage {
             };
         });
 
+        // Product Statistics (Main Products)
+        const productStats = allCards.reduce((acc, card) => {
+            const produto = card.produto || 'Não especificado';
+            const existing = acc.find(p => p.product === produto);
+            if (existing) {
+                existing.count++;
+                existing.totalValue += card.valor || 0;
+            } else {
+                acc.push({
+                    product: produto,
+                    count: 1,
+                    totalValue: card.valor || 0,
+                });
+            }
+            return acc;
+        }, [] as Array<{ product: string; count: number; totalValue: number }>);
+
+        // Specific Product Statistics (Derivatives - only when main product is "Produtos")
+        const specificProductStats = allCards
+            .filter(card => card.produto === 'Produtos' && card.produto_especifico)
+            .reduce((acc, card) => {
+                const produtoEspecifico = card.produto_especifico!;
+                const existing = acc.find(p => p.specificProduct === produtoEspecifico);
+                if (existing) {
+                    existing.count++;
+                    existing.totalValue += card.valor || 0;
+                } else {
+                    acc.push({
+                        specificProduct: produtoEspecifico,
+                        count: 1,
+                        totalValue: card.valor || 0,
+                    });
+                }
+                return acc;
+            }, [] as Array<{ specificProduct: string; count: number; totalValue: number }>);
+
         return {
             columnStats,
             totalDeals,
@@ -1245,6 +1281,8 @@ export class DatabaseStorage implements IStorage {
             averageValue,
             allCards,
             contractTypeStats,
+            productStats,
+            specificProductStats,
         };
     }
 }

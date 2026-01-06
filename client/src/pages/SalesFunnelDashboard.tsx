@@ -446,6 +446,135 @@ export default function SalesFunnelDashboard() {
                             </div>
                         </Card>
                     </div>
+
+                    {/* Product Charts - New Section */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Main Products Chart */}
+                        <Card className="p-6 bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                            <div className="mb-4">
+                                <h3 className="font-bold text-gray-800">Distribuição por Produto</h3>
+                                <p className="text-sm text-gray-500">Produtos ofertados no período</p>
+                            </div>
+                            <div className="flex items-end justify-around gap-3 mb-5" style={{ height: '200px' }}>
+                                {stats.productStats && stats.productStats.map((prod: any, index: number) => {
+                                    const gradients = [
+                                        'linear-gradient(180deg, #f97316 0%, #ea580c 100%)', // Orange gradient
+                                        'linear-gradient(180deg, #8b5cf6 0%, #7c3aed 100%)', // Violet gradient
+                                        'linear-gradient(180deg, #14b8a6 0%, #0d9488 100%)', // Teal gradient
+                                        'linear-gradient(180deg, #ec4899 0%, #db2777 100%)', // Pink gradient
+                                    ];
+                                    const maxProductCount = Math.max(...stats.productStats.map((p: any) => p.count), 1);
+                                    const heightPx = maxProductCount > 0 ? Math.floor((prod.count / maxProductCount) * 160) : 0;
+
+                                    return (
+                                        <div key={prod.product} className="flex flex-col items-center gap-2 flex-1 max-w-[90px] group">
+                                            <div
+                                                className="w-full rounded-xl transition-all duration-300 hover:scale-105 cursor-pointer relative overflow-hidden"
+                                                style={{
+                                                    height: `${Math.max(heightPx, prod.count > 0 ? 30 : 0)}px`,
+                                                    background: gradients[index % gradients.length],
+                                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                                                }}
+                                            >
+                                                {/* Shine effect */}
+                                                <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white opacity-20"></div>
+                                            </div>
+                                            <div className="text-xs text-center text-gray-600 font-medium leading-tight">
+                                                {prod.product}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <div className="text-xs text-center text-gray-500 mb-4 flex items-center justify-center gap-1">
+                                <span className="inline-block w-2 h-2 rounded-full bg-gray-400"></span>
+                                <span>Quantidade</span>
+                            </div>
+                            {/* Quantity Cards Below Chart */}
+                            <div className="grid grid-cols-3 gap-2">
+                                {stats.productStats && stats.productStats.slice(0, 3).map((prod: any, index: number) => {
+                                    const colors = ['#ea580c', '#7c3aed', '#0d9488'];
+                                    return (
+                                        <div key={prod.product} className="flex items-center gap-2 p-2.5 bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-lg border border-gray-100 hover:border-gray-200 transition-colors">
+                                            <div
+                                                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                                                style={{ backgroundColor: colors[index % colors.length] }}
+                                            />
+                                            <div className="flex-1 min-w-0">
+                                                <div className="text-[10px] text-gray-500 truncate font-medium">{prod.product}</div>
+                                                <div className="text-base font-bold text-gray-800">{prod.count}</div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </Card>
+
+                        {/* Specific Products Chart - Only shown if there are specific products */}
+                        {stats.specificProductStats && stats.specificProductStats.length > 0 && (
+                            <Card className="p-6 bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                                <div className="mb-4">
+                                    <h3 className="font-bold text-gray-800">Derivações de Produtos</h3>
+                                    <p className="text-sm text-gray-500">Produtos específicos ofertados</p>
+                                </div>
+                                <div className="flex items-end justify-around gap-3 mb-5" style={{ height: '200px' }}>
+                                    {stats.specificProductStats.map((spec: any, index: number) => {
+                                        const gradients = [
+                                            'linear-gradient(180deg, #fb923c 0%, #f97316 100%)', // Light orange
+                                            'linear-gradient(180deg, #a78bfa 0%, #8b5cf6 100%)', // Light violet
+                                            'linear-gradient(180deg, #2dd4bf 0%, #14b8a6 100%)', // Light teal
+                                            'linear-gradient(180deg, #f472b6 0%, #ec4899 100%)', // Light pink
+                                            'linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%)', // Amber
+                                            'linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%)', // Blue
+                                        ];
+                                        const maxSpecCount = Math.max(...stats.specificProductStats.map((s: any) => s.count), 1);
+                                        const heightPx = maxSpecCount > 0 ? Math.floor((spec.count / maxSpecCount) * 160) : 0;
+
+                                        return (
+                                            <div key={spec.specificProduct} className="flex flex-col items-center gap-2 flex-1 max-w-[90px] group">
+                                                <div
+                                                    className="w-full rounded-xl transition-all duration-300 hover:scale-105 cursor-pointer relative overflow-hidden"
+                                                    style={{
+                                                        height: `${Math.max(heightPx, spec.count > 0 ? 30 : 0)}px`,
+                                                        background: gradients[index % gradients.length],
+                                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                                                    }}
+                                                >
+                                                    {/* Shine effect */}
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white opacity-20"></div>
+                                                </div>
+                                                <div className="text-xs text-center text-gray-600 font-medium leading-tight">
+                                                    {spec.specificProduct}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <div className="text-xs text-center text-gray-500 mb-4 flex items-center justify-center gap-1">
+                                    <span className="inline-block w-2 h-2 rounded-full bg-gray-400"></span>
+                                    <span>Quantidade</span>
+                                </div>
+                                {/* Quantity Cards Below Chart */}
+                                <div className="grid grid-cols-3 gap-2">
+                                    {stats.specificProductStats.slice(0, 3).map((spec: any, index: number) => {
+                                        const colors = ['#f97316', '#8b5cf6', '#14b8a6', '#ec4899', '#f59e0b', '#3b82f6'];
+                                        return (
+                                            <div key={spec.specificProduct} className="flex items-center gap-2 p-2.5 bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-lg border border-gray-100 hover:border-gray-200 transition-colors">
+                                                <div
+                                                    className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                                                    style={{ backgroundColor: colors[index % colors.length] }}
+                                                />
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="text-[10px] text-gray-500 truncate font-medium">{spec.specificProduct}</div>
+                                                    <div className="text-base font-bold text-gray-800">{spec.count}</div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </Card>
+                        )}
+                    </div>
                 </div>
 
                 {/* Details Table */}
