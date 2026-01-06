@@ -633,8 +633,9 @@ export async function registerRoutes(
       const projectId = req.query.projectId && req.query.projectId !== "all" ? Number(req.query.projectId) : undefined;
       const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
       const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
+      const technicianId = req.query.technicianId && req.query.technicianId !== "all" ? String(req.query.technicianId) : undefined;
 
-      const stats = await storage.getProjectTechnicianStats(projectId, startDate, endDate);
+      const stats = await storage.getProjectTechnicianStats(projectId, startDate, endDate, technicianId);
       res.json(stats);
     } catch (error: any) {
       res.status(400).json({ message: error.message || "Failed to get project technician stats" });
@@ -651,6 +652,19 @@ export async function registerRoutes(
       res.json(trend);
     } catch (error: any) {
       res.status(400).json({ message: error.message || "Failed to get completion trend" });
+    }
+  });
+
+  app.get("/api/dashboard/technician-ranking", async (req, res) => {
+    try {
+      const projectId = req.query.projectId && req.query.projectId !== "all" ? Number(req.query.projectId) : undefined;
+      const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
+      const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
+
+      const ranking = await storage.getTechnicianRanking(projectId, startDate, endDate);
+      res.json(ranking);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to get technician ranking" });
     }
   });
 

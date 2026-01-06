@@ -1,5 +1,6 @@
 import { Layout } from "@/components/layout/Layout";
 import { StatCard } from "@/components/ui/stat-card";
+import { TechnicianRanking } from "@/components/TechnicianRanking";
 import { useProjects } from "@/hooks/use-projects";
 import { useClients } from "@/hooks/use-clients";
 import { useAlerts } from "@/hooks/use-alerts";
@@ -25,7 +26,8 @@ import {
   CheckCircle2,
   Clock,
   Calendar,
-  Search
+  Search,
+  FileText
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -136,7 +138,30 @@ export default function Dashboard() {
 
   // Fetch project technician stats
   const { data: projectTechnicianStats = [] } = useQuery({
-    queryKey: ['/api/dashboard/project-technician-stats', selectedProjectId, confirmedStartDate, confirmedEndDate, selectedPeriod],
+    queryKey: ['/api/dashboard/project-technician-stats', selectedProjectId, confirmedStartDate, confirmedEndDate, selectedPeriod, selectedTechnicianId],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (selectedProjectId !== "all") {
+        params.append("projectId", selectedProjectId);
+      }
+      if (selectedTechnicianId !== "all") {
+        params.append("technicianId", selectedTechnicianId);
+      }
+      if (startDate) {
+        params.append("startDate", startDate.toISOString());
+      }
+      if (endDate) {
+        params.append("endDate", endDate.toISOString());
+      }
+      const res = await fetch(`/api/dashboard/project-technician-stats?${params}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch project technician stats");
+      return res.json();
+    },
+  });
+
+  // Fetch technician ranking
+  const { data: technicianRanking = [] } = useQuery({
+    queryKey: ['/api/dashboard/technician-ranking', selectedProjectId, confirmedStartDate, confirmedEndDate, selectedPeriod],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (selectedProjectId !== "all") {
@@ -148,8 +173,8 @@ export default function Dashboard() {
       if (endDate) {
         params.append("endDate", endDate.toISOString());
       }
-      const res = await fetch(`/api/dashboard/project-technician-stats?${params}`, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch project technician stats");
+      const res = await fetch(`/api/dashboard/technician-ranking?${params}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch technician ranking");
       return res.json();
     },
   });
@@ -323,92 +348,111 @@ export default function Dashboard() {
             label="Total de Cards"
             value={totalCards}
             icon={FolderOpen}
-            trend="+12%"
-            trendUp={true}
+            borderColor="border-l-rose-400"
+            iconBgColor="bg-rose-50"
+            iconColor="text-rose-500"
           />
           <StatCard
             label="Concluídos (mês)"
             value={completedThisMonth}
             icon={CheckCircle2}
-            trend="+8%"
-            trendUp={true}
-            className="border-green-200 bg-green-50/30"
+            borderColor="border-l-green-400"
+            iconBgColor="bg-green-50"
+            iconColor="text-green-500"
           />
           <StatCard
             label="Concluídos (ano)"
             value={completedThisYear}
             icon={Calendar}
-            trend="YTD"
-            trendUp={true}
+            borderColor="border-l-blue-400"
+            iconBgColor="bg-blue-50"
+            iconColor="text-blue-500"
           />
           <StatCard
             label="Atrasados / SLA"
             value={overdueSLA}
             icon={AlertTriangle}
-            trend="+2"
-            trendUp={false}
-            className={overdueSLA > 0 ? "border-orange-200 bg-orange-50/30" : ""}
+            borderColor="border-l-orange-400"
+            iconBgColor="bg-orange-50"
+            iconColor="text-orange-500"
           />
         </div>
 
-        {/* Project Technician Charts */}
+        {/* Project Technician Distribution and Ranking */}
         <div className="space-y-4">
-          <h2 className="text-xl font-bold font-display text-foreground">Cards por Técnico por Projeto</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projectTechnicianStats?.map((project: any) => (
-              <Card key={project.id} className="shadow-sm border-border/60 hover:shadow-md transition-shadow duration-200">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base font-medium flex items-center justify-between">
-                    {project.name}
-                    <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-1 rounded-full">
-                      Total: {project.data.reduce((acc: number, item: any) => acc + item.value, 0)}
-                    </span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="h-[250px] pl-0">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={project.data}
-                      layout="vertical"
-                      margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
-                      <XAxis type="number" hide />
-                      <YAxis
-                        dataKey="name"
-                        type="category"
-                        width={100}
-                        tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                        tickLine={false}
-                        axisLine={false}
-                      />
-                      <Tooltip
-                        cursor={{ fill: 'hsl(var(--muted)/0.3)', radius: 4 }}
-                        contentStyle={{
-                          borderRadius: '8px',
-                          border: 'none',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                          backgroundColor: 'hsl(var(--background))',
-                          fontSize: '12px'
-                        }}
-                      />
-                      <Bar
-                        dataKey="value"
-                        fill="hsl(var(--primary))"
-                        radius={[0, 4, 4, 0]}
-                        barSize={20}
-                        background={{ fill: 'hsl(var(--muted)/0.2)', radius: 4 }}
-                        label={{ position: 'right', fill: 'hsl(var(--foreground))', fontSize: 11, fontWeight: 'bold' }}
-                      >
-                        {project.data.map((entry: any, index: number) => (
-                          <Cell key={`cell-${index}`} fill="hsl(var(--primary))" />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            ))}
+          <h2 className="text-xl font-bold font-display text-foreground">Distribuição e Ranking</h2>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left: Cards por Técnico por Projeto */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                Cards por técnico por projeto
+              </h3>
+              <div className="grid grid-cols-1 gap-4 max-h-[600px] overflow-y-auto">
+                {projectTechnicianStats?.map((project: any) => (
+                  <Card key={project.id} className="shadow-sm border-border/60 hover:shadow-md transition-shadow duration-200">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base font-medium flex items-center justify-between">
+                        {project.name}
+                        <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                          Total: {project.data.reduce((acc: number, item: any) => acc + item.value, 0)}
+                        </span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="h-[200px] pl-0">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={project.data}
+                          layout="vertical"
+                          margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
+                          <XAxis type="number" hide />
+                          <YAxis
+                            dataKey="name"
+                            type="category"
+                            width={100}
+                            tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                            tickLine={false}
+                            axisLine={false}
+                          />
+                          <Tooltip
+                            cursor={{ fill: 'hsl(var(--muted)/0.3)', radius: 4 }}
+                            contentStyle={{
+                              borderRadius: '8px',
+                              border: 'none',
+                              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                              backgroundColor: 'hsl(var(--background))',
+                              fontSize: '12px'
+                            }}
+                          />
+                          <Bar
+                            dataKey="value"
+                            fill="hsl(var(--primary))"
+                            radius={[0, 8, 8, 0]}
+                            barSize={16}
+                            background={{ fill: 'hsl(var(--muted)/0.2)', radius: 8 }}
+                            label={{ position: 'right', fill: 'hsl(var(--foreground))', fontSize: 11, fontWeight: 'bold' }}
+                          >
+                            {project.data.map((entry: any, index: number) => (
+                              <Cell key={`cell-${index}`} fill="hsl(var(--primary))" />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            {/* Right: Ranking de Carga */}
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
+                Ranking de carga
+              </h3>
+              <TechnicianRanking data={technicianRanking} />
+            </div>
           </div>
         </div>
 

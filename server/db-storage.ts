@@ -658,7 +658,7 @@ export class DatabaseStorage implements IStorage {
         return [];
     }
 
-    async getProjectTechnicianStats(projectId?: number, startDate?: Date, endDate?: Date) {
+    async getProjectTechnicianStats(projectId?: number, startDate?: Date, endDate?: Date, technicianId?: string) {
         // 1. Get all projects (or filtered one)
         let relevantProjects;
         if (projectId) {
@@ -683,6 +683,9 @@ export class DatabaseStorage implements IStorage {
             }
             if (endDate) {
                 conditions.push(lte(cartoes.criado_em, endDate));
+            }
+            if (technicianId) {
+                conditions.push(eq(cartoes.id_tecnico_atribuido, technicianId));
             }
 
             const projectCards = await db
@@ -716,6 +719,57 @@ export class DatabaseStorage implements IStorage {
         }
 
         return result;
+    }
+
+    async getTechnicianRanking(projectId?: number, startDate?: Date, endDate?: Date) {
+        // 1. Get all users for mapping names
+        const allUsers = await db.select().from(users);
+        const userMap = new Map(allUsers.map(u => [u.id, `${u.firstName} ${u.lastName}`]));
+
+        // 2. Build query with filters
+        const conditions = [];
+        if (projectId) {
+            conditions.push(eq(cartoes.id_projeto, projectId));
+        }
+        if (startDate) {
+            conditions.push(gte(cartoes.criado_em, startDate));
+        }
+        if (endDate) {
+            conditions.push(lte(cartoes.criado_em, endDate));
+        }
+
+        const allCards = conditions.length > 0
+            ? await db.select().from(cartoes).where(and(...conditions))
+            : await db.select().from(cartoes);
+
+        // 3. Aggregate by technician
+        const techCounts = new Map<string, { id: string | null, name: string, count: number }>();
+
+        for (const card of allCards) {
+            const techId = card.id_tecnico_atribuido;
+            const techName = techId ? (userMap.get(techId) || "Usuário Removido") : "Não Atribuído";
+
+            const existing = techCounts.get(techName);
+            if (existing) {
+                existing.count++;
+            } else {
+                techCounts.set(techName, { id: techId, name: techName, count: 1 });
+            }
+        }
+
+        // 4. Convert to array and sort
+        const ranking = Array.from(techCounts.values())
+            .sort((a, b) => b.count - a.count);
+
+        // 5. Calculate percentages
+        const maxCount = ranking[0]?.count || 1;
+
+        return ranking.map(tech => ({
+            technicianId: tech.id,
+            name: tech.name,
+            cardCount: tech.count,
+            percentage: Math.round((tech.count / maxCount) * 100)
+        }));
     }
 
     // Polo Projects

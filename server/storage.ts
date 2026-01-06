@@ -68,6 +68,12 @@ export interface IStorage {
     name: string;
     data: { name: string; value: number }[];
   }[]>;
+  getTechnicianRanking(projectId?: number, startDate?: Date, endDate?: Date): Promise<{
+    technicianId: string | null;
+    name: string;
+    cardCount: number;
+    percentage: number;
+  }[]>;
 
   // Polo Projects
   getPoloProjects(): Promise<(typeof polo_projetos.$inferSelect & { stages?: typeof etapas_polo_projetos.$inferSelect[] })[]>;
