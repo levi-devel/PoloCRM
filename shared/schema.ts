@@ -453,6 +453,7 @@ export const cartoes_funil_vendas = mysqlTable("cartoes_funil_vendas", {
   observacoes: text("observacoes"),
   produto: text("produto"), // Produto contratado
   produto_especifico: text("produto_especifico"), // Produto específico quando produto="Produtos"
+  quantidade_produto: int("quantidade_produto"), // Quantidade de produtos ofertados
   tipo_contrato: text("tipo_contrato"), // Tipo de contrato: Novo, UPSELL, CROSSELL
   data_assinatura_contrato: date("data_assinatura_contrato"), // Data da assinatura do contrato
   criado_por: varchar("criado_por", { length: 255 }).references(() => users.id),

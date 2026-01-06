@@ -277,6 +277,7 @@ const cardSchema = z.object({
     observacoes: z.string().nullable().optional(),
     produto: z.string().nullable().optional(),
     produto_especifico: z.string().nullable().optional(),
+    quantidade_produto: z.string().nullable().optional(),
     tipo_contrato: z.string().nullable().optional(),
     data_assinatura_contrato: z.string().nullable().optional(),
     id_coluna: z.number(),
@@ -307,6 +308,7 @@ export default function SalesFunnel() {
             observacoes: "",
             produto: "",
             produto_especifico: "",
+            quantidade_produto: "",
             tipo_contrato: "",
             data_assinatura_contrato: "",
             id_coluna: 0,
@@ -335,6 +337,7 @@ export default function SalesFunnel() {
             observacoes: "",
             produto: "",
             produto_especifico: "",
+            quantidade_produto: "",
             tipo_contrato: "",
             data_assinatura_contrato: "",
             id_coluna: columnId,
@@ -349,6 +352,7 @@ export default function SalesFunnel() {
 
     const onSubmit = (data: any) => {
         const valueInCents = data.valor ? Math.round(parseFloat(data.valor.replace(/[^\d,]/g, '').replace(',', '.')) * 100) : null;
+        const quantidadeInt = data.quantidade_produto ? parseInt(data.quantidade_produto) : null;
 
         createSalesFunnelCard.mutate({
             id_coluna: data.id_coluna,
@@ -362,6 +366,7 @@ export default function SalesFunnel() {
             observacoes: data.observacoes || null,
             produto: data.produto || null,
             produto_especifico: data.produto_especifico || null,
+            quantidade_produto: quantidadeInt,
             tipo_contrato: data.tipo_contrato || null,
             data_assinatura_contrato: data.data_assinatura_contrato || null,
             criado_por: null,
@@ -654,6 +659,30 @@ export default function SalesFunnel() {
                                     />
                                 </div>
 
+                                {/* Quantidade - Shows when produto is "Produtos" */}
+                                {form.watch("produto") === "Produtos" && (
+                                    <FormField
+                                        control={form.control}
+                                        name="quantidade_produto"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Quantidade</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        {...field}
+                                                        value={field.value || ''}
+                                                        type="number"
+                                                        min="1"
+                                                        placeholder="Ex: 10"
+                                                        className="font-semibold"
+                                                    />
+                                                </FormControl>
+                                                <p className="text-xs text-muted-foreground">Quantidade de produtos ofertados</p>
+                                            </FormItem>
+                                        )}
+                                    />
+                                )}
+
                                 <div className="grid grid-cols-2 gap-4">
                                     <FormField
                                         control={form.control}
@@ -769,6 +798,7 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
             observacoes: card.observacoes || '',
             produto: card.produto || '',
             produto_especifico: card.produto_especifico || '',
+            quantidade_produto: card.quantidade_produto?.toString() || '',
             tipo_contrato: card.tipo_contrato || '',
             data_assinatura_contrato: formatDateForInput(card.data_assinatura_contrato),
         }
@@ -778,6 +808,7 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
         const valueInCents = data.valor
             ? Math.round(parseFloat(data.valor.replace(/[^\d,]/g, '').replace(',', '.')) * 100)
             : null;
+        const quantidadeInt = data.quantidade_produto ? parseInt(data.quantidade_produto) : null;
 
         try {
             await updateSalesFunnelCard.mutateAsync({
@@ -793,6 +824,7 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
                     observacoes: data.observacoes || null,
                     produto: data.produto || null,
                     produto_especifico: data.produto_especifico || null,
+                    quantidade_produto: quantidadeInt,
                     tipo_contrato: data.tipo_contrato || null,
                     data_assinatura_contrato: data.data_assinatura_contrato || null,
                 },
@@ -977,6 +1009,29 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
                             );
                         }}
                     />
+
+                    {/* Quantidade - Shows when produto is "Produtos" */}
+                    {editForm.watch("produto") === "Produtos" && (
+                        <FormField
+                            control={editForm.control}
+                            name="quantidade_produto"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-[10px] font-bold uppercase text-muted-foreground">Quantidade</FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            {...field}
+                                            type="number"
+                                            min="1"
+                                            placeholder="Ex: 10"
+                                            className="font-semibold"
+                                        />
+                                    </FormControl>
+                                    <p className="text-xs text-muted-foreground">Quantidade de produtos ofertados</p>
+                                </FormItem>
+                            )}
+                        />
+                    )}
 
                     <FormField
                         control={editForm.control}
