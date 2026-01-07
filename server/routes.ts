@@ -135,20 +135,30 @@ export async function registerRoutes(
     }
   });
 
-  // File Upload Configuration
+  // File Upload Configuration - Client Specs
   const uploadsDir = path.join(process.cwd(), "uploads", "client-specs");
 
-  // Ensure uploads directory exists
+  // File Upload Configuration - Card Attachments
+  const cardUploadsDir = path.join(process.cwd(), "uploads", "card-attachments");
+
+  // Ensure uploads directories exist
   await fs.mkdir(uploadsDir, { recursive: true });
+  await fs.mkdir(cardUploadsDir, { recursive: true });
 
   const fileStorage = multer.diskStorage({
     destination: (req, file, cb) => {
-      cb(null, uploadsDir);
+      // Determine destination based on the route
+      if (req.path.includes('/cards/')) {
+        cb(null, cardUploadsDir);
+      } else {
+        cb(null, uploadsDir);
+      }
     },
     filename: (req, file, cb) => {
       const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
       const ext = path.extname(file.originalname);
-      cb(null, `spec-${uniqueSuffix}${ext}`);
+      const prefix = req.path.includes('/cards/') ? 'card-att-' : 'spec-';
+      cb(null, `${prefix}${uniqueSuffix}${ext}`);
     }
   });
 
@@ -165,13 +175,15 @@ export async function registerRoutes(
         'text/plain',
         'image/png',
         'image/jpeg',
-        'image/jpg'
+        'image/jpg',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       ];
 
       if (allowedMimes.includes(file.mimetype)) {
         cb(null, true);
       } else {
-        cb(new Error('Tipo de arquivo não permitido. Use PDF, DOCX, DOC, TXT, PNG ou JPG.'));
+        cb(new Error('Tipo de arquivo não permitido.'));
       }
     }
   });
@@ -605,6 +617,85 @@ export async function registerRoutes(
   app.post(api.cardForms.submit.path, async (req, res) => {
     await storage.submitCardForm(Number(req.params.cardId), req.body.status, req.body.answers);
     res.json({ success: true });
+  });
+
+  // Card File Attachments
+  app.post("/api/cards/:id/upload", upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "Nenhum arquivo enviado" });
+      }
+
+      const fileMetadata = {
+        originalName: req.file.originalname,
+        storedName: req.file.filename,
+        fileSize: req.file.size,
+        uploadDate: new Date().toISOString(),
+        mimeType: req.file.mimetype
+      };
+
+      res.json({ success: true, file: fileMetadata });
+    } catch (error: any) {
+      if (req.file) {
+        try {
+          await fs.unlink(req.file.path);
+        } catch (e) {
+          console.error("Failed to delete file on error:", e);
+        }
+      }
+      console.error("Error uploading card file:", error);
+      res.status(500).json({ message: error.message || "Falha ao fazer upload do arquivo" });
+    }
+  });
+
+  app.get("/api/cards/:id/view-file", async (req, res) => {
+    try {
+      const storedName = req.query.file as string;
+      const originalName = req.query.name as string || "arquivo";
+
+      const filePath = path.join(cardUploadsDir, storedName);
+
+      try {
+        await fs.access(filePath);
+      } catch {
+        return res.status(404).json({ message: "Arquivo não encontrado no servidor" });
+      }
+
+      // Determine mime type from extension if not stored/passed, or rely on original filename ext
+      const ext = path.extname(storedName).toLowerCase();
+      let contentType = 'application/octet-stream';
+
+      if (['.png', '.jpg', '.jpeg'].includes(ext)) contentType = `image/${ext.replace('.', '')}`;
+      else if (ext === '.pdf') contentType = 'application/pdf';
+      else if (ext === '.txt') contentType = 'text/plain';
+
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `inline; filename="${originalName}"`);
+      res.sendFile(filePath);
+    } catch (error: any) {
+      console.error("Error viewing card file:", error);
+      res.status(500).json({ message: error.message || "Falha ao visualizar o arquivo" });
+    }
+  });
+
+  app.get("/api/cards/:id/download-file", async (req, res) => {
+    try {
+      const storedName = req.query.file as string;
+      const originalName = req.query.name as string || "arquivo";
+
+      const filePath = path.join(cardUploadsDir, storedName);
+
+      try {
+        await fs.access(filePath);
+      } catch {
+        return res.status(404).json({ message: "Arquivo não encontrado no servidor" });
+      }
+
+      res.download(filePath, originalName);
+    } catch (error: any) {
+      console.error("Error downloading card file:", error);
+      res.status(500).json({ message: error.message || "Falha ao fazer download do arquivo" });
+    }
   });
 
   // Alerts

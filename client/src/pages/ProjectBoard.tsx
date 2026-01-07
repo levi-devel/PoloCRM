@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, MoreHorizontal, Calendar, FileText, Settings, Trash2, Search, ArrowLeft } from "lucide-react";
+import { Plus, MoreHorizontal, Calendar, FileText, Settings, Trash2, Search, ArrowLeft, Upload, Eye, Download, X } from "lucide-react";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { dateToInputValue, inputValueToDate } from "@/lib/date-utils";
@@ -682,6 +682,7 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
             if (answer.valor_data) initialValues[`field_${answer.id_campo}`] = answer.valor_data;
             if (answer.valor_booleano !== null && answer.valor_booleano !== undefined) initialValues[`field_${answer.id_campo}`] = answer.valor_booleano;
             if (answer.valor_lista) initialValues[`field_${answer.id_campo}`] = answer.valor_lista;
+            if (answer.anexos) initialValues[`field_${answer.id_campo}`] = answer.anexos;
           }
         });
         setFormValues(initialValues);
@@ -745,6 +746,46 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
     }
   };
 
+  const handleFileUpload = async (fieldId: number, file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch(`/api/cards/${card.id}/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Falha no upload');
+      }
+
+      const data = await response.json();
+
+      // Update form values with new file
+      setFormValues(prev => {
+        const existingFiles = prev[`field_${fieldId}`] || [];
+        return {
+          ...prev,
+          [`field_${fieldId}`]: [...existingFiles, data.file]
+        };
+      });
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      alert("Erro ao fazer upload do arquivo");
+    }
+  };
+
+  const removeFile = (fieldId: number, storedName: string) => {
+    setFormValues(prev => {
+      const existingFiles = prev[`field_${fieldId}`] || [];
+      return {
+        ...prev,
+        [`field_${fieldId}`]: existingFiles.filter((f: any) => f.storedName !== storedName)
+      };
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -772,6 +813,9 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
         case 'select':
         case 'list':
           answer.valor_lista = value || null;
+          break;
+        case 'file':
+          answer.anexos = value || [];
           break;
       }
 
@@ -1019,6 +1063,75 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
                       <option key={idx} value={option}>{option}</option>
                     ))}
                   </select>
+                ) : field.tipo === 'file' ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <label className="cursor-pointer inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium transition-colors border rounded-md hover:bg-muted/50">
+                        <Upload className="w-4 h-4" />
+                        <span>Anexar Arquivo</span>
+                        <input
+                          type="file"
+                          className="hidden"
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              handleFileUpload(field.id, e.target.files[0]);
+                            }
+                          }}
+                        />
+                      </label>
+                      {field.obrigatorio && !formValues[`field_${field.id}`]?.length && (
+                        <span className="text-xs text-red-500">Obrigatório</span>
+                      )}
+                    </div>
+
+                    {/* File List */}
+                    {formValues[`field_${field.id}`] && formValues[`field_${field.id}`].length > 0 && (
+                      <div className="space-y-2">
+                        {formValues[`field_${field.id}`].map((file: any, index: number) => (
+                          <div key={index} className="flex items-center justify-between p-2 border rounded-md bg-muted/20">
+                            <div className="flex items-center gap-2 overflow-hidden">
+                              <FileText className="w-4 h-4 flex-shrink-0 text-blue-500" />
+                              <span className="text-sm truncate max-w-[200px]" title={file.originalName}>
+                                {file.originalName}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                onClick={() => window.open(`/api/cards/${card.id}/view-file?file=${file.storedName}&name=${encodeURIComponent(file.originalName)}`, '_blank')}
+                                title="Visualizar"
+                              >
+                                <Eye className="w-4 h-4 text-muted-foreground hover:text-primary" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                onClick={() => window.open(`/api/cards/${card.id}/download-file?file=${file.storedName}&name=${encodeURIComponent(file.originalName)}`, '_blank')}
+                                title="Baixar"
+                              >
+                                <Download className="w-4 h-4 text-muted-foreground hover:text-primary" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                onClick={() => removeFile(field.id, file.storedName)}
+                                title="Remover"
+                              >
+                                <X className="w-4 h-4 text-muted-foreground hover:text-destructive" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 ) : null}
               </div>
             );
