@@ -329,56 +329,32 @@ export default function SalesFunnelDashboard() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Distribution by Stage Chart */}
                         <Card className="p-6 bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                            <div className="mb-4">
+                            <div className="mb-8">
                                 <h3 className="font-bold text-gray-800">Distribuição por Estágio</h3>
                                 <p className="text-sm text-gray-500">Volume por etapa do funil</p>
                             </div>
-                            <div id="chart-distribution" ref={chartRef} className="flex items-end justify-around gap-3 mb-5" style={{ height: '200px' }}>
-                                {stats.columnStats.map((col: any, index: number) => {
+                            <div id="chart-distribution" ref={chartRef} className="flex items-end justify-around gap-2 mb-2" style={{ height: '200px' }}>
+                                {stats.columnStats.map((col: any) => {
                                     const heightPx = maxCount > 0 ? Math.floor((col.count / maxCount) * 160) : 0;
-                                    const gradients = [
-                                        'linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%)', // Blue gradient
-                                        'linear-gradient(180deg, #34d399 0%, #10b981 100%)', // Green gradient
-                                        'linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%)', // Orange gradient
-                                    ];
 
                                     return (
-                                        <div key={col.id_coluna} className="flex flex-col items-center gap-2 flex-1 max-w-[100px] group">
-                                            <div
-                                                className="w-full rounded-xl transition-all duration-300 hover:scale-105 cursor-pointer relative overflow-hidden"
-                                                style={{
-                                                    height: `${Math.max(heightPx, col.count > 0 ? 30 : 0)}px`,
-                                                    background: gradients[index % gradients.length],
-                                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                                                }}
-                                            >
-                                                {/* Shine effect */}
-                                                <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white opacity-20"></div>
+                                        <div key={col.id_coluna} className="flex flex-col items-center gap-3 flex-1 group">
+                                            <div className="relative flex flex-col items-center justify-end h-full w-full">
+                                                <div
+                                                    className="w-4 rounded-full transition-all duration-300 hover:bg-red-600 bg-red-500 shadow-sm"
+                                                    style={{
+                                                        height: `${Math.max(heightPx, col.count > 0 ? 10 : 0)}px`,
+                                                    }}
+                                                >
+                                                    {/* Shine effect */}
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white opacity-20 rounded-full"></div>
+                                                </div>
                                             </div>
-                                            <div className="text-xs text-center text-gray-600 font-medium leading-tight">
-                                                {col.columnName}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                            <div className="text-xs text-center text-gray-500 mb-4 flex items-center justify-center gap-1">
-                                <span className="inline-block w-2 h-2 rounded-full bg-gray-400"></span>
-                                <span>Quantidade</span>
-                            </div>
-                            {/* Quantity Cards Below Chart */}
-                            <div className="grid grid-cols-3 gap-2">
-                                {stats.columnStats.slice(0, 3).map((col: any, index: number) => {
-                                    const colors = ['#3b82f6', '#10b981', '#f59e0b'];
-                                    return (
-                                        <div key={col.id_coluna} className="flex items-center gap-2 p-2.5 bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-lg border border-gray-100 hover:border-gray-200 transition-colors">
-                                            <div
-                                                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                                                style={{ backgroundColor: colors[index % colors.length] }}
-                                            />
-                                            <div className="flex-1 min-w-0">
-                                                <div className="text-[10px] text-gray-500 truncate font-medium">{col.columnName}</div>
-                                                <div className="text-base font-bold text-gray-800">{col.count}</div>
+                                            <div className="flex flex-col items-center gap-1">
+                                                <span className="text-sm font-bold text-gray-700">{col.count}</span>
+                                                <div className="text-xs text-center text-gray-500 font-medium leading-tight max-w-[80px] break-words">
+                                                    {col.columnName}
+                                                </div>
                                             </div>
                                         </div>
                                     );
@@ -388,57 +364,33 @@ export default function SalesFunnelDashboard() {
 
                         {/* Distribution by Contract Type Chart */}
                         <Card className="p-6 bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                            <div className="mb-4">
+                            <div className="mb-8">
                                 <h3 className="font-bold text-gray-800">Distribuição por Tipo de Contrato</h3>
                                 <p className="text-sm text-gray-500">Mix de contratos no período</p>
                             </div>
-                            <div className="flex items-end justify-around gap-3 mb-5" style={{ height: '200px' }}>
-                                {stats.contractTypeStats && stats.contractTypeStats.map((typeData: any, index: number) => {
-                                    const gradients = [
-                                        'linear-gradient(180deg, #a78bfa 0%, #9333ea 100%)', // Purple gradient
-                                        'linear-gradient(180deg, #22d3ee 0%, #06b6d4 100%)', // Cyan gradient
-                                        'linear-gradient(180deg, #f472b6 0%, #ec4899 100%)', // Pink gradient
-                                    ];
+                            <div className="flex items-end justify-around gap-2 mb-2" style={{ height: '200px' }}>
+                                {stats.contractTypeStats && stats.contractTypeStats.map((typeData: any) => {
                                     const maxTypeCount = Math.max(...stats.contractTypeStats.map((t: any) => t.count), 1);
                                     const heightPx = maxTypeCount > 0 ? Math.floor((typeData.count / maxTypeCount) * 160) : 0;
 
                                     return (
-                                        <div key={typeData.type} className="flex flex-col items-center gap-2 flex-1 max-w-[90px] group">
-                                            <div
-                                                className="w-full rounded-xl transition-all duration-300 hover:scale-105 cursor-pointer relative overflow-hidden"
-                                                style={{
-                                                    height: `${Math.max(heightPx, typeData.count > 0 ? 30 : 0)}px`,
-                                                    background: gradients[index % gradients.length],
-                                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                                                }}
-                                            >
-                                                {/* Shine effect */}
-                                                <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white opacity-20"></div>
+                                        <div key={typeData.type} className="flex flex-col items-center gap-3 flex-1 group">
+                                            <div className="relative flex flex-col items-center justify-end h-full w-full">
+                                                <div
+                                                    className="w-4 rounded-full transition-all duration-300 hover:bg-red-600 bg-red-500 shadow-sm"
+                                                    style={{
+                                                        height: `${Math.max(heightPx, typeData.count > 0 ? 10 : 0)}px`,
+                                                    }}
+                                                >
+                                                    {/* Shine effect */}
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white opacity-20 rounded-full"></div>
+                                                </div>
                                             </div>
-                                            <div className="text-xs text-center text-gray-600 font-medium leading-tight">
-                                                {typeData.type}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                            <div className="text-xs text-center text-gray-500 mb-4 flex items-center justify-center gap-1">
-                                <span className="inline-block w-2 h-2 rounded-full bg-gray-400"></span>
-                                <span>Quantidade</span>
-                            </div>
-                            {/* Quantity Cards Below Chart */}
-                            <div className="grid grid-cols-3 gap-2">
-                                {stats.contractTypeStats && stats.contractTypeStats.map((typeData: any, index: number) => {
-                                    const colors = ['#9333ea', '#06b6d4', '#ec4899'];
-                                    return (
-                                        <div key={typeData.type} className="flex items-center gap-2 p-2.5 bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-lg border border-gray-100 hover:border-gray-200 transition-colors">
-                                            <div
-                                                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                                                style={{ backgroundColor: colors[index % colors.length] }}
-                                            />
-                                            <div className="flex-1 min-w-0">
-                                                <div className="text-[10px] text-gray-500 truncate font-medium">{typeData.type}</div>
-                                                <div className="text-base font-bold text-gray-800">{typeData.count}</div>
+                                            <div className="flex flex-col items-center gap-1">
+                                                <span className="text-sm font-bold text-gray-700">{typeData.count}</span>
+                                                <div className="text-xs text-center text-gray-500 font-medium leading-tight max-w-[80px] break-words">
+                                                    {typeData.type}
+                                                </div>
                                             </div>
                                         </div>
                                     );
@@ -451,58 +403,33 @@ export default function SalesFunnelDashboard() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Main Products Chart */}
                         <Card className="p-6 bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                            <div className="mb-4">
+                            <div className="mb-8">
                                 <h3 className="font-bold text-gray-800">Distribuição por Produto</h3>
                                 <p className="text-sm text-gray-500">Produtos ofertados no período</p>
                             </div>
-                            <div className="flex items-end justify-around gap-3 mb-5" style={{ height: '200px' }}>
-                                {stats.productStats && stats.productStats.map((prod: any, index: number) => {
-                                    const gradients = [
-                                        'linear-gradient(180deg, #f97316 0%, #ea580c 100%)', // Orange gradient
-                                        'linear-gradient(180deg, #8b5cf6 0%, #7c3aed 100%)', // Violet gradient
-                                        'linear-gradient(180deg, #14b8a6 0%, #0d9488 100%)', // Teal gradient
-                                        'linear-gradient(180deg, #ec4899 0%, #db2777 100%)', // Pink gradient
-                                    ];
+                            <div className="flex items-end justify-around gap-2 mb-2" style={{ height: '200px' }}>
+                                {stats.productStats && stats.productStats.map((prod: any) => {
                                     const maxProductCount = Math.max(...stats.productStats.map((p: any) => p.count), 1);
                                     const heightPx = maxProductCount > 0 ? Math.floor((prod.count / maxProductCount) * 160) : 0;
 
                                     return (
-                                        <div key={prod.product} className="flex flex-col items-center gap-2 flex-1 max-w-[90px] group">
-                                            <div
-                                                className="w-full rounded-xl transition-all duration-300 hover:scale-105 cursor-pointer relative overflow-hidden"
-                                                style={{
-                                                    height: `${Math.max(heightPx, prod.count > 0 ? 30 : 0)}px`,
-                                                    background: gradients[index % gradients.length],
-                                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                                                }}
-                                            >
-                                                {/* Shine effect */}
-                                                <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white opacity-20"></div>
+                                        <div key={prod.product} className="flex flex-col items-center gap-3 flex-1 group">
+                                            <div className="relative flex flex-col items-center justify-end h-full w-full">
+                                                <div
+                                                    className="w-4 rounded-full transition-all duration-300 hover:bg-red-600 bg-red-500 shadow-sm"
+                                                    style={{
+                                                        height: `${Math.max(heightPx, prod.count > 0 ? 10 : 0)}px`,
+                                                    }}
+                                                >
+                                                    {/* Shine effect */}
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white opacity-20 rounded-full"></div>
+                                                </div>
                                             </div>
-                                            <div className="text-xs text-center text-gray-600 font-medium leading-tight">
-                                                {prod.product}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                            <div className="text-xs text-center text-gray-500 mb-4 flex items-center justify-center gap-1">
-                                <span className="inline-block w-2 h-2 rounded-full bg-gray-400"></span>
-                                <span>Quantidade</span>
-                            </div>
-                            {/* Quantity Cards Below Chart */}
-                            <div className="grid grid-cols-3 gap-2">
-                                {stats.productStats && stats.productStats.slice(0, 3).map((prod: any, index: number) => {
-                                    const colors = ['#ea580c', '#7c3aed', '#0d9488'];
-                                    return (
-                                        <div key={prod.product} className="flex items-center gap-2 p-2.5 bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-lg border border-gray-100 hover:border-gray-200 transition-colors">
-                                            <div
-                                                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                                                style={{ backgroundColor: colors[index % colors.length] }}
-                                            />
-                                            <div className="flex-1 min-w-0">
-                                                <div className="text-[10px] text-gray-500 truncate font-medium">{prod.product}</div>
-                                                <div className="text-base font-bold text-gray-800">{prod.count}</div>
+                                            <div className="flex flex-col items-center gap-1">
+                                                <span className="text-sm font-bold text-gray-700">{prod.count}</span>
+                                                <div className="text-xs text-center text-gray-500 font-medium leading-tight max-w-[80px] break-words">
+                                                    {prod.product}
+                                                </div>
                                             </div>
                                         </div>
                                     );
@@ -513,60 +440,33 @@ export default function SalesFunnelDashboard() {
                         {/* Specific Products Chart - Only shown if there are specific products */}
                         {stats.specificProductStats && stats.specificProductStats.length > 0 && (
                             <Card className="p-6 bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                                <div className="mb-4">
+                                <div className="mb-8">
                                     <h3 className="font-bold text-gray-800">Derivações de Produtos</h3>
                                     <p className="text-sm text-gray-500">Produtos específicos ofertados</p>
                                 </div>
-                                <div className="flex items-end justify-around gap-3 mb-5" style={{ height: '200px' }}>
-                                    {stats.specificProductStats.map((spec: any, index: number) => {
-                                        const gradients = [
-                                            'linear-gradient(180deg, #fb923c 0%, #f97316 100%)', // Light orange
-                                            'linear-gradient(180deg, #a78bfa 0%, #8b5cf6 100%)', // Light violet
-                                            'linear-gradient(180deg, #2dd4bf 0%, #14b8a6 100%)', // Light teal
-                                            'linear-gradient(180deg, #f472b6 0%, #ec4899 100%)', // Light pink
-                                            'linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%)', // Amber
-                                            'linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%)', // Blue
-                                        ];
+                                <div className="flex items-end justify-around gap-2 mb-2" style={{ height: '200px' }}>
+                                    {stats.specificProductStats.map((spec: any) => {
                                         const maxSpecCount = Math.max(...stats.specificProductStats.map((s: any) => s.count), 1);
                                         const heightPx = maxSpecCount > 0 ? Math.floor((spec.count / maxSpecCount) * 160) : 0;
 
                                         return (
-                                            <div key={spec.specificProduct} className="flex flex-col items-center gap-2 flex-1 max-w-[90px] group">
-                                                <div
-                                                    className="w-full rounded-xl transition-all duration-300 hover:scale-105 cursor-pointer relative overflow-hidden"
-                                                    style={{
-                                                        height: `${Math.max(heightPx, spec.count > 0 ? 30 : 0)}px`,
-                                                        background: gradients[index % gradients.length],
-                                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                                                    }}
-                                                >
-                                                    {/* Shine effect */}
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white opacity-20"></div>
+                                            <div key={spec.specificProduct} className="flex flex-col items-center gap-3 flex-1 group">
+                                                <div className="relative flex flex-col items-center justify-end h-full w-full">
+                                                    <div
+                                                        className="w-4 rounded-full transition-all duration-300 hover:bg-red-600 bg-red-500 shadow-sm"
+                                                        style={{
+                                                            height: `${Math.max(heightPx, spec.count > 0 ? 10 : 0)}px`,
+                                                        }}
+                                                    >
+                                                        {/* Shine effect */}
+                                                        <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white opacity-20 rounded-full"></div>
+                                                    </div>
                                                 </div>
-                                                <div className="text-xs text-center text-gray-600 font-medium leading-tight">
-                                                    {spec.specificProduct}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                                <div className="text-xs text-center text-gray-500 mb-4 flex items-center justify-center gap-1">
-                                    <span className="inline-block w-2 h-2 rounded-full bg-gray-400"></span>
-                                    <span>Quantidade</span>
-                                </div>
-                                {/* Quantity Cards Below Chart */}
-                                <div className="grid grid-cols-3 gap-2">
-                                    {stats.specificProductStats.slice(0, 3).map((spec: any, index: number) => {
-                                        const colors = ['#f97316', '#8b5cf6', '#14b8a6', '#ec4899', '#f59e0b', '#3b82f6'];
-                                        return (
-                                            <div key={spec.specificProduct} className="flex items-center gap-2 p-2.5 bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-lg border border-gray-100 hover:border-gray-200 transition-colors">
-                                                <div
-                                                    className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                                                    style={{ backgroundColor: colors[index % colors.length] }}
-                                                />
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="text-[10px] text-gray-500 truncate font-medium">{spec.specificProduct}</div>
-                                                    <div className="text-base font-bold text-gray-800">{spec.count}</div>
+                                                <div className="flex flex-col items-center gap-1">
+                                                    <span className="text-sm font-bold text-gray-700">{spec.count}</span>
+                                                    <div className="text-xs text-center text-gray-500 font-medium leading-tight max-w-[80px] break-words">
+                                                        {spec.specificProduct}
+                                                    </div>
                                                 </div>
                                             </div>
                                         );
