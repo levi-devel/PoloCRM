@@ -1260,13 +1260,15 @@ export class DatabaseStorage implements IStorage {
             .reduce((acc, card) => {
                 const produtoEspecifico = card.produto_especifico!;
                 const existing = acc.find(p => p.specificProduct === produtoEspecifico);
+                const quantity = card.quantidade_produto || 1; // Default to 1 if not specified
+
                 if (existing) {
-                    existing.count++;
+                    existing.count += quantity;
                     existing.totalValue += card.valor || 0;
                 } else {
                     acc.push({
                         specificProduct: produtoEspecifico,
-                        count: 1,
+                        count: quantity,
                         totalValue: card.valor || 0,
                     });
                 }
