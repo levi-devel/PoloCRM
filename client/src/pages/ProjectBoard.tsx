@@ -674,43 +674,23 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
       });
     }
 
-    // STEP 2: Load localStorage and merge intelligently
+    // STEP 2: CRITICAL - Only use localStorage for basic info edits (description/priority/dates)
+    // NEVER override server data for: user selection, form fields with saved data
     const savedData = localStorage.getItem(`card_${card.id}`);
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
 
-        // Merge: server data + local unsaved changes
-        const mergedValues = { ...serverValues };
+        // ALWAYS use server data for form values
+        // This ensures all users see the same saved data
+        setFormValues(serverValues);
 
-        // Only override with localStorage if it's NOT a file field
-        // File fields MUST always come from server to ensure sync between users
-        if (parsed.formValues) {
-          Object.keys(parsed.formValues).forEach((key) => {
-            // Extract field ID from key like "field_123"
-            const fieldId = key.replace('field_', '');
+        // DO NOT use localStorage for selectedUserId
+        // User assignments must sync between all users
+        // Keep the server value already set above
 
-            // Check if this is a file field by looking at the answer type
-            const isFileField = card.formAnswers?.some((answer: any) =>
-              answer.id_campo?.toString() === fieldId && answer.anexos !== undefined
-            );
-
-            // For file fields, always use server data
-            // For other fields, use localStorage (unsaved edits)
-            if (!isFileField) {
-              mergedValues[key] = parsed.formValues[key];
-            }
-          });
-        }
-
-        setFormValues(mergedValues);
-
-        // Load user selection from localStorage (if different from server)
-        if (parsed.selectedUserId !== undefined) {
-          setSelectedUserId(parsed.selectedUserId);
-        }
-
-        // Load basic info edits from localStorage
+        // ONLY load basic card info edits from localStorage if user is currently editing
+        // These are temporary edits that haven't been saved yet
         if (parsed.description !== undefined) setEditableDescription(parsed.description);
         if (parsed.priority !== undefined) setEditablePriority(parsed.priority);
         if (parsed.startDate !== undefined) setEditableStartDate(parsed.startDate);
