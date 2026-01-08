@@ -805,7 +805,9 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
           answer.valor_numero = value ? parseFloat(value) : null;
           break;
         case 'date':
-          answer.valor_data = value || null;
+          // Ensure the date is converted to a Date object or null
+          // This prevents TypeORM errors in production where toISOString() is called on strings
+          answer.valor_data = value ? (value instanceof Date ? value : new Date(value)) : null;
           break;
         case 'checkbox':
           answer.valor_booleano = value === true;
