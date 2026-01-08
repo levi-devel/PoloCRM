@@ -189,62 +189,95 @@ export async function registerRoutes(
   });
 
   // Upload Technical Specification
-  app.post("/api/clientes/:id/upload-spec", upload.single('file'), async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ message: "Nenhum arquivo enviado" });
-      }
+  app.post("/api/clientes/:id/upload-spec", (req, res) => {
+    // Ensure directory exists before upload
+    fs.mkdir(uploadsDir, { recursive: true })
+      .then(() => {
+        // Process the upload
+        upload.single('file')(req, res, async (err) => {
+          try {
+            // Check for multer errors
+            if (err) {
+              console.error("[ERROR] Multer error uploading spec:", err);
+              if (err instanceof multer.MulterError) {
+                if (err.code === 'LIMIT_FILE_SIZE') {
+                  return res.status(400).json({ message: "Arquivo muito grande. Máximo 10MB" });
+                }
+                return res.status(400).json({ message: `Erro ao fazer upload: ${err.message}` });
+              }
+              return res.status(500).json({ message: err.message || "Falha ao fazer upload do arquivo" });
+            }
 
-      const clientId = Number(req.params.id);
-      const client = await storage.getClient(clientId);
+            if (!req.file) {
+              console.error("[ERROR] No file received in request");
+              return res.status(400).json({ message: "Nenhum arquivo enviado" });
+            }
 
-      if (!client) {
-        // Remove uploaded file if client doesn't exist
-        await fs.unlink(req.file.path);
-        return res.status(404).json({ message: "Cliente não encontrado" });
-      }
+            const clientId = Number(req.params.id);
+            const client = await storage.getClient(clientId);
 
-      // Create file metadata
-      const fileMetadata = {
-        originalName: req.file.originalname,
-        storedName: req.file.filename,
-        fileSize: req.file.size,
-        uploadDate: new Date().toISOString(),
-        mimeType: req.file.mimetype
-      };
+            if (!client) {
+              // Remove uploaded file if client doesn't exist
+              await fs.unlink(req.file.path);
+              return res.status(404).json({ message: "Cliente não encontrado" });
+            }
 
-      // Get existing files array or create new one
-      let existingFiles: any[] = [];
-      if (client.caminho_especificacao_tecnica) {
-        const parsed = typeof client.caminho_especificacao_tecnica === 'string'
-          ? JSON.parse(client.caminho_especificacao_tecnica)
-          : client.caminho_especificacao_tecnica;
+            console.log("[DEBUG] Client spec file uploaded successfully:", {
+              clientId,
+              originalName: req.file.originalname,
+              storedName: req.file.filename,
+              size: req.file.size,
+              path: req.file.path,
+              destination: req.file.destination
+            });
 
-        // Handle both old single-file format and new array format
-        existingFiles = Array.isArray(parsed) ? parsed : [parsed];
-      }
+            // Create file metadata
+            const fileMetadata = {
+              originalName: req.file.originalname,
+              storedName: req.file.filename,
+              fileSize: req.file.size,
+              uploadDate: new Date().toISOString(),
+              mimeType: req.file.mimetype
+            };
 
-      // Add new file to array
-      const updatedFiles = [...existingFiles, fileMetadata];
+            // Get existing files array or create new one
+            let existingFiles: any[] = [];
+            if (client.caminho_especificacao_tecnica) {
+              const parsed = typeof client.caminho_especificacao_tecnica === 'string'
+                ? JSON.parse(client.caminho_especificacao_tecnica)
+                : client.caminho_especificacao_tecnica;
 
-      // Update client with new files array
-      await storage.updateClient(clientId, {
-        caminho_especificacao_tecnica: updatedFiles
+              // Handle both old single-file format and new array format
+              existingFiles = Array.isArray(parsed) ? parsed : [parsed];
+            }
+
+            // Add new file to array
+            const updatedFiles = [...existingFiles, fileMetadata];
+
+            // Update client with new files array
+            await storage.updateClient(clientId, {
+              caminho_especificacao_tecnica: updatedFiles
+            });
+
+            res.json({ success: true, file: fileMetadata, allFiles: updatedFiles });
+          } catch (error: any) {
+            // Clean up uploaded file on error
+            if (req.file) {
+              try {
+                await fs.unlink(req.file.path);
+              } catch (e) {
+                console.error("[ERROR] Failed to delete file on error:", e);
+              }
+            }
+            console.error("[ERROR] Error uploading specification:", error);
+            res.status(500).json({ message: error.message || "Falha ao fazer upload do arquivo" });
+          }
+        });
+      })
+      .catch((err) => {
+        console.error("[ERROR] Failed to create upload directory:", err);
+        res.status(500).json({ message: "Falha ao criar diretório de upload" });
       });
-
-      res.json({ success: true, file: fileMetadata, allFiles: updatedFiles });
-    } catch (error: any) {
-      // Clean up uploaded file on error
-      if (req.file) {
-        try {
-          await fs.unlink(req.file.path);
-        } catch (e) {
-          console.error("Failed to delete file on error:", e);
-        }
-      }
-      console.error("Error uploading specification:", error);
-      res.status(500).json({ message: error.message || "Falha ao fazer upload do arquivo" });
-    }
   });
 
   // View Technical Specification (open in browser)
@@ -620,32 +653,64 @@ export async function registerRoutes(
   });
 
   // Card File Attachments
-  app.post("/api/cards/:id/upload", upload.single('file'), async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ message: "Nenhum arquivo enviado" });
-      }
+  app.post("/api/cards/:id/upload", (req, res) => {
+    // Ensure directory exists before upload
+    fs.mkdir(cardUploadsDir, { recursive: true })
+      .then(() => {
+        // Process the upload
+        upload.single('file')(req, res, async (err) => {
+          try {
+            // Check for multer errors
+            if (err) {
+              console.error("[ERROR] Multer error uploading card file:", err);
+              if (err instanceof multer.MulterError) {
+                if (err.code === 'LIMIT_FILE_SIZE') {
+                  return res.status(400).json({ message: "Arquivo muito grande. Máximo 10MB" });
+                }
+                return res.status(400).json({ message: `Erro ao fazer upload: ${err.message}` });
+              }
+              return res.status(500).json({ message: err.message || "Falha ao fazer upload do arquivo" });
+            }
 
-      const fileMetadata = {
-        originalName: req.file.originalname,
-        storedName: req.file.filename,
-        fileSize: req.file.size,
-        uploadDate: new Date().toISOString(),
-        mimeType: req.file.mimetype
-      };
+            if (!req.file) {
+              console.error("[ERROR] No file received in request");
+              return res.status(400).json({ message: "Nenhum arquivo enviado" });
+            }
 
-      res.json({ success: true, file: fileMetadata });
-    } catch (error: any) {
-      if (req.file) {
-        try {
-          await fs.unlink(req.file.path);
-        } catch (e) {
-          console.error("Failed to delete file on error:", e);
-        }
-      }
-      console.error("Error uploading card file:", error);
-      res.status(500).json({ message: error.message || "Falha ao fazer upload do arquivo" });
-    }
+            console.log("[DEBUG] Card file uploaded successfully:", {
+              originalName: req.file.originalname,
+              storedName: req.file.filename,
+              size: req.file.size,
+              path: req.file.path,
+              destination: req.file.destination
+            });
+
+            const fileMetadata = {
+              originalName: req.file.originalname,
+              storedName: req.file.filename,
+              fileSize: req.file.size,
+              uploadDate: new Date().toISOString(),
+              mimeType: req.file.mimetype
+            };
+
+            res.json({ success: true, file: fileMetadata });
+          } catch (error: any) {
+            if (req.file) {
+              try {
+                await fs.unlink(req.file.path);
+              } catch (e) {
+                console.error("[ERROR] Failed to delete file on error:", e);
+              }
+            }
+            console.error("[ERROR] Error uploading card file:", error);
+            res.status(500).json({ message: error.message || "Falha ao fazer upload do arquivo" });
+          }
+        });
+      })
+      .catch((err) => {
+        console.error("[ERROR] Failed to create upload directory:", err);
+        res.status(500).json({ message: "Falha ao criar diretório de upload" });
+      });
   });
 
   app.get("/api/cards/:id/view-file", async (req, res) => {
