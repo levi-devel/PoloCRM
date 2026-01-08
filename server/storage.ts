@@ -41,6 +41,7 @@ export interface IStorage {
   // Cards
   getAllCards(): Promise<typeof cartoes.$inferSelect[]>;
   getCards(id_projeto: number): Promise<typeof cartoes.$inferSelect[]>;
+  getCardsByTechnician(id_projeto: number, technicianId: string): Promise<typeof cartoes.$inferSelect[]>;
   getCard(id: number): Promise<typeof cartoes.$inferSelect & { formResponse?: typeof respostas_formularios_cartoes.$inferSelect, formAnswers?: typeof respostas_campos_formularios.$inferSelect[] } | undefined>;
   createCard(card: InsertCartao): Promise<typeof cartoes.$inferSelect>;
   updateCard(id: number, updates: Partial<InsertCartao>): Promise<typeof cartoes.$inferSelect>;

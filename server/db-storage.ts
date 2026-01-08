@@ -398,6 +398,15 @@ export class DatabaseStorage implements IStorage {
         return await db.select().from(cartoes).where(eq(cartoes.id_projeto, projectId));
     }
 
+    async getCardsByTechnician(projectId: number, technicianId: string) {
+        return await db.select().from(cartoes).where(
+            and(
+                eq(cartoes.id_projeto, projectId),
+                eq(cartoes.id_tecnico_atribuido, technicianId)
+            )
+        );
+    }
+
     async getCard(id: number) {
         const card = await db.select().from(cartoes).where(eq(cartoes.id, id)).limit(1);
         if (!card[0]) return undefined;

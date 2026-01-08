@@ -561,9 +561,33 @@ export async function registerRoutes(
     res.json(cards);
   });
 
-  app.get(api.cartoes.list.path, async (req, res) => {
-    const cards = await storage.getCards(Number(req.params.projectId));
-    res.json(cards);
+  app.get(api.cartoes.list.path, isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      const user = await storage.getUser(userId);
+
+      if (!user) {
+        return res.status(401).json({ message: "Usuário não encontrado" });
+      }
+
+      // Admin e Gerentes veem todos os cards
+      const isManagerOrAdmin = ["Admin", "Gerente Comercial", "Gerente Supervisor"].includes(user.role);
+
+      let cards;
+      if (isManagerOrAdmin) {
+        cards = await storage.getCards(Number(req.params.projectId));
+      } else {
+        // Técnicos veem apenas seus próprios cards
+        cards = await storage.getCardsByTechnician(
+          Number(req.params.projectId),
+          userId
+        );
+      }
+
+      res.json(cards);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Falha ao buscar cards" });
+    }
   });
   app.post(api.cartoes.create.path, async (req, res) => {
     const card = await storage.createCard({ ...req.body, id_projeto: Number(req.params.projectId) });
