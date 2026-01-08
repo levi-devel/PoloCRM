@@ -638,7 +638,17 @@ export class DatabaseStorage implements IStorage {
 
     // Alerts
     async getAlerts() {
-        return await db.select().from(alertas).orderBy(desc(alertas.criado_em));
+        // Retorna alertas com informações do destinatário (para Admin/Gerentes)
+        const alertsData = await db.select().from(alertas).orderBy(desc(alertas.criado_em));
+
+        // Buscar nomes dos destinatários
+        const allUsers = await db.select().from(users);
+        const userMap = new Map(allUsers.map(u => [u.id, `${u.firstName} ${u.lastName}`]));
+
+        return alertsData.map(alert => ({
+            ...alert,
+            nome_destinatario: alert.id_destinatario ? userMap.get(alert.id_destinatario) || "Usuário Removido" : null
+        }));
     }
 
     async createAlert(alerta: typeof alertas.$inferInsert) {

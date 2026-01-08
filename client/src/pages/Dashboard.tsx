@@ -5,6 +5,7 @@ import { useProjects } from "@/hooks/use-projects";
 import { useClients } from "@/hooks/use-clients";
 import { useAlerts } from "@/hooks/use-alerts";
 import { useUsers } from "@/hooks/use-users";
+import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import {
@@ -56,6 +57,10 @@ export default function Dashboard() {
   const { data: clients } = useClients();
   const { data: users } = useUsers();
   const { data: alerts } = useAlerts();
+  const { user } = useAuth();
+
+  // Verificar se é Admin ou Gerente
+  const isManagerOrAdmin = user?.role && ["Admin", "Gerente Comercial", "Gerente Supervisor"].includes(user.role);
 
   const [selectedProjectId, setSelectedProjectId] = useState<string>("all");
   const [selectedPeriod, setSelectedPeriod] = useState<string>("month");
@@ -391,7 +396,11 @@ export default function Dashboard() {
                       )} />
                       <div className="min-w-0">
                         <p className="text-xs font-medium text-foreground truncate">{alert.mensagem}</p>
-                        <span className="text-xs text-muted-foreground">
+                        {/* Mostrar destinatário para Admin/Gerentes */}
+                        {isManagerOrAdmin && (alert as any).nome_destinatario && (
+                          <span className="text-xs text-muted-foreground">Para: {(alert as any).nome_destinatario}</span>
+                        )}
+                        <span className="text-xs text-muted-foreground block">
                           {alert.criado_em ? format(new Date(alert.criado_em), 'dd/MM HH:mm') : 'Agora mesmo'}
                         </span>
                       </div>
