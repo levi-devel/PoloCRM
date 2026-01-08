@@ -203,9 +203,14 @@ export default function Dashboard() {
     <Layout>
       <div className="space-y-8">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold font-display text-foreground">Dashboard de Projetos</h1>
-          <p className="text-muted-foreground mt-2">Veja volume de cards, concluídos no mês/ano, gargalos e alertas.</p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold font-display text-foreground">Dashboard de Projetos</h1>
+            <p className="text-muted-foreground mt-2">Veja volume de cards, concluídos no mês/ano, gargalos e alertas.</p>
+          </div>
+          <Button variant="outline">
+            Exportar
+          </Button>
         </div>
 
         {/* Filters */}
@@ -259,10 +264,6 @@ export default function Dashboard() {
                 </SelectContent>
               </Select>
             </div>
-
-            <Button variant="outline" className="ml-auto">
-              Exportar
-            </Button>
           </div>
 
           {/* Second Row: Custom Date Range (only visible when period is custom) */}
@@ -345,7 +346,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Stats Cards */}
+        {/* Stats Cards and Alerts */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
             label="Total de Cards"
@@ -371,14 +372,35 @@ export default function Dashboard() {
             iconBgColor="bg-blue-50"
             iconColor="text-blue-500"
           />
-          <StatCard
-            label="Atrasados / SLA"
-            value={overdueSLA}
-            icon={AlertTriangle}
-            borderColor="border-l-orange-400"
-            iconBgColor="bg-orange-50"
-            iconColor="text-orange-500"
-          />
+          {/* Alertas Recentes */}
+          <Card className="shadow-sm border-border/60">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Alertas Recentes</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="space-y-2 max-h-[100px] overflow-y-auto">
+                {recentActivity.length === 0 ? (
+                  <div className="text-center py-2 text-muted-foreground text-xs">Nenhum alerta ativo</div>
+                ) : (
+                  recentActivity.slice(0, 3).map((alert) => (
+                    <div key={alert.id} className="flex gap-2 items-start p-2 rounded-lg bg-muted/30 border border-border/50">
+                      <div className={cn(
+                        "w-2 h-2 mt-1 rounded-full flex-shrink-0",
+                        alert.severidade === "Crítico" ? "bg-red-500" :
+                          alert.severidade === "Aviso" ? "bg-orange-500" : "bg-blue-500"
+                      )} />
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-foreground truncate">{alert.mensagem}</p>
+                        <span className="text-xs text-muted-foreground">
+                          {alert.criado_em ? format(new Date(alert.criado_em), 'dd/MM HH:mm') : 'Agora mesmo'}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Project Technician Distribution and Ranking */}
@@ -564,41 +586,6 @@ export default function Dashboard() {
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Recent Alerts */}
-          <div>
-            <Card className="shadow-sm border-border/60 h-full">
-              <CardHeader>
-                <CardTitle>Alertas Recentes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {recentActivity.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground text-sm">Nenhum alerta ativo</div>
-                  ) : (
-                    recentActivity.map((alert) => (
-                      <div key={alert.id} className="flex gap-4 items-start p-3 rounded-lg bg-muted/30 border border-border/50">
-                        <div className={cn(
-                          "w-2 h-2 mt-2 rounded-full flex-shrink-0",
-                          alert.severidade === "Crítico" ? "bg-red-500" :
-                            alert.severidade === "Aviso" ? "bg-orange-500" : "bg-blue-500"
-                        )} />
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{alert.mensagem}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Clock className="w-3 h-3 text-muted-foreground" />
-                            <span className="text-xs text-muted-foreground">
-                              {alert.criado_em ? format(new Date(alert.criado_em), 'dd/MM HH:mm') : 'Agora mesmo'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
               </CardContent>
             </Card>
           </div>
