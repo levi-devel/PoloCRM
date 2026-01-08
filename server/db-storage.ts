@@ -609,10 +609,14 @@ export class DatabaseStorage implements IStorage {
                 );
 
             // Insert new answer
+            // IMPORTANT: Convert valor_data from string to Date if present
+            // JSON serialization converts Date objects to ISO strings, but Drizzle expects Date objects
             const answerData = {
                 ...ans,
                 id_resposta: response[0].id,
                 anexos: ans.anexos ? [...ans.anexos] : null,
+                // Convert string date to Date object if present
+                valor_data: ans.valor_data ? new Date(ans.valor_data) : null,
             };
             await db
                 .insert(respostas_campos_formularios)
