@@ -177,14 +177,16 @@ export const respostas_campos_formularios = mysqlTable("respostas_campos_formula
 export const alertas = mysqlTable("alertas", {
   id: int("id").primaryKey().autoincrement(),
   tipo: text("tipo").notNull(),
-  id_projeto: int("id_projeto").references(() => projetos.id).notNull(),
+  id_projeto: int("id_projeto").references(() => projetos.id),
   id_cartao: int("id_cartao").references(() => cartoes.id),
+  id_etapa_polo: int("id_etapa_polo").references(() => etapas_polo_projetos.id),
   mensagem: text("mensagem").notNull(),
   severidade: varchar("severidade", { length: 50 }).default("Info"), // Info, Aviso, Crítico
   resolvido: boolean("resolvido").default(false),
+  lido: boolean("lido").default(false),
+  id_destinatario: varchar("id_destinatario", { length: 255 }).references(() => users.id).notNull(),
   criado_em: timestamp("criado_em").defaultNow(),
   resolvido_em: timestamp("resolvido_em"),
-  destinatarios: json("destinatarios").$type<string[]>(), // User IDs
 });
 
 // Polo Project Tables

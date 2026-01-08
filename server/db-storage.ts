@@ -440,6 +440,20 @@ export class DatabaseStorage implements IStorage {
                 id_modelo: project[0].id_modelo_padrao,
                 status: "Não iniciado",
             });
+
+            // NOVO: Criar alerta se técnico foi atribuído na criação
+            if (card.id_tecnico_atribuido) {
+                await this.createAlert({
+                    tipo: "Atribuição de Card",
+                    id_projeto: card.id_projeto,
+                    id_cartao: created[0].id,
+                    mensagem: `Você foi atribuído ao card "${created[0].titulo}" no projeto "${project[0].nome}"`,
+                    severidade: "Info",
+                    id_destinatario: card.id_tecnico_atribuido,
+                    lido: false,
+                    resolvido: false
+                });
+            }
         }
 
         return created[0];
@@ -448,6 +462,31 @@ export class DatabaseStorage implements IStorage {
     async updateCard(id: number, updates: Partial<InsertCartao>) {
         const card = await this.getCard(id);
         if (!card) throw new Error("Card not found");
+
+        // NOVO: Criar alerta se técnico atribuído mudou
+        if (updates.id_tecnico_atribuido !== undefined &&
+            updates.id_tecnico_atribuido !== card.id_tecnico_atribuido &&
+            updates.id_tecnico_atribuido !== null) {
+
+            const project = await db
+                .select()
+                .from(projetos)
+                .where(eq(projetos.id, card.id_projeto))
+                .limit(1);
+
+            if (project[0]) {
+                await this.createAlert({
+                    tipo: "Atribuição de Card",
+                    id_projeto: card.id_projeto,
+                    id_cartao: id,
+                    mensagem: `Você foi atribuído ao card "${card.titulo}" no projeto "${project[0].nome}"`,
+                    severidade: "Info",
+                    id_destinatario: updates.id_tecnico_atribuido,
+                    lido: false,
+                    resolvido: false
+                });
+            }
+        }
 
         // Handle completion date logic
         if (updates.id_coluna !== undefined) {
@@ -584,6 +623,49 @@ export class DatabaseStorage implements IStorage {
     // Alerts
     async getAlerts() {
         return await db.select().from(alertas).orderBy(desc(alertas.criado_em));
+    }
+
+    async createAlert(alerta: typeof alertas.$inferInsert) {
+        await db.insert(alertas).values(alerta);
+        const created = await db.select().from(alertas).orderBy(desc(alertas.id)).limit(1);
+        return created[0];
+    }
+
+    async getUnreadAlertsCount(userId: string): Promise<number> {
+        const result = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(alertas)
+            .where(and(
+                eq(alertas.id_destinatario, userId),
+                eq(alertas.lido, false)
+            ));
+
+        return result[0]?.count || 0;
+    }
+
+    async getUserAlerts(userId: string) {
+        return await db
+            .select()
+            .from(alertas)
+            .where(eq(alertas.id_destinatario, userId))
+            .orderBy(desc(alertas.criado_em));
+    }
+
+    async markAlertAsRead(alertId: number) {
+        await db
+            .update(alertas)
+            .set({ lido: true })
+            .where(eq(alertas.id, alertId));
+    }
+
+    async markAllAlertsAsRead(userId: string) {
+        await db
+            .update(alertas)
+            .set({ lido: true })
+            .where(and(
+                eq(alertas.id_destinatario, userId),
+                eq(alertas.lido, false)
+            ));
     }
 
     // Dashboard stats
@@ -924,10 +1006,64 @@ export class DatabaseStorage implements IStorage {
 
         await db.insert(etapas_polo_projetos).values(stage);
         const created = await db.select().from(etapas_polo_projetos).orderBy(desc(etapas_polo_projetos.id)).limit(1);
+
+        // NOVO: Criar alerta se técnico foi atribuído na criação
+        if (created[0] && stage.id_tecnico_atribuido) {
+            const poloProjeto = await db
+                .select()
+                .from(polo_projetos)
+                .where(eq(polo_projetos.id, stage.id_polo_projeto))
+                .limit(1);
+
+            if (poloProjeto[0]) {
+                await this.createAlert({
+                    tipo: "Atribuição de Etapa",
+                    id_etapa_polo: created[0].id,
+                    mensagem: `Você foi atribuído como executante da etapa "${created[0].nome}" no projeto "${poloProjeto[0].nome}"`,
+                    severidade: "Info",
+                    id_destinatario: stage.id_tecnico_atribuido,
+                    lido: false,
+                    resolvido: false
+                });
+            }
+        }
+
         return created[0];
     }
 
     async updatePoloProjectStage(id: number, updates: Partial<InsertEtapaPoloProjeto>) {
+        const stage = await db
+            .select()
+            .from(etapas_polo_projetos)
+            .where(eq(etapas_polo_projetos.id, id))
+            .limit(1);
+
+        if (!stage[0]) throw new Error("Stage not found");
+
+        // NOVO: Criar alerta se técnico atribuído mudou
+        if (updates.id_tecnico_atribuido !== undefined &&
+            updates.id_tecnico_atribuido !== stage[0].id_tecnico_atribuido &&
+            updates.id_tecnico_atribuido !== null) {
+
+            const poloProjeto = await db
+                .select()
+                .from(polo_projetos)
+                .where(eq(polo_projetos.id, stage[0].id_polo_projeto))
+                .limit(1);
+
+            if (poloProjeto[0]) {
+                await this.createAlert({
+                    tipo: "Atribuição de Etapa",
+                    id_etapa_polo: id,
+                    mensagem: `Você foi atribuído como executante da etapa "${stage[0].nome}" no projeto "${poloProjeto[0].nome}"`,
+                    severidade: "Info",
+                    id_destinatario: updates.id_tecnico_atribuido,
+                    lido: false,
+                    resolvido: false
+                });
+            }
+        }
+
         await db
             .update(etapas_polo_projetos)
             .set(updates)

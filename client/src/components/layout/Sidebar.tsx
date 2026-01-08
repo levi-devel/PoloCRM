@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { canViewMenu, type UserRole } from "@/lib/permission-utils";
+import { useUnreadAlertsCount } from "@/hooks/use-alerts";
 
 
 const navItems = [
@@ -41,6 +42,8 @@ export function Sidebar() {
   const [location] = useLocation();
   const { logout, user } = useAuth();
   const { toast } = useToast();
+  const { data: unreadData } = useUnreadAlertsCount();
+  const unreadCount = unreadData?.count || 0;
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
@@ -145,11 +148,12 @@ export function Sidebar() {
       <div className="flex-1 px-4 space-y-2">
         {visibleNavItems.map((item) => {
           const isActive = location === item.href;
+          const isAlertsItem = item.label === "Alertas";
           return (
             <Link key={item.href} href={item.href}>
               <div
                 className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 cursor-pointer group",
+                  "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 cursor-pointer group relative",
                   isActive
                     ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
                     : "hover:bg-muted text-muted-foreground hover:text-foreground"
@@ -165,6 +169,13 @@ export function Sidebar() {
                   <item.icon className={cn("w-5 h-5", isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground")} />
                 ) : null}
                 <span className="font-medium">{item.label}</span>
+
+                {/* Badge de notificação */}
+                {isAlertsItem && unreadCount > 0 && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 bg-destructive text-destructive-foreground text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
               </div>
             </Link>
           );

@@ -699,9 +699,47 @@ export async function registerRoutes(
   });
 
   // Alerts
-  app.get(api.alertas.list.path, async (req, res) => {
-    const alerts = await storage.getAlerts();
-    res.json(alerts);
+  // Get alerts for current user
+  app.get(api.alertas.list.path, isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      const alerts = await storage.getUserAlerts(userId);
+      res.json(alerts);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to get alerts" });
+    }
+  });
+
+  // Get unread alerts count for current user
+  app.get("/api/alertas/unread-count", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      const count = await storage.getUnreadAlertsCount(userId);
+      res.json({ count });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to get unread count" });
+    }
+  });
+
+  // Mark alert as read
+  app.patch("/api/alertas/:id/mark-read", isAuthenticated, async (req, res) => {
+    try {
+      await storage.markAlertAsRead(Number(req.params.id));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to mark alert as read" });
+    }
+  });
+
+  // Mark all alerts as read
+  app.patch("/api/alertas/mark-all-read", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      await storage.markAllAlertsAsRead(userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to mark all alerts as read" });
+    }
   });
 
   // Dashboard endpoints

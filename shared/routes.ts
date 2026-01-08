@@ -300,6 +300,27 @@ export const api = {
         200: z.array(z.custom<typeof alertas.$inferSelect>()),
       },
     },
+    unreadCount: {
+      method: 'GET' as const,
+      path: '/api/alertas/unread-count',
+      responses: {
+        200: z.object({ count: z.number() }),
+      },
+    },
+    markAsRead: {
+      method: 'PATCH' as const,
+      path: '/api/alertas/:id/mark-read',
+      responses: {
+        200: z.object({ success: z.boolean() }),
+      },
+    },
+    markAllAsRead: {
+      method: 'PATCH' as const,
+      path: '/api/alertas/mark-all-read',
+      responses: {
+        200: z.object({ success: z.boolean() }),
+      },
+    },
   },
   polo_projetos: {
     list: {

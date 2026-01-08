@@ -51,6 +51,11 @@ export interface IStorage {
 
   // Alerts
   getAlerts(): Promise<typeof alertas.$inferSelect[]>;
+  createAlert(alerta: typeof alertas.$inferInsert): Promise<typeof alertas.$inferSelect>;
+  getUnreadAlertsCount(userId: string): Promise<number>;
+  getUserAlerts(userId: string): Promise<typeof alertas.$inferSelect[]>;
+  markAlertAsRead(alertId: number): Promise<void>;
+  markAllAlertsAsRead(userId: string): Promise<void>;
 
   // Dashboard stats
   getDashboardStats(projectId?: number, startDate?: Date, endDate?: Date, technicianId?: string): Promise<{
