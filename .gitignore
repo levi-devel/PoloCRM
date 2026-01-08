@@ -6,6 +6,6 @@ vite.config.ts.*
 *.tar.gz
 .env
 client/Docs
-migrations/
+migrations
 
 

@@ -9,6 +9,7 @@ import {
     projetos,
     colunas_projetos,
     cartoes,
+    cartoes_usuarios,
     respostas_formularios_cartoes,
     respostas_campos_formularios,
     alertas,
@@ -425,7 +426,15 @@ export class DatabaseStorage implements IStorage {
                 .where(eq(respostas_campos_formularios.id_resposta, formResponse[0].id));
         }
 
-        return { ...card[0], formResponse: formResponse[0], formAnswers };
+        // Buscar usuários atribuídos ao card
+        const cardUsers = await db
+            .select()
+            .from(cartoes_usuarios)
+            .where(eq(cartoes_usuarios.id_cartao, id));
+
+        const usuariosAtribuidos = cardUsers.map(cu => cu.id_usuario);
+
+        return { ...card[0], formResponse: formResponse[0], formAnswers, usuariosAtribuidos };
     }
 
     async createCard(card: InsertCartao) {
@@ -634,6 +643,125 @@ export class DatabaseStorage implements IStorage {
                 .insert(respostas_campos_formularios)
                 .values(answerData as any);
         }
+    }
+
+    // Card Users - Múltiplos usuários por cartão
+    async getCardUsers(cardId: number) {
+        const cardUsers = await db
+            .select()
+            .from(cartoes_usuarios)
+            .where(eq(cartoes_usuarios.id_cartao, cardId));
+
+        // Buscar dados completos dos usuários
+        if (cardUsers.length === 0) return [];
+
+        const userIds = cardUsers.map(cu => cu.id_usuario);
+        const usersData = await db
+            .select()
+            .from(users)
+            .where(inArray(users.id, userIds));
+
+        return cardUsers.map(cu => ({
+            ...cu,
+            usuario: usersData.find(u => u.id === cu.id_usuario)
+        }));
+    }
+
+    async addCardUser(cardId: number, userId: string) {
+        // Verificar se já existe
+        const existing = await db
+            .select()
+            .from(cartoes_usuarios)
+            .where(and(
+                eq(cartoes_usuarios.id_cartao, cardId),
+                eq(cartoes_usuarios.id_usuario, userId)
+            ))
+            .limit(1);
+
+        if (existing.length > 0) {
+            return existing[0]; // Já existe, retorna o existente
+        }
+
+        await db.insert(cartoes_usuarios).values({
+            id_cartao: cardId,
+            id_usuario: userId,
+        });
+
+        const created = await db
+            .select()
+            .from(cartoes_usuarios)
+            .where(and(
+                eq(cartoes_usuarios.id_cartao, cardId),
+                eq(cartoes_usuarios.id_usuario, userId)
+            ))
+            .limit(1);
+
+        // Criar alerta para o usuário adicionado
+        const card = await this.getCard(cardId);
+        if (card) {
+            const project = await db
+                .select()
+                .from(projetos)
+                .where(eq(projetos.id, card.id_projeto))
+                .limit(1);
+
+            if (project[0]) {
+                await this.createAlert({
+                    tipo: "Atribuição de Card",
+                    id_projeto: card.id_projeto,
+                    id_cartao: cardId,
+                    mensagem: `Você foi atribuído ao card "${card.titulo}" no projeto "${project[0].nome}"`,
+                    severidade: "Info",
+                    id_destinatario: userId,
+                    lido: false,
+                    resolvido: false
+                });
+            }
+        }
+
+        return created[0];
+    }
+
+    async removeCardUser(cardId: number, userId: string) {
+        await db
+            .delete(cartoes_usuarios)
+            .where(and(
+                eq(cartoes_usuarios.id_cartao, cardId),
+                eq(cartoes_usuarios.id_usuario, userId)
+            ));
+    }
+
+    async setCardUsers(cardId: number, userIds: string[]) {
+        // Obter usuários atuais
+        const currentUsers = await db
+            .select()
+            .from(cartoes_usuarios)
+            .where(eq(cartoes_usuarios.id_cartao, cardId));
+
+        const currentUserIds = currentUsers.map(cu => cu.id_usuario);
+
+        // Usuários a adicionar (novos)
+        const toAdd = userIds.filter(id => !currentUserIds.includes(id));
+
+        // Usuários a remover
+        const toRemove = currentUserIds.filter(id => !userIds.includes(id));
+
+        // Remover usuários que não estão mais na lista
+        if (toRemove.length > 0) {
+            await db
+                .delete(cartoes_usuarios)
+                .where(and(
+                    eq(cartoes_usuarios.id_cartao, cardId),
+                    inArray(cartoes_usuarios.id_usuario, toRemove)
+                ));
+        }
+
+        // Adicionar novos usuários
+        for (const userId of toAdd) {
+            await this.addCardUser(cardId, userId);
+        }
+
+        return this.getCardUsers(cardId);
     }
 
     // Alerts

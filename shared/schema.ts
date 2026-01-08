@@ -132,6 +132,14 @@ export const cartoes = mysqlTable("cartoes", {
   criado_em: timestamp("criado_em").defaultNow(),
 });
 
+// Tabela de relacionamento para múltiplos usuários por cartão
+export const cartoes_usuarios = mysqlTable("cartoes_usuarios", {
+  id: int("id").primaryKey().autoincrement(),
+  id_cartao: int("id_cartao").references(() => cartoes.id, { onDelete: "cascade" }).notNull(),
+  id_usuario: varchar("id_usuario", { length: 255 }).references(() => users.id).notNull(),
+  atribuido_em: timestamp("atribuido_em").defaultNow(),
+});
+
 export const respostas_formularios_cartoes = mysqlTable("respostas_formularios_cartoes", {
   id: int("id").primaryKey().autoincrement(),
   id_cartao: int("id_cartao").notNull(),
@@ -297,6 +305,19 @@ export const cartoesRelations = relations(cartoes, ({ one, many }) => ({
     references: [users.id],
   }),
   resposta_formulario: one(respostas_formularios_cartoes),
+  usuarios_atribuidos: many(cartoes_usuarios),
+}));
+
+// Relations para cartoes_usuarios
+export const cartoesUsuariosRelations = relations(cartoes_usuarios, ({ one }) => ({
+  cartao: one(cartoes, {
+    fields: [cartoes_usuarios.id_cartao],
+    references: [cartoes.id],
+  }),
+  usuario: one(users, {
+    fields: [cartoes_usuarios.id_usuario],
+    references: [users.id],
+  }),
 }));
 
 export const respostasFormulariosCartoesRelations = relations(respostas_formularios_cartoes, ({ one, many }) => ({
@@ -387,6 +408,7 @@ export const insertCampoFormularioSchema = createInsertSchema(campos_formularios
 export const insertProjetoSchema = createInsertSchema(projetos).omit({ id: true, criado_em: true });
 export const insertColunaProjetoSchema = createInsertSchema(colunas_projetos).omit({ id: true });
 export const insertCartaoSchema = createInsertSchema(cartoes).omit({ id: true, criado_em: true });
+export const insertCartaoUsuarioSchema = createInsertSchema(cartoes_usuarios).omit({ id: true, atribuido_em: true });
 export const insertRespostaFormularioCartaoSchema = createInsertSchema(respostas_formularios_cartoes).omit({ id: true, atualizado_em: true });
 export const insertRespostaCampoFormularioSchema = createInsertSchema(respostas_campos_formularios).omit({ id: true });
 export const insertAlertaSchema = createInsertSchema(alertas).omit({ id: true, criado_em: true, resolvido_em: true });
@@ -408,6 +430,8 @@ export type ColunaProjeto = typeof colunas_projetos.$inferSelect;
 export type InsertColunaProjeto = z.infer<typeof insertColunaProjetoSchema>;
 export type Cartao = typeof cartoes.$inferSelect;
 export type InsertCartao = z.infer<typeof insertCartaoSchema>;
+export type CartaoUsuario = typeof cartoes_usuarios.$inferSelect;
+export type InsertCartaoUsuario = z.infer<typeof insertCartaoUsuarioSchema>;
 export type RespostaFormularioCartao = typeof respostas_formularios_cartoes.$inferSelect;
 export type InsertRespostaFormularioCartao = z.infer<typeof insertRespostaFormularioCartaoSchema>;
 export type RespostaCampoFormulario = typeof respostas_campos_formularios.$inferSelect;

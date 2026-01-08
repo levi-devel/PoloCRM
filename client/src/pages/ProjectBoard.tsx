@@ -23,6 +23,7 @@ import { CNPJInput } from "@/components/ui/cnpj-input";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { Textarea } from "@/components/ui/textarea";
 import { KanbanSettings } from "@/components/kanban/KanbanSettings";
+import { MultiUserSelect } from "@/components/MultiUserSelect";
 
 // Client Selector Component
 interface ClientSelectorProps {
@@ -637,7 +638,7 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
   const updateCardBasicInfo = useUpdateCardBasicInfo(card.id);
 
   const [formValues, setFormValues] = React.useState<Record<string, any>>({});
-  const [selectedUserId, setSelectedUserId] = React.useState<string | null>(null);
+  const [selectedUserIds, setSelectedUserIds] = React.useState<string[]>([]);
 
   // Ref to track if initial data has been loaded (prevents auto-save during init)
   const isInitializedRef = React.useRef(false);
@@ -661,10 +662,10 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
     // STEP 1: Always load server data first
     const serverValues: Record<string, any> = {};
 
-    // Load assignedTechId from the card data
-    // Note: Server returns id_tecnico_atribuido, not assignedTechId
-    // ALWAYS set selectedUserId, even if null, to stay in sync with server
-    setSelectedUserId(card.id_tecnico_atribuido || null);
+    // Load assigned users from the card data
+    // usuariosAtribuidos is an array of user IDs from the server
+    // ALWAYS set selectedUserIds to stay in sync with server
+    setSelectedUserIds(card.usuariosAtribuidos || []);
 
     // Load form answers from server
     if (card.formAnswers && card.formAnswers.length > 0) {
@@ -716,31 +717,38 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
     setTimeout(() => {
       isInitializedRef.current = true;
     }, 0);
-  }, [card.id, card.formAnswers, card.descricao, card.prioridade, card.data_inicio, card.data_prazo, card.id_tecnico_atribuido]);
+  }, [card.id, card.formAnswers, card.descricao, card.prioridade, card.data_inicio, card.data_prazo, card.usuariosAtribuidos]);
 
-  // Auto-save assignedTechId when it changes
+  // Auto-save assigned users when they change
   React.useEffect(() => {
     // Skip auto-save during initialization to prevent race conditions
     if (!isInitializedRef.current) {
       return;
     }
 
-    const currentAssignedTechId = card.id_tecnico_atribuido || null;
-    if (selectedUserId !== currentAssignedTechId) {
-      // Only auto-save if the value has actually changed from what's in the server
-      updateCardBasicInfo.mutateAsync({
-        assignedTechId: selectedUserId,
+    const currentUserIds = card.usuariosAtribuidos || [];
+    const hasChanged = selectedUserIds.length !== currentUserIds.length ||
+      selectedUserIds.some(id => !currentUserIds.includes(id)) ||
+      currentUserIds.some((id: string) => !selectedUserIds.includes(id));
+
+    if (hasChanged) {
+      // Update the users via the new endpoint
+      fetch(`/api/cards/${card.id}/users`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userIds: selectedUserIds }),
+        credentials: 'include'
       }).catch(error => {
-        console.error('Failed to auto-save assignedTechId:', error);
+        console.error('Failed to auto-save card users:', error);
       });
     }
-  }, [selectedUserId, card.id_tecnico_atribuido]);
+  }, [selectedUserIds, card.usuariosAtribuidos, card.id]);
 
   // Save to localStorage whenever values change
   React.useEffect(() => {
     const dataToSave = {
       formValues,
-      selectedUserId,
+      selectedUserIds,
       description: editableDescription,
       priority: editablePriority,
       startDate: editableStartDate,
@@ -748,7 +756,7 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
       timestamp: new Date().toISOString(),
     };
     localStorage.setItem(`card_${card.id}`, JSON.stringify(dataToSave));
-  }, [formValues, selectedUserId, editableDescription, editablePriority, editableStartDate, editableDueDate, card.id]);
+  }, [formValues, selectedUserIds, editableDescription, editablePriority, editableStartDate, editableDueDate, card.id]);
 
   const handleInputChange = (fieldId: number, value: any, field?: any) => {
     setFormValues(prev => ({
@@ -982,19 +990,13 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
       <div className="space-y-3">
         <h3 className="text-lg font-semibold font-display text-red-600">USUÁRIOS</h3>
         <div className="space-y-2">
-          <label className="text-sm font-medium">Responsável pelo Card</label>
-          <select
-            className="w-full p-2 border rounded-md"
-            value={selectedUserId || ''}
-            onChange={(e) => setSelectedUserId(e.target.value || null)}
-          >
-            <option value="">Selecione um usuário...</option>
-            {users?.map((user: any) => (
-              <option key={user.id} value={user.id}>
-                {user.firstName} {user.lastName} ({user.email})
-              </option>
-            ))}
-          </select>
+          <label className="text-sm font-medium">Responsáveis pelo Card</label>
+          <MultiUserSelect
+            users={users || []}
+            selectedUserIds={selectedUserIds}
+            onChange={setSelectedUserIds}
+            placeholder="Selecione os usuários..."
+          />
         </div>
       </div>
 

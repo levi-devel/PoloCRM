@@ -638,6 +638,57 @@ export async function registerRoutes(
     }
   });
 
+  // Card Users - Múltiplos usuários por card
+  app.get("/api/cards/:id/users", async (req, res) => {
+    try {
+      const cardUsers = await storage.getCardUsers(Number(req.params.id));
+      res.json(cardUsers);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to get card users" });
+    }
+  });
+
+  app.post("/api/cards/:id/users", async (req, res) => {
+    try {
+      const cardId = Number(req.params.id);
+      const { userId } = req.body;
+
+      if (!userId) {
+        return res.status(400).json({ message: "userId is required" });
+      }
+
+      const cardUser = await storage.addCardUser(cardId, userId);
+      res.status(201).json(cardUser);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to add user to card" });
+    }
+  });
+
+  app.delete("/api/cards/:cardId/users/:userId", async (req, res) => {
+    try {
+      await storage.removeCardUser(Number(req.params.cardId), req.params.userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to remove user from card" });
+    }
+  });
+
+  app.put("/api/cards/:id/users", async (req, res) => {
+    try {
+      const cardId = Number(req.params.id);
+      const { userIds } = req.body;
+
+      if (!Array.isArray(userIds)) {
+        return res.status(400).json({ message: "userIds must be an array" });
+      }
+
+      const cardUsers = await storage.setCardUsers(cardId, userIds);
+      res.json(cardUsers);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to set card users" });
+    }
+  });
+
   // Project Columns
   app.post("/api/projects/:projectId/columns", async (req, res) => {
     try {
