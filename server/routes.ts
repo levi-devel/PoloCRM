@@ -788,22 +788,53 @@ export async function registerRoutes(
   });
 
   // Alerts
-  // Get alerts for current user
+  // Get alerts for current user (Admin/Gerentes see all, Técnicos see only their own)
   app.get(api.alertas.list.path, isAuthenticated, async (req, res) => {
     try {
       const userId = (req.session as any).userId;
-      const alerts = await storage.getUserAlerts(userId);
+      const user = await storage.getUser(userId);
+
+      if (!user) {
+        return res.status(401).json({ message: "Usuário não encontrado" });
+      }
+
+      // Admin e Gerentes veem todos os alertas
+      const isManagerOrAdmin = ["Admin", "Gerente Comercial", "Gerente Supervisor"].includes(user.role);
+
+      let alerts;
+      if (isManagerOrAdmin) {
+        alerts = await storage.getAlerts();
+      } else {
+        // Técnicos veem apenas seus próprios alertas
+        alerts = await storage.getUserAlerts(userId);
+      }
+
       res.json(alerts);
     } catch (error: any) {
       res.status(500).json({ message: error.message || "Failed to get alerts" });
     }
   });
 
-  // Get unread alerts count for current user
+  // Get unread alerts count for current user (Admin/Gerentes count all, Técnicos count their own)
   app.get("/api/alertas/unread-count", isAuthenticated, async (req, res) => {
     try {
       const userId = (req.session as any).userId;
-      const count = await storage.getUnreadAlertsCount(userId);
+      const user = await storage.getUser(userId);
+
+      if (!user) {
+        return res.status(401).json({ message: "Usuário não encontrado" });
+      }
+
+      // Admin e Gerentes veem contagem de todos os alertas
+      const isManagerOrAdmin = ["Admin", "Gerente Comercial", "Gerente Supervisor"].includes(user.role);
+
+      let count;
+      if (isManagerOrAdmin) {
+        count = await storage.getAllUnreadAlertsCount();
+      } else {
+        count = await storage.getUnreadAlertsCount(userId);
+      }
+
       res.json({ count });
     } catch (error: any) {
       res.status(500).json({ message: error.message || "Failed to get unread count" });

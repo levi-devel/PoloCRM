@@ -54,6 +54,7 @@ export interface IStorage {
   getAlerts(): Promise<typeof alertas.$inferSelect[]>;
   createAlert(alerta: typeof alertas.$inferInsert): Promise<typeof alertas.$inferSelect>;
   getUnreadAlertsCount(userId: string): Promise<number>;
+  getAllUnreadAlertsCount(): Promise<number>;
   getUserAlerts(userId: string): Promise<typeof alertas.$inferSelect[]>;
   markAlertAsRead(alertId: number): Promise<void>;
   markAllAlertsAsRead(userId: string): Promise<void>;

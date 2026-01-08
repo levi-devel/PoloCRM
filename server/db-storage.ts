@@ -659,6 +659,15 @@ export class DatabaseStorage implements IStorage {
         return result[0]?.count || 0;
     }
 
+    async getAllUnreadAlertsCount(): Promise<number> {
+        const result = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(alertas)
+            .where(eq(alertas.lido, false));
+
+        return result[0]?.count || 0;
+    }
+
     async getUserAlerts(userId: string) {
         return await db
             .select()
