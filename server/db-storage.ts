@@ -535,6 +535,9 @@ export class DatabaseStorage implements IStorage {
             throw new Error("Only users with 'Gerente' role can delete cards");
         }
 
+        // Delete alerts associated with this card
+        await db.delete(alertas).where(eq(alertas.id_cartao, id));
+
         // Delete form responses and answers
         const formResponse = await db
             .select()
