@@ -209,41 +209,65 @@ export default function Dashboard() {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-wrap gap-4 items-center">
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-foreground">Projeto</label>
-            <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Selecione projeto" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                {projects?.map((project) => (
-                  <SelectItem key={project.id} value={project.id.toString()}>
-                    {project.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <div className="space-y-4">
+          {/* First Row: Projeto, Período, Técnico, Exportar */}
+          <div className="flex flex-wrap gap-4 items-center">
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-foreground">Projeto</label>
+              <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Selecione projeto" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {projects?.map((project) => (
+                    <SelectItem key={project.id} value={project.id.toString()}>
+                      {project.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-foreground">Período</label>
+              <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Selecione período" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="month">Este mês</SelectItem>
+                  <SelectItem value="year">Este ano</SelectItem>
+                  <SelectItem value="custom">Personalizado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-foreground">Técnico</label>
+              <Select value={selectedTechnicianId} onValueChange={setSelectedTechnicianId}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Selecione técnico" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {users?.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.firstName} {user.lastName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button variant="outline" className="ml-auto">
+              Exportar
+            </Button>
           </div>
 
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-foreground">Período</label>
-            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Selecione período" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="month">Este mês</SelectItem>
-                <SelectItem value="year">Este ano</SelectItem>
-                <SelectItem value="custom">Personalizado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Custom Date Range Pickers */}
+          {/* Second Row: Custom Date Range (only visible when period is custom) */}
           {selectedPeriod === "custom" && (
-            <>
+            <div className="flex flex-wrap gap-4 items-center">
               <div className="flex items-center gap-2">
                 <label className="text-sm font-medium text-foreground">Data Inicial</label>
                 <Popover>
@@ -317,29 +341,8 @@ export default function Dashboard() {
                 <Search className="h-4 w-4" />
                 Buscar
               </Button>
-            </>
+            </div>
           )}
-
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-foreground">Técnico</label>
-            <Select value={selectedTechnicianId} onValueChange={setSelectedTechnicianId}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Selecione técnico" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                {users?.map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.firstName} {user.lastName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Button variant="outline" className="ml-auto">
-            Exportar
-          </Button>
         </div>
 
         {/* Stats Cards */}
