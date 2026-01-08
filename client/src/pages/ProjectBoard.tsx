@@ -115,9 +115,9 @@ function DeleteCardDialog({ isOpen, onClose, onConfirm, cardTitle, isDeleting }:
 function KanbanColumn({ title, id, cards, onAddCard, onCardClick, onDeleteCard, color, users, canDelete }: any) {
   // Helper to get assigned user for a card
   const getAssignedUser = (card: any) => {
-    // Priority 1: Get from card.assignedTechId (server data)
-    if (card.assignedTechId && users) {
-      const user = users.find((u: any) => u.id === card.assignedTechId);
+    // Priority 1: Get from card.id_tecnico_atribuido (server data)
+    if (card.id_tecnico_atribuido && users) {
+      const user = users.find((u: any) => u.id === card.id_tecnico_atribuido);
       if (user) {
         return `${user.firstName} ${user.lastName}`;
       }
@@ -656,8 +656,9 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
     const serverValues: Record<string, any> = {};
 
     // Load assignedTechId from the card data
-    if (card.assignedTechId) {
-      setSelectedUserId(card.assignedTechId);
+    // Note: Server returns id_tecnico_atribuido, not assignedTechId
+    if (card.id_tecnico_atribuido) {
+      setSelectedUserId(card.id_tecnico_atribuido);
     }
 
     // Load form answers from server
@@ -704,11 +705,11 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
       // No localStorage: use only server data
       setFormValues(serverValues);
     }
-  }, [card.id, card.formAnswers, card.descricao, card.prioridade, card.data_inicio, card.data_prazo, card.assignedTechId]);
+  }, [card.id, card.formAnswers, card.descricao, card.prioridade, card.data_inicio, card.data_prazo, card.id_tecnico_atribuido]);
 
   // Auto-save assignedTechId when it changes
   React.useEffect(() => {
-    const currentAssignedTechId = card.assignedTechId || null;
+    const currentAssignedTechId = card.id_tecnico_atribuido || null;
     if (selectedUserId !== currentAssignedTechId) {
       // Only auto-save if the value has actually changed from what's in the server
       updateCardBasicInfo.mutateAsync({
