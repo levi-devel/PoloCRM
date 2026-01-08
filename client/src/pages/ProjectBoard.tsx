@@ -649,44 +649,80 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
     dateToInputValue(card.data_prazo)
   );
 
-  // Load from localStorage on mount
+  // IMPORTANT: Load from SERVER first, then merge with localStorage
+  // This ensures all users see the same data (especially file attachments)
   React.useEffect(() => {
+    // STEP 1: Always load server data first
+    const serverValues: Record<string, any> = {};
+
+    // Load assignedTechId from the card data
+    if (card.assignedTechId) {
+      setSelectedUserId(card.assignedTechId);
+    }
+
+    // Load form answers from server
+    if (card.formAnswers && card.formAnswers.length > 0) {
+      card.formAnswers.forEach((answer: any) => {
+        if (answer.id_campo) {
+          if (answer.valor_texto) serverValues[`field_${answer.id_campo}`] = answer.valor_texto;
+          if (answer.valor_numero) serverValues[`field_${answer.id_campo}`] = answer.valor_numero;
+          if (answer.valor_data) serverValues[`field_${answer.id_campo}`] = answer.valor_data;
+          if (answer.valor_booleano !== null && answer.valor_booleano !== undefined) serverValues[`field_${answer.id_campo}`] = answer.valor_booleano;
+          if (answer.valor_lista) serverValues[`field_${answer.id_campo}`] = answer.valor_lista;
+          if (answer.anexos) serverValues[`field_${answer.id_campo}`] = answer.anexos;
+        }
+      });
+    }
+
+    // STEP 2: Load localStorage and merge intelligently
     const savedData = localStorage.getItem(`card_${card.id}`);
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
-        setFormValues(parsed.formValues || {});
-        setSelectedUserId(parsed.selectedUserId || null);
 
-        // Load basic info if saved
+        // Merge: server data + local unsaved changes
+        const mergedValues = { ...serverValues };
+
+        // Only override with localStorage if it's NOT a file field
+        // File fields MUST always come from server to ensure sync between users
+        if (parsed.formValues) {
+          Object.keys(parsed.formValues).forEach((key) => {
+            // Extract field ID from key like "field_123"
+            const fieldId = key.replace('field_', '');
+
+            // Check if this is a file field by looking at the answer type
+            const isFileField = card.formAnswers?.some((answer: any) =>
+              answer.id_campo?.toString() === fieldId && answer.anexos !== undefined
+            );
+
+            // For file fields, always use server data
+            // For other fields, use localStorage (unsaved edits)
+            if (!isFileField) {
+              mergedValues[key] = parsed.formValues[key];
+            }
+          });
+        }
+
+        setFormValues(mergedValues);
+
+        // Load user selection from localStorage (if different from server)
+        if (parsed.selectedUserId !== undefined) {
+          setSelectedUserId(parsed.selectedUserId);
+        }
+
+        // Load basic info edits from localStorage
         if (parsed.description !== undefined) setEditableDescription(parsed.description);
         if (parsed.priority !== undefined) setEditablePriority(parsed.priority);
         if (parsed.startDate !== undefined) setEditableStartDate(parsed.startDate);
         if (parsed.dueDate !== undefined) setEditableDueDate(parsed.dueDate);
       } catch (e) {
         console.error('Error loading from localStorage:', e);
+        // Fallback to server data only
+        setFormValues(serverValues);
       }
     } else {
-      // Initialize from server data if no localStorage
-      // Load assignedTechId from the card data
-      if (card.assignedTechId) {
-        setSelectedUserId(card.assignedTechId);
-      }
-
-      if (card.formAnswers && card.formAnswers.length > 0) {
-        const initialValues: Record<string, any> = {};
-        card.formAnswers.forEach((answer: any) => {
-          if (answer.id_campo) {
-            if (answer.valor_texto) initialValues[`field_${answer.id_campo}`] = answer.valor_texto;
-            if (answer.valor_numero) initialValues[`field_${answer.id_campo}`] = answer.valor_numero;
-            if (answer.valor_data) initialValues[`field_${answer.id_campo}`] = answer.valor_data;
-            if (answer.valor_booleano !== null && answer.valor_booleano !== undefined) initialValues[`field_${answer.id_campo}`] = answer.valor_booleano;
-            if (answer.valor_lista) initialValues[`field_${answer.id_campo}`] = answer.valor_lista;
-            if (answer.anexos) initialValues[`field_${answer.id_campo}`] = answer.anexos;
-          }
-        });
-        setFormValues(initialValues);
-      }
+      // No localStorage: use only server data
+      setFormValues(serverValues);
     }
   }, [card.id, card.formAnswers, card.descricao, card.prioridade, card.data_inicio, card.data_prazo, card.assignedTechId]);
 
@@ -830,8 +866,9 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
         answers
       });
 
-      // Keep localStorage for later retrieval
-      // Don't clear it on successful save
+      // Clear localStorage to force fresh data load on next open
+      // This ensures all users see the latest data from server
+      localStorage.removeItem(`card_${card.id}`);
 
       onUpdate();
     } catch (error) {
