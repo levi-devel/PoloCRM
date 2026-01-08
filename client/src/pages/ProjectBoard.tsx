@@ -639,6 +639,9 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
   const [formValues, setFormValues] = React.useState<Record<string, any>>({});
   const [selectedUserId, setSelectedUserId] = React.useState<string | null>(null);
 
+  // Ref to track if initial data has been loaded (prevents auto-save during init)
+  const isInitializedRef = React.useRef(false);
+
   // Editable basic card info
   const [editableDescription, setEditableDescription] = React.useState(card.descricao || '');
   const [editablePriority, setEditablePriority] = React.useState(card.prioridade || 'Média');
@@ -652,14 +655,16 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
   // IMPORTANT: Load from SERVER first, then merge with localStorage
   // This ensures all users see the same data (especially file attachments)
   React.useEffect(() => {
+    // Mark as not initialized when card changes (e.g., different card opened)
+    isInitializedRef.current = false;
+
     // STEP 1: Always load server data first
     const serverValues: Record<string, any> = {};
 
     // Load assignedTechId from the card data
     // Note: Server returns id_tecnico_atribuido, not assignedTechId
-    if (card.id_tecnico_atribuido) {
-      setSelectedUserId(card.id_tecnico_atribuido);
-    }
+    // ALWAYS set selectedUserId, even if null, to stay in sync with server
+    setSelectedUserId(card.id_tecnico_atribuido || null);
 
     // Load form answers from server
     if (card.formAnswers && card.formAnswers.length > 0) {
@@ -705,10 +710,21 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
       // No localStorage: use only server data
       setFormValues(serverValues);
     }
+
+    // Mark as initialized AFTER setting state values
+    // Use setTimeout to ensure this runs after state updates are processed
+    setTimeout(() => {
+      isInitializedRef.current = true;
+    }, 0);
   }, [card.id, card.formAnswers, card.descricao, card.prioridade, card.data_inicio, card.data_prazo, card.id_tecnico_atribuido]);
 
   // Auto-save assignedTechId when it changes
   React.useEffect(() => {
+    // Skip auto-save during initialization to prevent race conditions
+    if (!isInitializedRef.current) {
+      return;
+    }
+
     const currentAssignedTechId = card.id_tecnico_atribuido || null;
     if (selectedUserId !== currentAssignedTechId) {
       // Only auto-save if the value has actually changed from what's in the server
@@ -718,7 +734,7 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
         console.error('Failed to auto-save assignedTechId:', error);
       });
     }
-  }, [selectedUserId]);
+  }, [selectedUserId, card.id_tecnico_atribuido]);
 
   // Save to localStorage whenever values change
   React.useEffect(() => {
