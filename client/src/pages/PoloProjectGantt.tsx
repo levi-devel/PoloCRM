@@ -572,7 +572,7 @@ export default function PoloProjectGantt() {
                                     <span className="text-sm text-gray-500 flex items-center">
                                         <Calendar className="w-4 h-4 mr-1" />
                                         {timelineStart && timelineEnd ? (
-                                            `${new Date(timelineStart).toLocaleDateString('pt-BR')} - ${new Date(timelineEnd).toLocaleDateString('pt-BR')}`
+                                            `${formatDateWithoutTimezone(timelineStart)} - ${formatDateWithoutTimezone(timelineEnd)}`
                                         ) : (
                                             'Sem datas definidas'
                                         )}
@@ -617,13 +617,13 @@ export default function PoloProjectGantt() {
                                     <div className="min-w-[1200px]">
                                         {/* Month headers */}
                                         <div className="flex border-b border-gray-300 mb-2">
-                                            <div className="w-64 font-semibold text-gray-700">Etapa</div>
+                                            <div className="w-64 flex-shrink-0 font-semibold text-gray-700">Etapa</div>
                                             <div className="flex-1 flex">
                                                 {monthGroups.map((group, idx) => (
                                                     <div
                                                         key={idx}
                                                         className="text-center text-sm font-semibold text-gray-700 border-l border-gray-300 py-1"
-                                                        style={{ width: `${(group.days.length / days.length) * 100}%` }}
+                                                        style={{ flex: group.days.length }}
                                                     >
                                                         {group.month}
                                                     </div>
@@ -632,13 +632,12 @@ export default function PoloProjectGantt() {
                                         </div>
                                         {/* Day headers */}
                                         <div className="flex border-b border-gray-200 pb-2 mb-4">
-                                            <div className="w-64"></div>
+                                            <div className="w-64 flex-shrink-0"></div>
                                             <div className="flex-1 flex">
                                                 {days.map((day, idx) => (
                                                     <div
                                                         key={idx}
                                                         className="flex-1 text-center text-xs text-gray-500 border-l border-gray-100"
-                                                        style={{ minWidth: '24px' }}
                                                     >
                                                         {day.getDate()}
                                                     </div>
@@ -670,7 +669,7 @@ export default function PoloProjectGantt() {
 
                                                 return (
                                                     <div key={stage.id} className="flex items-center mb-3">
-                                                        <div className="w-64">
+                                                        <div className="w-64 flex-shrink-0">
                                                             <div className={`text-sm text-gray-900 ${isSubStage ? 'pl-6' : 'font-bold'} flex items-center gap-2`}>
                                                                 <span>
                                                                     {isSubStage && '└─ '}
@@ -766,10 +765,10 @@ export default function PoloProjectGantt() {
                             </div>
                         </CardContent>
                     </Card>
-                </div>
+                </div >
 
                 {/* Modal para adicionar etapa */}
-                <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                < Dialog open={isModalOpen} onOpenChange={setIsModalOpen} >
                     <DialogContent className="sm:max-w-[500px]">
                         <form onSubmit={handleSubmit}>
                             <DialogHeader>
@@ -956,10 +955,10 @@ export default function PoloProjectGantt() {
                             </DialogFooter>
                         </form>
                     </DialogContent>
-                </Dialog>
+                </Dialog >
 
                 {/* Dialog para Motivos de Pausa */}
-                <Dialog open={isPauseModalOpen} onOpenChange={setIsPauseModalOpen}>
+                < Dialog open={isPauseModalOpen} onOpenChange={setIsPauseModalOpen} >
                     <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                         <DialogHeader>
                             <DialogTitle className="text-2xl">Motivos de Pausa</DialogTitle>
@@ -1104,8 +1103,8 @@ export default function PoloProjectGantt() {
                             </Button>
                         </DialogFooter>
                     </DialogContent>
-                </Dialog>
-            </div>
-        </Layout>
+                </Dialog >
+            </div >
+        </Layout >
     );
 }

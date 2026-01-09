@@ -1450,24 +1450,24 @@ export class DatabaseStorage implements IStorage {
         let minDate = "";
         let maxDate = "";
 
-        // Determine timeline range
-        if (project.stages && project.stages.length > 0) {
+        // Prioritize project dates first (data_inicial and data_final)
+        if (project.data_inicial) {
+            minDate = project.data_inicial;
+        }
+        if (project.data_final) {
+            maxDate = project.data_final;
+        }
+
+        // Only use stage dates as fallback if project dates are not defined
+        if ((!minDate || !maxDate) && project.stages && project.stages.length > 0) {
             project.stages.forEach(stage => {
-                if (stage.data_inicio && (!minDate || stage.data_inicio < minDate)) {
+                if (!minDate && stage.data_inicio && (!minDate || stage.data_inicio < minDate)) {
                     minDate = stage.data_inicio;
                 }
-                if (stage.data_fim && (!maxDate || stage.data_fim > maxDate)) {
+                if (!maxDate && stage.data_fim && (!maxDate || stage.data_fim > maxDate)) {
                     maxDate = stage.data_fim;
                 }
             });
-        }
-
-        // Add project dates if available
-        if (project.data_inicial && (!minDate || project.data_inicial < minDate)) {
-            minDate = project.data_inicial;
-        }
-        if (project.data_final && (!maxDate || project.data_final > maxDate)) {
-            maxDate = project.data_final;
         }
 
         return {
