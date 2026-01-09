@@ -170,7 +170,9 @@ export function useSubmitCardForm(cardId: number) {
       return api.cardForms.submit.responses[200].parse(await res.json());
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/cards/${cardId}`] });
+      // Invalidar query do card específico (usa mesma key do useCard)
+      queryClient.invalidateQueries({ queryKey: [api.cartoes.get.path, cardId] });
+      // Invalidar lista de cards
       queryClient.invalidateQueries({ queryKey: [api.cartoes.list.path] });
       toast({ title: "Sucesso", description: "Formulário salvo com sucesso" });
     },
@@ -207,7 +209,9 @@ export function useUpdateCardBasicInfo(cardId: number) {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/cards/${cardId}`] });
+      // Invalidar query do card específico (usa mesma key do useCard)
+      queryClient.invalidateQueries({ queryKey: [api.cartoes.get.path, cardId] });
+      // Invalidar lista de cards
       queryClient.invalidateQueries({ queryKey: [api.cartoes.list.path] });
       toast({ title: "Sucesso", description: "Card atualizado com sucesso" });
     },

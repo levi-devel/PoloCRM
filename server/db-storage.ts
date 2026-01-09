@@ -613,6 +613,8 @@ export class DatabaseStorage implements IStorage {
     }
 
     async submitCardForm(cardId: number, status: string, answers: InsertRespostaCampoFormulario[]) {
+        console.log("[DEBUG] submitCardForm chamado:", { cardId, status, answersCount: answers?.length });
+        console.log("[DEBUG] answers recebidos:", JSON.stringify(answers, null, 2));
         let response = await db
             .select()
             .from(respostas_formularios_cartoes)
@@ -654,6 +656,8 @@ export class DatabaseStorage implements IStorage {
 
         // Upsert answers
         for (const ans of answers) {
+            console.log("[DEBUG] Processando campo", ans.id_campo, "com valor_texto:", ans.valor_texto);
+
             // Delete existing answer for this field
             await db
                 .delete(respostas_campos_formularios)
@@ -674,6 +678,9 @@ export class DatabaseStorage implements IStorage {
                 // Convert string date to Date object if present
                 valor_data: ans.valor_data ? new Date(ans.valor_data) : null,
             };
+
+            console.log("[DEBUG] Inserindo resposta:", JSON.stringify(answerData));
+
             await db
                 .insert(respostas_campos_formularios)
                 .values(answerData as any);

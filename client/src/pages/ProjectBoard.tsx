@@ -674,6 +674,10 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
     // STEP 1: Always load server data first
     const serverValues: Record<string, any> = {};
 
+    console.log("[DEBUG] Carregando dados do card:", card.id);
+    console.log("[DEBUG] formAnswers do servidor:", card.formAnswers);
+    console.log("[DEBUG] formResponse do servidor:", card.formResponse);
+
     // Load assigned users from the card data
     // usuariosAtribuidos is an array of user IDs from the server
     // ALWAYS set selectedUserIds to stay in sync with server
@@ -683,11 +687,11 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
     if (card.formAnswers && card.formAnswers.length > 0) {
       card.formAnswers.forEach((answer: any) => {
         if (answer.id_campo) {
-          if (answer.valor_texto) serverValues[`field_${answer.id_campo}`] = answer.valor_texto;
-          if (answer.valor_numero) serverValues[`field_${answer.id_campo}`] = answer.valor_numero;
+          if (answer.valor_texto !== null && answer.valor_texto !== undefined) serverValues[`field_${answer.id_campo}`] = answer.valor_texto;
+          if (answer.valor_numero !== null && answer.valor_numero !== undefined) serverValues[`field_${answer.id_campo}`] = answer.valor_numero;
           if (answer.valor_data) serverValues[`field_${answer.id_campo}`] = answer.valor_data;
           if (answer.valor_booleano !== null && answer.valor_booleano !== undefined) serverValues[`field_${answer.id_campo}`] = answer.valor_booleano;
-          if (answer.valor_lista) serverValues[`field_${answer.id_campo}`] = answer.valor_lista;
+          if (answer.valor_lista !== null && answer.valor_lista !== undefined) serverValues[`field_${answer.id_campo}`] = answer.valor_lista;
           if (answer.anexos) serverValues[`field_${answer.id_campo}`] = answer.anexos;
         }
       });
@@ -841,6 +845,16 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Verificar se template está carregado
+    if (!template || !template.fields || template.fields.length === 0) {
+      console.error("[ERROR] Template não carregado, não é possível salvar o formulário");
+      alert("Erro: Template do formulário não está disponível. Feche e abra o card novamente.");
+      return;
+    }
+
+    console.log("[DEBUG] Salvando formulário com", template.fields.length, "campos");
+    console.log("[DEBUG] formValues atuais:", formValues);
 
     // Convert formValues to answers format
     const answers = template?.fields?.map((field: any) => {
