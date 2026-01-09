@@ -417,16 +417,12 @@ export class DatabaseStorage implements IStorage {
     }
 
     async getCardsByTechnician(projectId: number, technicianId: string) {
-        const cards = await db.select().from(cartoes).where(
-            and(
-                eq(cartoes.id_projeto, projectId),
-                eq(cartoes.id_tecnico_atribuido, technicianId)
-            )
-        );
+        // Primeiro buscar todos os cards do projeto
+        const allCards = await db.select().from(cartoes).where(eq(cartoes.id_projeto, projectId));
 
-        // Fetch usuariosAtribuidos for each card
+        // Para cada card, verificar se o técnico está atribuído via tabela cartoes_usuarios
         const cardsWithUsers = await Promise.all(
-            cards.map(async (card) => {
+            allCards.map(async (card) => {
                 const cardUsers = await db
                     .select()
                     .from(cartoes_usuarios)
@@ -439,7 +435,12 @@ export class DatabaseStorage implements IStorage {
             })
         );
 
-        return cardsWithUsers;
+        // Filtrar apenas cards onde o técnico está atribuído (via cartoes_usuarios OU campo legado id_tecnico_atribuido)
+        const technicianCards = cardsWithUsers.filter(card =>
+            card.usuariosAtribuidos.includes(technicianId) || card.id_tecnico_atribuido === technicianId
+        );
+
+        return technicianCards;
     }
 
     async getCard(id: number) {
@@ -873,9 +874,7 @@ export class DatabaseStorage implements IStorage {
         if (projectId) {
             conditions.push(eq(cartoes.id_projeto, projectId));
         }
-        if (technicianId) {
-            conditions.push(eq(cartoes.id_tecnico_atribuido, technicianId));
-        }
+        // Remover filtro de technicianId daqui - será aplicado depois via cartoes_usuarios
         // Add date filtering
         if (startDate) {
             conditions.push(gte(cartoes.criado_em, startDate));
@@ -884,9 +883,29 @@ export class DatabaseStorage implements IStorage {
             conditions.push(lte(cartoes.criado_em, endDate));
         }
 
-        const allCards = conditions.length > 0
+        let allCards = conditions.length > 0
             ? await db.select().from(cartoes).where(and(...conditions))
             : await db.select().from(cartoes);
+
+        // Se technicianId foi passado, filtrar pelos cards onde o técnico está atribuído
+        if (technicianId) {
+            const filteredCards = [];
+            for (const card of allCards) {
+                // Verificar se o técnico está na tabela cartoes_usuarios
+                const cardUsers = await db
+                    .select()
+                    .from(cartoes_usuarios)
+                    .where(eq(cartoes_usuarios.id_cartao, card.id));
+
+                const userIds = cardUsers.map(cu => cu.id_usuario);
+
+                // Incluir card se técnico está em cartoes_usuarios OU no campo legado id_tecnico_atribuido
+                if (userIds.includes(technicianId) || card.id_tecnico_atribuido === technicianId) {
+                    filteredCards.push(card);
+                }
+            }
+            allCards = filteredCards;
+        }
 
         // Get completed column IDs
         const completedColumns = await db
