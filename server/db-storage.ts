@@ -396,16 +396,50 @@ export class DatabaseStorage implements IStorage {
     }
 
     async getCards(projectId: number) {
-        return await db.select().from(cartoes).where(eq(cartoes.id_projeto, projectId));
+        const cards = await db.select().from(cartoes).where(eq(cartoes.id_projeto, projectId));
+
+        // Fetch usuariosAtribuidos for each card
+        const cardsWithUsers = await Promise.all(
+            cards.map(async (card) => {
+                const cardUsers = await db
+                    .select()
+                    .from(cartoes_usuarios)
+                    .where(eq(cartoes_usuarios.id_cartao, card.id));
+
+                return {
+                    ...card,
+                    usuariosAtribuidos: cardUsers.map(cu => cu.id_usuario)
+                };
+            })
+        );
+
+        return cardsWithUsers;
     }
 
     async getCardsByTechnician(projectId: number, technicianId: string) {
-        return await db.select().from(cartoes).where(
+        const cards = await db.select().from(cartoes).where(
             and(
                 eq(cartoes.id_projeto, projectId),
                 eq(cartoes.id_tecnico_atribuido, technicianId)
             )
         );
+
+        // Fetch usuariosAtribuidos for each card
+        const cardsWithUsers = await Promise.all(
+            cards.map(async (card) => {
+                const cardUsers = await db
+                    .select()
+                    .from(cartoes_usuarios)
+                    .where(eq(cartoes_usuarios.id_cartao, card.id));
+
+                return {
+                    ...card,
+                    usuariosAtribuidos: cardUsers.map(cu => cu.id_usuario)
+                };
+            })
+        );
+
+        return cardsWithUsers;
     }
 
     async getCard(id: number) {
@@ -929,26 +963,39 @@ export class DatabaseStorage implements IStorage {
             if (endDate) {
                 conditions.push(lte(cartoes.criado_em, endDate));
             }
-            if (technicianId) {
-                conditions.push(eq(cartoes.id_tecnico_atribuido, technicianId));
-            }
 
+            // Get all cards for this project (we'll filter by technician later using cartoes_usuarios)
             const projectCards = await db
-                .select({
-                    technicianId: cartoes.id_tecnico_atribuido
-                })
+                .select({ id: cartoes.id })
                 .from(cartoes)
                 .where(and(...conditions));
 
-            // Aggregate by technician
+            // Aggregate by technician - now using cartoes_usuarios table
             const techCounts = new Map<string, number>();
 
             for (const card of projectCards) {
-                const techName = card.technicianId
-                    ? (userMap.get(card.technicianId) || "Usuário Removido")
-                    : "Não Atribuído";
+                // Get ALL users assigned to this card from cartoes_usuarios
+                const cardUsers = await db
+                    .select()
+                    .from(cartoes_usuarios)
+                    .where(eq(cartoes_usuarios.id_cartao, card.id));
 
-                techCounts.set(techName, (techCounts.get(techName) || 0) + 1);
+                if (cardUsers.length === 0) {
+                    // No technicians assigned
+                    if (!technicianId) { // Only count unassigned if not filtering by technician
+                        techCounts.set("Não Atribuído", (techCounts.get("Não Atribuído") || 0) + 1);
+                    }
+                } else {
+                    // Count this card for EACH assigned technician
+                    for (const cu of cardUsers) {
+                        // If filtering by technician, only count if this is the selected technician
+                        if (technicianId && cu.id_usuario !== technicianId) {
+                            continue;
+                        }
+                        const techName = userMap.get(cu.id_usuario) || "Usuário Removido";
+                        techCounts.set(techName, (techCounts.get(techName) || 0) + 1);
+                    }
+                }
             }
 
             // Convert to array
@@ -1003,11 +1050,29 @@ export class DatabaseStorage implements IStorage {
             }
         }>();
 
-        for (const card of allCards) {
-            const techId = card.id_tecnico_atribuido;
-            const techName = techId ? (userMap.get(techId) || "Usuário Removido") : "Não Atribuído";
+        // Helper function to update technician counts
+        const updateTechCount = (techId: string | null, techName: string, phaseKey: 'aFazer' | 'emAndamento' | 'pendencia' | 'concluido') => {
+            const existing = techCounts.get(techName);
+            if (existing) {
+                existing.count++;
+                existing.byPhase[phaseKey]++;
+            } else {
+                techCounts.set(techName, {
+                    id: techId,
+                    name: techName,
+                    count: 1,
+                    byPhase: {
+                        aFazer: phaseKey === 'aFazer' ? 1 : 0,
+                        emAndamento: phaseKey === 'emAndamento' ? 1 : 0,
+                        pendencia: phaseKey === 'pendencia' ? 1 : 0,
+                        concluido: phaseKey === 'concluido' ? 1 : 0
+                    }
+                });
+            }
+        };
 
-            // Find the column for this card
+        for (const card of allCards) {
+            // Find the column for this card to determine phase
             const column = allColumns.find(col => col.id === card.id_coluna);
             const columnName = column?.nome || "";
             const columnStatus = column?.status || "";
@@ -1028,22 +1093,21 @@ export class DatabaseStorage implements IStorage {
                 phaseKey = 'emAndamento';
             }
 
-            const existing = techCounts.get(techName);
-            if (existing) {
-                existing.count++;
-                existing.byPhase[phaseKey]++;
+            // Get ALL users assigned to this card from cartoes_usuarios
+            const cardUsers = await db
+                .select()
+                .from(cartoes_usuarios)
+                .where(eq(cartoes_usuarios.id_cartao, card.id));
+
+            if (cardUsers.length === 0) {
+                // No technicians assigned
+                updateTechCount(null, "Não Atribuído", phaseKey);
             } else {
-                techCounts.set(techName, {
-                    id: techId,
-                    name: techName,
-                    count: 1,
-                    byPhase: {
-                        aFazer: phaseKey === 'aFazer' ? 1 : 0,
-                        emAndamento: phaseKey === 'emAndamento' ? 1 : 0,
-                        pendencia: phaseKey === 'pendencia' ? 1 : 0,
-                        concluido: phaseKey === 'concluido' ? 1 : 0
-                    }
-                });
+                // Count this card for EACH assigned technician
+                for (const cu of cardUsers) {
+                    const techName = userMap.get(cu.id_usuario) || "Usuário Removido";
+                    updateTechCount(cu.id_usuario, techName, phaseKey);
+                }
             }
         }
 

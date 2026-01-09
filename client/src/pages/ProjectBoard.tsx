@@ -114,33 +114,27 @@ function DeleteCardDialog({ isOpen, onClose, onConfirm, cardTitle, isDeleting }:
 
 // Kanban Column Component
 function KanbanColumn({ title, id, cards, onAddCard, onCardClick, onDeleteCard, color, users, canDelete }: any) {
-  // Helper to get assigned user for a card
-  const getAssignedUser = (card: any) => {
-    // Priority 1: Get from card.id_tecnico_atribuido (server data)
+  // Helper to get ALL assigned users for a card (returns array of names)
+  const getAssignedUsers = (card: any): string[] => {
+    // Priority 1: Get from usuariosAtribuidos (array of user IDs from cartoes_usuarios)
+    if (card.usuariosAtribuidos && card.usuariosAtribuidos.length > 0 && users) {
+      return card.usuariosAtribuidos
+        .map((userId: string) => {
+          const user = users.find((u: any) => u.id === userId);
+          return user ? `${user.firstName} ${user.lastName}` : null;
+        })
+        .filter(Boolean) as string[];
+    }
+
+    // Priority 2: Fallback to id_tecnico_atribuido (legacy field)
     if (card.id_tecnico_atribuido && users) {
       const user = users.find((u: any) => u.id === card.id_tecnico_atribuido);
       if (user) {
-        return `${user.firstName} ${user.lastName}`;
+        return [`${user.firstName} ${user.lastName}`];
       }
     }
 
-    // Priority 2: Fallback to localStorage (legacy/unsaved data)
-    try {
-      const savedData = localStorage.getItem(`card_${card.id}`);
-      if (savedData) {
-        const parsed = JSON.parse(savedData);
-        const userId = parsed.selectedUserId;
-        if (userId && users) {
-          const user = users.find((u: any) => u.id === userId);
-          if (user) {
-            return `${user.firstName} ${user.lastName}`;
-          }
-        }
-      }
-    } catch (e) {
-      console.error('Error getting assigned user:', e);
-    }
-    return null;
+    return [];
   };
 
   return (
@@ -163,7 +157,7 @@ function KanbanColumn({ title, id, cards, onAddCard, onCardClick, onDeleteCard, 
             className="flex-1 p-2 overflow-y-auto custom-scrollbar space-y-3"
           >
             {cards.map((card: any, index: number) => {
-              const assignedUserName = getAssignedUser(card);
+              const assignedUsers = getAssignedUsers(card);
 
               return (
                 <Draggable key={card.id} draggableId={card.id.toString()} index={index}>
@@ -227,16 +221,34 @@ function KanbanColumn({ title, id, cards, onAddCard, onCardClick, onDeleteCard, 
                       <div className="flex items-center justify-between text-xs text-muted-foreground pt-3 border-t border-border/50">
                         <div className="flex items-center gap-1">
                           <span className="text-[10px]">#{card.id}</span>
-                          {assignedUserName && (
+                          {assignedUsers.length > 0 && (
                             <>
                               <span className="text-[10px] text-muted-foreground/50">•</span>
-                              <span className="text-[10px] font-medium text-primary">{assignedUserName}</span>
+                              <span className="text-[10px] font-medium text-primary">
+                                {assignedUsers.length === 1
+                                  ? assignedUsers[0]
+                                  : `${assignedUsers.length} técnicos`}
+                              </span>
                             </>
                           )}
                         </div>
-                        {assignedUserName && (
-                          <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
-                            {assignedUserName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                        {/* Stacked Avatars for multiple technicians */}
+                        {assignedUsers.length > 0 && (
+                          <div className="flex -space-x-2">
+                            {assignedUsers.slice(0, 3).map((name: string, idx: number) => (
+                              <div
+                                key={idx}
+                                className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary border-2 border-background"
+                                title={name}
+                              >
+                                {name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
+                              </div>
+                            ))}
+                            {assignedUsers.length > 3 && (
+                              <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-medium border-2 border-background">
+                                +{assignedUsers.length - 3}
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -975,7 +987,6 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
               priority: editablePriority,
               startDate: inputValueToDate(editableStartDate),
               dueDate: inputValueToDate(editableDueDate),
-              assignedTechId: selectedUserId,
             });
             onUpdate();
           }}
