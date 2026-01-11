@@ -469,10 +469,20 @@ export const colunas_funil_vendas = mysqlTable("colunas_funil_vendas", {
 export const cartoes_funil_vendas = mysqlTable("cartoes_funil_vendas", {
   id: int("id").primaryKey().autoincrement(),
   id_coluna: int("id_coluna").references(() => colunas_funil_vendas.id).notNull(),
-  nome_cliente: text("nome_cliente").notNull(),
+  // Dados da Empresa
+  razao_social: text("razao_social").notNull(), // Antigo nome_cliente
   cnpj: text("cnpj"),
+  nome_fantasia: text("nome_fantasia"), // NOVO
+  // Endereço (NOVOS)
+  endereco: text("endereco"),
+  numero: text("numero"),
+  bairro: text("bairro"),
+  cidade: text("cidade"),
+  cep: text("cep"),
+  // Contato
   nome_contato: text("nome_contato"),
   telefone: text("telefone"),
+  // Proposta
   numero_proposta: text("numero_proposta"),
   data_envio: date("data_envio"),
   valor: int("valor"), // Valor em centavos
@@ -520,5 +530,7 @@ export type InsertCartaoFunilVendas = z.infer<typeof insertCartaoFunilVendasSche
 
 // ✨ EXEMPLO: Schemas e types da nova tabela
 export const insertTarefaInternaSchema = createInsertSchema(tarefas_internas).omit({ id: true, criado_em: true });
+export type TarefaInterna = typeof tarefas_internas.$inferSelect;
+export type InsertTarefaInterna = z.infer<typeof insertTarefaInternaSchema>;
 export type TarefaInterna = typeof tarefas_internas.$inferSelect;
 export type InsertTarefaInterna = z.infer<typeof insertTarefaInternaSchema>;

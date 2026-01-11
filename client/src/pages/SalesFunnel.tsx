@@ -117,7 +117,7 @@ const CardContent = ({ card, formatCurrency, isDragging = false }: any) => (
     <div className="space-y-2.5">
         <div className="flex justify-between items-start gap-2">
             <h4 className="font-bold text-xs leading-tight line-clamp-2">
-                {card.nome_cliente}
+                {card.razao_social}
             </h4>
             <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground/30 flex-shrink-0" />
         </div>
@@ -267,8 +267,14 @@ function FunnelColumn({ title, id, cards, onAddCard, onCardClick, color, totalVa
 
 // Card creation schema - Adjusted to match snake_case
 const cardSchema = z.object({
-    nome_cliente: z.string().min(1, "Nome do cliente é obrigatório"),
+    razao_social: z.string().min(1, "Razão Social é obrigatória"),
     cnpj: z.string().nullable().optional(),
+    nome_fantasia: z.string().nullable().optional(),
+    endereco: z.string().nullable().optional(),
+    numero: z.string().nullable().optional(),
+    bairro: z.string().nullable().optional(),
+    cidade: z.string().nullable().optional(),
+    cep: z.string().nullable().optional(),
     nome_contato: z.string().nullable().optional(),
     telefone: z.string().nullable().optional(),
     numero_proposta: z.string().nullable().optional(),
@@ -298,8 +304,14 @@ export default function SalesFunnel() {
     const form = useForm({
         resolver: zodResolver(cardSchema),
         defaultValues: {
-            nome_cliente: "",
+            razao_social: "",
             cnpj: "",
+            nome_fantasia: "",
+            endereco: "",
+            numero: "",
+            bairro: "",
+            cidade: "",
+            cep: "",
             nome_contato: "",
             telefone: "",
             numero_proposta: "",
@@ -327,8 +339,14 @@ export default function SalesFunnel() {
 
     const handleAddCard = (columnId: number) => {
         form.reset({
-            nome_cliente: "",
+            razao_social: "",
             cnpj: "",
+            nome_fantasia: "",
+            endereco: "",
+            numero: "",
+            bairro: "",
+            cidade: "",
+            cep: "",
             nome_contato: "",
             telefone: "",
             numero_proposta: "",
@@ -356,8 +374,14 @@ export default function SalesFunnel() {
 
         createSalesFunnelCard.mutate({
             id_coluna: data.id_coluna,
-            nome_cliente: data.nome_cliente,
+            razao_social: data.razao_social,
             cnpj: data.cnpj || null,
+            nome_fantasia: data.nome_fantasia || null,
+            endereco: data.endereco || null,
+            numero: data.numero || null,
+            bairro: data.bairro || null,
+            cidade: data.cidade || null,
+            cep: data.cep || null,
             nome_contato: data.nome_contato || null,
             telefone: data.telefone || null,
             numero_proposta: data.numero_proposta || null,
@@ -384,8 +408,10 @@ export default function SalesFunnel() {
 
         const searchLower = searchText.toLowerCase().trim();
         return cards.filter(card => {
-            return (card.nome_cliente || '').toLowerCase().includes(searchLower) ||
+            return (card.razao_social || '').toLowerCase().includes(searchLower) ||
                 (card.cnpj || '').toLowerCase().includes(searchLower) ||
+                (card.nome_fantasia || '').toLowerCase().includes(searchLower) ||
+                (card.cidade || '').toLowerCase().includes(searchLower) ||
                 (card.nome_contato || '').toLowerCase().includes(searchLower) ||
                 (card.telefone || '').toLowerCase().includes(searchLower) ||
                 (card.numero_proposta || '').toLowerCase().includes(searchLower) ||
@@ -479,10 +505,10 @@ export default function SalesFunnel() {
                             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-2">
                                 <FormField
                                     control={form.control}
-                                    name="nome_cliente"
+                                    name="razao_social"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Cliente *</FormLabel>
+                                            <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Razão Social *</FormLabel>
                                             <FormControl>
                                                 <Input {...field} placeholder="Ex: PoloTelecom Corp" />
                                             </FormControl>
@@ -509,6 +535,88 @@ export default function SalesFunnel() {
                                             </FormItem>
                                         )}
                                     />
+                                    <FormField
+                                        control={form.control}
+                                        name="nome_fantasia"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Nome Fantasia</FormLabel>
+                                                <FormControl>
+                                                    <Input {...field} value={field.value || ''} placeholder="Nome comercial" />
+                                                </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+
+                                {/* Campos de Endereço */}
+                                <div className="grid grid-cols-3 gap-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="endereco"
+                                        render={({ field }) => (
+                                            <FormItem className="col-span-2">
+                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Endereço</FormLabel>
+                                                <FormControl>
+                                                    <Input {...field} value={field.value || ''} placeholder="Rua, Avenida..." />
+                                                </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="numero"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Nº</FormLabel>
+                                                <FormControl>
+                                                    <Input {...field} value={field.value || ''} placeholder="123" />
+                                                </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="bairro"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Bairro</FormLabel>
+                                                <FormControl>
+                                                    <Input {...field} value={field.value || ''} placeholder="Bairro" />
+                                                </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="cidade"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Cidade</FormLabel>
+                                                <FormControl>
+                                                    <Input {...field} value={field.value || ''} placeholder="Cidade" />
+                                                </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="cep"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">CEP</FormLabel>
+                                                <FormControl>
+                                                    <Input {...field} value={field.value || ''} placeholder="00000-000" maxLength={9} />
+                                                </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
                                     <FormField
                                         control={form.control}
                                         name="numero_proposta"
@@ -755,7 +863,7 @@ export default function SalesFunnel() {
                     <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
                         <DialogHeader className="border-b pb-4 mb-4">
                             <DialogTitle className="text-2xl font-black font-display text-primary">
-                                {selectedCard?.nome_cliente || "Detalhes do Negócio"}
+                                {selectedCard?.razao_social || "Detalhes do Negócio"}
                             </DialogTitle>
                         </DialogHeader>
 
@@ -788,8 +896,14 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
     // Use react-hook-form for better validation and type handling
     const editForm = useForm({
         defaultValues: {
-            nome_cliente: card.nome_cliente || '',
+            razao_social: card.razao_social || '',
             cnpj: card.cnpj || '',
+            nome_fantasia: card.nome_fantasia || '',
+            endereco: card.endereco || '',
+            numero: card.numero || '',
+            bairro: card.bairro || '',
+            cidade: card.cidade || '',
+            cep: card.cep || '',
             nome_contato: card.nome_contato || '',
             telefone: card.telefone || '',
             numero_proposta: card.numero_proposta || '',
@@ -814,8 +928,14 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
             await updateSalesFunnelCard.mutateAsync({
                 id: card.id,
                 updates: {
-                    nome_cliente: data.nome_cliente,
+                    razao_social: data.razao_social,
                     cnpj: data.cnpj || null,
+                    nome_fantasia: data.nome_fantasia || null,
+                    endereco: data.endereco || null,
+                    numero: data.numero || null,
+                    bairro: data.bairro || null,
+                    cidade: data.cidade || null,
+                    cep: data.cep || null,
                     nome_contato: data.nome_contato || null,
                     telefone: data.telefone || null,
                     numero_proposta: data.numero_proposta || null,
@@ -869,11 +989,78 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
 
                     <FormField
                         control={editForm.control}
-                        name="nome_cliente"
+                        name="razao_social"
                         render={({ field }) => (
                             <FormItem className="md:col-span-2">
-                                <FormLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Cliente *</FormLabel>
+                                <FormLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Razão Social *</FormLabel>
                                 <FormControl><Input {...field} required /></FormControl>
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={editForm.control}
+                        name="nome_fantasia"
+                        render={({ field }) => (
+                            <FormItem className="md:col-span-2">
+                                <FormLabel className="text-[10px] font-bold uppercase text-muted-foreground">Nome Fantasia</FormLabel>
+                                <FormControl><Input {...field} /></FormControl>
+                            </FormItem>
+                        )}
+                    />
+
+                    {/* Campos de Endereço */}
+                    <FormField
+                        control={editForm.control}
+                        name="endereco"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-[10px] font-bold uppercase text-muted-foreground">Endereço</FormLabel>
+                                <FormControl><Input {...field} /></FormControl>
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={editForm.control}
+                        name="numero"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-[10px] font-bold uppercase text-muted-foreground">Nº</FormLabel>
+                                <FormControl><Input {...field} /></FormControl>
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={editForm.control}
+                        name="bairro"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-[10px] font-bold uppercase text-muted-foreground">Bairro</FormLabel>
+                                <FormControl><Input {...field} /></FormControl>
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={editForm.control}
+                        name="cidade"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-[10px] font-bold uppercase text-muted-foreground">Cidade</FormLabel>
+                                <FormControl><Input {...field} /></FormControl>
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={editForm.control}
+                        name="cep"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-[10px] font-bold uppercase text-muted-foreground">CEP</FormLabel>
+                                <FormControl><Input {...field} maxLength={9} /></FormControl>
                             </FormItem>
                         )}
                     />
