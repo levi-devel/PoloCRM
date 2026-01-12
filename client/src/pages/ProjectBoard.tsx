@@ -288,6 +288,7 @@ export default function ProjectBoard() {
   const [cardToDelete, setCardToDelete] = useState<any | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedNewCardUsers, setSelectedNewCardUsers] = useState<string[]>([]);
 
   const { data: selectedCard } = useCard(selectedCardId || 0);
   const deleteCard = useDeleteCard();
@@ -336,6 +337,10 @@ export default function ProjectBoard() {
     setSelectedColumn(columnId);
     form.setValue("id_coluna", columnId);
     form.setValue("id_projeto", projectId);
+    // Auto-assign current user to the new card
+    if (user?.id) {
+      setSelectedNewCardUsers([user.id]);
+    }
     setIsAddOpen(true);
   };
 
@@ -364,9 +369,26 @@ export default function ProjectBoard() {
 
   const onSubmit = (data: any) => {
     createCard.mutate(data, {
-      onSuccess: () => {
+      onSuccess: (newCard) => {
+        // After creating the card, assign the selected users to it
+        if (selectedNewCardUsers.length > 0 && newCard?.id) {
+          fetch(`/api/cards/${newCard.id}/users`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userIds: selectedNewCardUsers }),
+            credentials: 'include'
+          })
+            .then(() => {
+              // Refetch cards to show the updated card with assigned users
+              refetch();
+            })
+            .catch(error => {
+              console.error('Failed to assign users to card:', error);
+            });
+        }
         setIsAddOpen(false);
         form.reset();
+        setSelectedNewCardUsers([]); // Reset selected users
       }
     });
   };
@@ -529,6 +551,19 @@ export default function ProjectBoard() {
                       </FormItem>
                     )}
                   />
+                </div>
+
+                {/* Users Selection */}
+                <div className="space-y-2">
+                  <FormLabel>Participantes do Cartão</FormLabel>
+                  <MultiUserSelect
+                    users={users || []}
+                    selectedUserIds={selectedNewCardUsers}
+                    onChange={(userIds: string[]) => setSelectedNewCardUsers(userIds)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Por padrão, você está atribuído ao card. Adicione ou remova participantes conforme necessário.
+                  </p>
                 </div>
 
                 <Button type="submit" className="w-full">Criar Cartão</Button>
