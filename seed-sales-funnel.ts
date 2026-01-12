@@ -14,9 +14,9 @@ async function seed() {
         console.log("Seeding default sales funnel columns...");
         const defaultColumns = [
             { nome: "Envio de Proposta", ordem: 0, cor: "#3b82f6" },
-            { nome: "Contrato Fechado", ordem: 1, cor: "#10b981" },
-            { nome: "Contrato Recusado", ordem: 2, cor: "#f59e0b" },
-            { nome: "Cancelamento", ordem: 3, cor: "#ef4444" },
+            { nome: "Negociação", ordem: 1, cor: "#fbbf24" },
+            { nome: "Contrato Fechado", ordem: 2, cor: "#10b981" },
+            { nome: "Contrato Recusado", ordem: 3, cor: "#ef4444" },
         ];
 
         await db.insert(colunas_funil_vendas).values(defaultColumns);
