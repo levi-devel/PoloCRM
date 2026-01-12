@@ -300,6 +300,7 @@ export default function SalesFunnel() {
     const [selectedCard, setSelectedCard] = useState<any>(null);
     const [isCardModalOpen, setIsCardModalOpen] = useState(false);
     const [searchText, setSearchText] = useState('');
+    const [isConsultingCNPJ, setIsConsultingCNPJ] = useState(false);
 
     const form = useForm({
         resolver: zodResolver(cardSchema),
@@ -495,46 +496,87 @@ export default function SalesFunnel() {
 
                 {/* Add Card Modal */}
                 <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-                    <DialogContent className="max-w-xl">
-                        <DialogHeader>
+                    <DialogContent className="max-w-xl max-h-[85vh] overflow-hidden flex flex-col">
+                        <DialogHeader className="flex-shrink-0">
                             <DialogTitle className="text-xl font-bold">
                                 Adicionar Novo Negócio
                             </DialogTitle>
                         </DialogHeader>
-                        <Form {...form}>
-                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-2">
-                                <FormField
-                                    control={form.control}
-                                    name="razao_social"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Razão Social *</FormLabel>
-                                            <FormControl>
-                                                <Input {...field} placeholder="Ex: PoloTelecom Corp" />
-                                            </FormControl>
-                                        </FormItem>
-                                    )}
-                                />
+                        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                            <Form {...form}>
+                                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-2">
+                                    {/* CNPJ com botão Consultar */}
+                                    <div className="flex gap-2 items-end">
+                                        <FormField
+                                            control={form.control}
+                                            name="cnpj"
+                                            render={({ field }) => (
+                                                <FormItem className="flex-1">
+                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">CNPJ</FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            {...field}
+                                                            value={field.value || ''}
+                                                            placeholder="00.000.000/0000-00"
+                                                            maxLength={18}
+                                                            onChange={(e) => field.onChange(formatCNPJ(e.target.value))}
+                                                        />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="mb-0.5"
+                                            disabled={isConsultingCNPJ}
+                                            onClick={async () => {
+                                                const cnpj = form.getValues('cnpj');
+                                                if (!cnpj || cnpj.length < 14) {
+                                                    alert('Digite um CNPJ válido');
+                                                    return;
+                                                }
+                                                setIsConsultingCNPJ(true);
+                                                try {
+                                                    const response = await fetch(`https://api.opencnpj.org/${cnpj}`);
+                                                    if (!response.ok) throw new Error('CNPJ não encontrado');
+                                                    const data = await response.json();
+                                                    form.setValue('razao_social', data.razao_social || '');
+                                                    form.setValue('nome_fantasia', data.nome_fantasia || '');
+                                                    form.setValue('endereco', data.logradouro || '');
+                                                    form.setValue('bairro', data.bairro || '');
+                                                    form.setValue('cidade', data.municipio || '');
+                                                    form.setValue('cep', data.cep || '');
+                                                } catch (error) {
+                                                    alert('Erro ao consultar CNPJ. Verifique se o CNPJ está correto.');
+                                                } finally {
+                                                    setIsConsultingCNPJ(false);
+                                                }
+                                            }}
+                                        >
+                                            {isConsultingCNPJ ? (
+                                                <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                                            ) : (
+                                                <Search className="w-4 h-4 mr-1" />
+                                            )}
+                                            {isConsultingCNPJ ? 'Consultando...' : 'Consultar'}
+                                        </Button>
+                                    </div>
 
-                                <div className="grid grid-cols-2 gap-4">
                                     <FormField
                                         control={form.control}
-                                        name="cnpj"
+                                        name="razao_social"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">CNPJ</FormLabel>
+                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Razão Social *</FormLabel>
                                                 <FormControl>
-                                                    <Input
-                                                        {...field}
-                                                        value={field.value || ''}
-                                                        placeholder="00.000.000/0000-00"
-                                                        maxLength={18}
-                                                        onChange={(e) => field.onChange(formatCNPJ(e.target.value))}
-                                                    />
+                                                    <Input {...field} placeholder="Ex: PoloTelecom Ltda" />
                                                 </FormControl>
                                             </FormItem>
                                         )}
                                     />
+
                                     <FormField
                                         control={form.control}
                                         name="nome_fantasia"
@@ -547,148 +589,280 @@ export default function SalesFunnel() {
                                             </FormItem>
                                         )}
                                     />
-                                </div>
 
-                                {/* Campos de Endereço */}
-                                <div className="grid grid-cols-3 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="endereco"
-                                        render={({ field }) => (
-                                            <FormItem className="col-span-2">
-                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Endereço</FormLabel>
-                                                <FormControl>
-                                                    <Input {...field} value={field.value || ''} placeholder="Rua, Avenida..." />
-                                                </FormControl>
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="numero"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Nº</FormLabel>
-                                                <FormControl>
-                                                    <Input {...field} value={field.value || ''} placeholder="123" />
-                                                </FormControl>
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
+                                    {/* Campos de Endereço */}
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="endereco"
+                                            render={({ field }) => (
+                                                <FormItem className="col-span-2">
+                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Endereço</FormLabel>
+                                                    <FormControl>
+                                                        <Input {...field} value={field.value || ''} placeholder="Rua, Avenida..." />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="numero"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Nº</FormLabel>
+                                                    <FormControl>
+                                                        <Input {...field} value={field.value || ''} placeholder="123" />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
 
-                                <div className="grid grid-cols-3 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="bairro"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Bairro</FormLabel>
-                                                <FormControl>
-                                                    <Input {...field} value={field.value || ''} placeholder="Bairro" />
-                                                </FormControl>
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="cidade"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Cidade</FormLabel>
-                                                <FormControl>
-                                                    <Input {...field} value={field.value || ''} placeholder="Cidade" />
-                                                </FormControl>
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="cep"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">CEP</FormLabel>
-                                                <FormControl>
-                                                    <Input {...field} value={field.value || ''} placeholder="00000-000" maxLength={9} />
-                                                </FormControl>
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="bairro"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Bairro</FormLabel>
+                                                    <FormControl>
+                                                        <Input {...field} value={field.value || ''} placeholder="Bairro" />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="cidade"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Cidade</FormLabel>
+                                                    <FormControl>
+                                                        <Input {...field} value={field.value || ''} placeholder="Cidade" />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="cep"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">CEP</FormLabel>
+                                                    <FormControl>
+                                                        <Input {...field} value={field.value || ''} placeholder="00000-000" maxLength={9} />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="numero_proposta"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Nº Proposta</FormLabel>
-                                                <FormControl>
-                                                    <Input {...field} value={field.value || ''} placeholder="Ex: 2024001" />
-                                                </FormControl>
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="numero_proposta"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Nº Proposta</FormLabel>
+                                                    <FormControl>
+                                                        <Input {...field} value={field.value || ''} placeholder="Ex: 2024001" />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="nome_contato"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Contato</FormLabel>
-                                                <FormControl>
-                                                    <Input {...field} value={field.value || ''} placeholder="Nome da pessoa" />
-                                                </FormControl>
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="telefone"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Telefone</FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        {...field}
-                                                        value={field.value || ''}
-                                                        placeholder="(00) 00000-0000"
-                                                        maxLength={15}
-                                                        onChange={(e) => field.onChange(formatPhone(e.target.value))}
-                                                    />
-                                                </FormControl>
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="nome_contato"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Contato</FormLabel>
+                                                    <FormControl>
+                                                        <Input {...field} value={field.value || ''} placeholder="Nome da pessoa" />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="telefone"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Telefone</FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            {...field}
+                                                            value={field.value || ''}
+                                                            placeholder="(00) 00000-0000"
+                                                            maxLength={15}
+                                                            onChange={(e) => field.onChange(formatPhone(e.target.value))}
+                                                        />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
 
-                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="valor"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Valor Estimado</FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            {...field}
+                                                            value={field.value || ''}
+                                                            placeholder="R$ 0,00"
+                                                            className="font-bold text-green-600"
+                                                            onChange={(e) => field.onChange(formatCurrencyInput(e.target.value))}
+                                                        />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="data_envio"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Data</FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            type="date"
+                                                            value={field.value || ''}
+                                                            onChange={field.onChange}
+                                                        />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="produto"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Produto</FormLabel>
+                                                    <Select onValueChange={field.onChange} value={field.value || ''}>
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Selecione o produto" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            <SelectItem value="IPPolo Omni Business">IPPolo Omni Business</SelectItem>
+                                                            <SelectItem value="IPPolo Omni Enterprise">IPPolo Omni Enterprise</SelectItem>
+                                                            <SelectItem value="IPPolo Omni Profissional">IPPolo Omni Profissional</SelectItem>
+                                                            <SelectItem value="Plataforma 360 OMNI">Plataforma 360 OMNI</SelectItem>
+                                                            <SelectItem value="Pabx 3CX">Pabx 3CX</SelectItem>
+                                                            <SelectItem value="PABX HIBRIDO">PABX HIBRIDO</SelectItem>
+                                                            <SelectItem value="Pabx IPPolo Business">Pabx IPPolo Business</SelectItem>
+                                                            <SelectItem value="Pabx IPPolo Cloud">Pabx IPPolo Cloud</SelectItem>
+                                                            <SelectItem value="Pabx IPPolo Enterprise">Pabx IPPolo Enterprise</SelectItem>
+                                                            <SelectItem value="Pabx IPPolo Profissional">Pabx IPPolo Profissional</SelectItem>
+                                                            <SelectItem value="Desenvolvimento de Sistema">Desenvolvimento de Sistema</SelectItem>
+                                                            <SelectItem value="Desenvolvimento de Agente IA">Desenvolvimento de Agente IA</SelectItem>
+                                                            <SelectItem value="Desenvolvimento de API">Desenvolvimento de API</SelectItem>
+                                                            <SelectItem value="Setup de desenvolvimento">Setup de desenvolvimento</SelectItem>
+                                                            <SelectItem value="Produtos">Produtos</SelectItem>
+                                                            <SelectItem value="Linha Voip">Linha Voip</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="produto_especifico"
+                                            render={({ field }) => {
+                                                const produtoSelecionado = form.watch("produto");
+                                                if (produtoSelecionado !== "Produtos") return <></>;
+
+                                                return (
+                                                    <FormItem>
+                                                        <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Produto Específico</FormLabel>
+                                                        <Select onValueChange={field.onChange} value={field.value || ''}>
+                                                            <FormControl>
+                                                                <SelectTrigger>
+                                                                    <SelectValue placeholder="Selecione o produto" />
+                                                                </SelectTrigger>
+                                                            </FormControl>
+                                                            <SelectContent>
+                                                                <SelectItem value="Gateway GSM">Gateway GSM</SelectItem>
+                                                                <SelectItem value="Gateway FXS">Gateway FXS</SelectItem>
+                                                                <SelectItem value="Gateway FXO">Gateway FXO</SelectItem>
+                                                                <SelectItem value="Gateway E1">Gateway E1</SelectItem>
+                                                                <SelectItem value="Aparelho IP">Aparelho IP</SelectItem>
+                                                                <SelectItem value="Headset">Headset</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </FormItem>
+                                                );
+                                            }}
+                                        />
+                                    </div>
+
+                                    {/* Quantidade - Shows when produto is "Produtos" */}
+                                    {form.watch("produto") === "Produtos" && (
+                                        <FormField
+                                            control={form.control}
+                                            name="quantidade_produto"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Quantidade</FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            {...field}
+                                                            value={field.value || ''}
+                                                            type="number"
+                                                            min="1"
+                                                            placeholder="Ex: 10"
+                                                            className="font-semibold"
+                                                        />
+                                                    </FormControl>
+                                                    <p className="text-xs text-muted-foreground">Quantidade de produtos ofertados</p>
+                                                </FormItem>
+                                            )}
+                                        />
+                                    )}
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="tipo_contrato"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Tipo de Contrato</FormLabel>
+                                                    <Select onValueChange={field.onChange} value={field.value || ''}>
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Selecione o tipo" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            <SelectItem value="Novo">Novo</SelectItem>
+                                                            <SelectItem value="UPSELL">UPSELL</SelectItem>
+                                                            <SelectItem value="CROSSELL">CROSSELL</SelectItem>
+                                                            <SelectItem value="Aditivo">Aditivo</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+
                                     <FormField
                                         control={form.control}
-                                        name="valor"
+                                        name="data_assinatura_contrato"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Valor Estimado</FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        {...field}
-                                                        value={field.value || ''}
-                                                        placeholder="R$ 0,00"
-                                                        className="font-bold text-green-600"
-                                                        onChange={(e) => field.onChange(formatCurrencyInput(e.target.value))}
-                                                    />
-                                                </FormControl>
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="data_envio"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Data</FormLabel>
+                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Data da Assinatura do Contrato</FormLabel>
                                                 <FormControl>
                                                     <Input
                                                         type="date"
@@ -699,162 +873,30 @@ export default function SalesFunnel() {
                                             </FormItem>
                                         )}
                                     />
-                                </div>
 
-                                <div className="grid grid-cols-2 gap-4">
                                     <FormField
                                         control={form.control}
-                                        name="produto"
+                                        name="observacoes"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Produto</FormLabel>
-                                                <Select onValueChange={field.onChange} value={field.value || ''}>
-                                                    <FormControl>
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Selecione o produto" />
-                                                        </SelectTrigger>
-                                                    </FormControl>
-                                                    <SelectContent>
-                                                        <SelectItem value="IPPolo Omni Business">IPPolo Omni Business</SelectItem>
-                                                        <SelectItem value="IPPolo Omni Enterprise">IPPolo Omni Enterprise</SelectItem>
-                                                        <SelectItem value="IPPolo Omni Profissional">IPPolo Omni Profissional</SelectItem>
-                                                        <SelectItem value="Plataforma 360 OMNI">Plataforma 360 OMNI</SelectItem>
-                                                        <SelectItem value="Pabx 3CX">Pabx 3CX</SelectItem>
-                                                        <SelectItem value="PABX HIBRIDO">PABX HIBRIDO</SelectItem>
-                                                        <SelectItem value="Pabx IPPolo Business">Pabx IPPolo Business</SelectItem>
-                                                        <SelectItem value="Pabx IPPolo Cloud">Pabx IPPolo Cloud</SelectItem>
-                                                        <SelectItem value="Pabx IPPolo Enterprise">Pabx IPPolo Enterprise</SelectItem>
-                                                        <SelectItem value="Pabx IPPolo Profissional">Pabx IPPolo Profissional</SelectItem>
-                                                        <SelectItem value="Desenvolvimento de Sistema">Desenvolvimento de Sistema</SelectItem>
-                                                        <SelectItem value="Desenvolvimento de Agente IA">Desenvolvimento de Agente IA</SelectItem>
-                                                        <SelectItem value="Desenvolvimento de API">Desenvolvimento de API</SelectItem>
-                                                        <SelectItem value="Setup de desenvolvimento">Setup de desenvolvimento</SelectItem>
-                                                        <SelectItem value="Produtos">Produtos</SelectItem>
-                                                        <SelectItem value="Linha Voip">Linha Voip</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="produto_especifico"
-                                        render={({ field }) => {
-                                            const produtoSelecionado = form.watch("produto");
-                                            if (produtoSelecionado !== "Produtos") return <></>;
-
-                                            return (
-                                                <FormItem>
-                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Produto Específico</FormLabel>
-                                                    <Select onValueChange={field.onChange} value={field.value || ''}>
-                                                        <FormControl>
-                                                            <SelectTrigger>
-                                                                <SelectValue placeholder="Selecione o produto" />
-                                                            </SelectTrigger>
-                                                        </FormControl>
-                                                        <SelectContent>
-                                                            <SelectItem value="Gateway GSM">Gateway GSM</SelectItem>
-                                                            <SelectItem value="Gateway FXS">Gateway FXS</SelectItem>
-                                                            <SelectItem value="Gateway FXO">Gateway FXO</SelectItem>
-                                                            <SelectItem value="Gateway E1">Gateway E1</SelectItem>
-                                                            <SelectItem value="Aparelho IP">Aparelho IP</SelectItem>
-                                                            <SelectItem value="Headset">Headset</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </FormItem>
-                                            );
-                                        }}
-                                    />
-                                </div>
-
-                                {/* Quantidade - Shows when produto is "Produtos" */}
-                                {form.watch("produto") === "Produtos" && (
-                                    <FormField
-                                        control={form.control}
-                                        name="quantidade_produto"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Quantidade</FormLabel>
+                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Observações</FormLabel>
                                                 <FormControl>
-                                                    <Input
-                                                        {...field}
-                                                        value={field.value || ''}
-                                                        type="number"
-                                                        min="1"
-                                                        placeholder="Ex: 10"
-                                                        className="font-semibold"
-                                                    />
+                                                    <Textarea {...field} value={field.value || ''} rows={3} className="resize-none" />
                                                 </FormControl>
-                                                <p className="text-xs text-muted-foreground">Quantidade de produtos ofertados</p>
                                             </FormItem>
                                         )}
                                     />
-                                )}
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="tipo_contrato"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Tipo de Contrato</FormLabel>
-                                                <Select onValueChange={field.onChange} value={field.value || ''}>
-                                                    <FormControl>
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Selecione o tipo" />
-                                                        </SelectTrigger>
-                                                    </FormControl>
-                                                    <SelectContent>
-                                                        <SelectItem value="Novo">Novo</SelectItem>
-                                                        <SelectItem value="UPSELL">UPSELL</SelectItem>
-                                                        <SelectItem value="CROSSELL">CROSSELL</SelectItem>
-                                                        <SelectItem value="Aditivo">Aditivo</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-
-                                <FormField
-                                    control={form.control}
-                                    name="data_assinatura_contrato"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Data da Assinatura do Contrato</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    type="date"
-                                                    value={field.value || ''}
-                                                    onChange={field.onChange}
-                                                />
-                                            </FormControl>
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="observacoes"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Observações</FormLabel>
-                                            <FormControl>
-                                                <Textarea {...field} value={field.value || ''} rows={3} className="resize-none" />
-                                            </FormControl>
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <Button
-                                    type="submit"
-                                    className="w-full font-bold shadow-lg"
-                                    disabled={createSalesFunnelCard.isPending}
-                                >
-                                    {createSalesFunnelCard.isPending ? "Processando..." : "Criar Negócio"}
-                                </Button>
-                            </form>
-                        </Form>
+                                    <Button
+                                        type="submit"
+                                        className="w-full font-bold shadow-lg"
+                                        disabled={createSalesFunnelCard.isPending}
+                                    >
+                                        {createSalesFunnelCard.isPending ? "Processando..." : "Criar Negócio"}
+                                    </Button>
+                                </form>
+                            </Form>
+                        </div>
                     </DialogContent>
                 </Dialog>
 
@@ -892,6 +934,7 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
     const updateSalesFunnelCard = useUpdateSalesFunnelCard();
     const deleteSalesFunnelCard = useDeleteSalesFunnelCard();
     const [confirmDelete, setConfirmDelete] = useState(false);
+    const [isConsultingCNPJ, setIsConsultingCNPJ] = useState(false);
 
     // Use react-hook-form for better validation and type handling
     const editForm = useForm({
@@ -970,22 +1013,62 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
         <Form {...editForm}>
             <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                        control={editForm.control}
-                        name="cnpj"
-                        render={({ field }) => (
-                            <FormItem className="md:col-span-2">
-                                <FormLabel className="text-[10px] font-bold uppercase text-muted-foreground">CNPJ</FormLabel>
-                                <FormControl>
-                                    <Input
-                                        {...field}
-                                        maxLength={18}
-                                        onChange={(e) => field.onChange(formatCNPJ(e.target.value))}
-                                    />
-                                </FormControl>
-                            </FormItem>
-                        )}
-                    />
+                    {/* CNPJ com botão Consultar */}
+                    <div className="md:col-span-2 flex gap-2 items-end">
+                        <FormField
+                            control={editForm.control}
+                            name="cnpj"
+                            render={({ field }) => (
+                                <FormItem className="flex-1">
+                                    <FormLabel className="text-[10px] font-bold uppercase text-muted-foreground">CNPJ</FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            {...field}
+                                            maxLength={18}
+                                            onChange={(e) => field.onChange(formatCNPJ(e.target.value))}
+                                        />
+                                    </FormControl>
+                                </FormItem>
+                            )}
+                        />
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="mb-0.5"
+                            disabled={isConsultingCNPJ}
+                            onClick={async () => {
+                                const cnpj = editForm.getValues('cnpj');
+                                if (!cnpj || cnpj.length < 14) {
+                                    alert('Digite um CNPJ válido');
+                                    return;
+                                }
+                                setIsConsultingCNPJ(true);
+                                try {
+                                    const response = await fetch(`https://api.opencnpj.org/${cnpj}`);
+                                    if (!response.ok) throw new Error('CNPJ não encontrado');
+                                    const data = await response.json();
+                                    editForm.setValue('razao_social', data.razao_social || '');
+                                    editForm.setValue('nome_fantasia', data.nome_fantasia || '');
+                                    editForm.setValue('endereco', data.logradouro || '');
+                                    editForm.setValue('bairro', data.bairro || '');
+                                    editForm.setValue('cidade', data.municipio || '');
+                                    editForm.setValue('cep', data.cep || '');
+                                } catch (error) {
+                                    alert('Erro ao consultar CNPJ. Verifique se o CNPJ está correto.');
+                                } finally {
+                                    setIsConsultingCNPJ(false);
+                                }
+                            }}
+                        >
+                            {isConsultingCNPJ ? (
+                                <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                            ) : (
+                                <Search className="w-4 h-4 mr-1" />
+                            )}
+                            {isConsultingCNPJ ? 'Consultando...' : 'Consultar'}
+                        </Button>
+                    </div>
 
                     <FormField
                         control={editForm.control}
