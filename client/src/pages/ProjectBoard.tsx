@@ -517,42 +517,6 @@ export default function ProjectBoard() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="data_inicio"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Data de Início</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="date"
-                            value={dateToInputValue(field.value)}
-                            onChange={(e) => field.onChange(inputValueToDate(e.target.value))}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="data_prazo"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Data de Entrega</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="date"
-                            value={dateToInputValue(field.value)}
-                            onChange={(e) => field.onChange(inputValueToDate(e.target.value))}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
                 {/* Users Selection */}
                 <div className="space-y-2">
                   <FormLabel>Participantes do Cartão</FormLabel>
