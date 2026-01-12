@@ -479,9 +479,14 @@ export const cartoes_funil_vendas = mysqlTable("cartoes_funil_vendas", {
   bairro: text("bairro"),
   cidade: text("cidade"),
   cep: text("cep"),
-  // Contato
-  nome_contato: text("nome_contato"),
-  telefone: text("telefone"),
+  // Contato Responsável
+  contato_responsavel: text("contato_responsavel"),
+  telefone_responsavel: text("telefone_responsavel"),
+  email_responsavel: text("email_responsavel"),
+  // Contato Financeiro
+  contato_financeiro: text("contato_financeiro"),
+  telefone_financeiro: text("telefone_financeiro"),
+  email_financeiro: text("email_financeiro"),
   // Proposta
   numero_proposta: text("numero_proposta"),
   data_envio: date("data_envio"),

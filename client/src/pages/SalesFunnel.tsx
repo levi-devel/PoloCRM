@@ -129,16 +129,16 @@ const CardContent = ({ card, formatCurrency, isDragging = false }: any) => (
                     <span className="truncate">{card.cnpj}</span>
                 </div>
             )}
-            {card.nome_contato && (
+            {card.contato_responsavel && (
                 <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
                     <User className="w-3 h-3 flex-shrink-0" />
-                    <span className="truncate">{card.nome_contato}</span>
+                    <span className="truncate">{card.contato_responsavel}</span>
                 </div>
             )}
-            {card.telefone && (
+            {card.telefone_responsavel && (
                 <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
                     <Phone className="w-3 h-3 flex-shrink-0" />
-                    <span>{card.telefone}</span>
+                    <span>{card.telefone_responsavel}</span>
                 </div>
             )}
 
@@ -275,8 +275,12 @@ const cardSchema = z.object({
     bairro: z.string().nullable().optional(),
     cidade: z.string().nullable().optional(),
     cep: z.string().nullable().optional(),
-    nome_contato: z.string().nullable().optional(),
-    telefone: z.string().nullable().optional(),
+    contato_responsavel: z.string().nullable().optional(),
+    telefone_responsavel: z.string().nullable().optional(),
+    email_responsavel: z.string().nullable().optional(),
+    contato_financeiro: z.string().nullable().optional(),
+    telefone_financeiro: z.string().nullable().optional(),
+    email_financeiro: z.string().nullable().optional(),
     numero_proposta: z.string().nullable().optional(),
     data_envio: z.string().nullable().optional(),
     valor: z.string().nullable().optional(),
@@ -313,8 +317,12 @@ export default function SalesFunnel() {
             bairro: "",
             cidade: "",
             cep: "",
-            nome_contato: "",
-            telefone: "",
+            contato_responsavel: "",
+            telefone_responsavel: "",
+            email_responsavel: "",
+            contato_financeiro: "",
+            telefone_financeiro: "",
+            email_financeiro: "",
             numero_proposta: "",
             data_envio: "",
             valor: "",
@@ -348,8 +356,12 @@ export default function SalesFunnel() {
             bairro: "",
             cidade: "",
             cep: "",
-            nome_contato: "",
-            telefone: "",
+            contato_responsavel: "",
+            telefone_responsavel: "",
+            email_responsavel: "",
+            contato_financeiro: "",
+            telefone_financeiro: "",
+            email_financeiro: "",
             numero_proposta: "",
             data_envio: "",
             valor: "",
@@ -383,8 +395,12 @@ export default function SalesFunnel() {
             bairro: data.bairro || null,
             cidade: data.cidade || null,
             cep: data.cep || null,
-            nome_contato: data.nome_contato || null,
-            telefone: data.telefone || null,
+            contato_responsavel: data.contato_responsavel || null,
+            telefone_responsavel: data.telefone_responsavel || null,
+            email_responsavel: data.email_responsavel || null,
+            contato_financeiro: data.contato_financeiro || null,
+            telefone_financeiro: data.telefone_financeiro || null,
+            email_financeiro: data.email_financeiro || null,
             numero_proposta: data.numero_proposta || null,
             data_envio: data.data_envio || null,
             valor: valueInCents,
@@ -413,8 +429,8 @@ export default function SalesFunnel() {
                 (card.cnpj || '').toLowerCase().includes(searchLower) ||
                 (card.nome_fantasia || '').toLowerCase().includes(searchLower) ||
                 (card.cidade || '').toLowerCase().includes(searchLower) ||
-                (card.nome_contato || '').toLowerCase().includes(searchLower) ||
-                (card.telefone || '').toLowerCase().includes(searchLower) ||
+                (card.contato_responsavel || '').toLowerCase().includes(searchLower) ||
+                (card.telefone_responsavel || '').toLowerCase().includes(searchLower) ||
                 (card.numero_proposta || '').toLowerCase().includes(searchLower) ||
                 (card.observacoes || '').toLowerCase().includes(searchLower);
         });
@@ -672,13 +688,13 @@ export default function SalesFunnel() {
                                         />
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-3 gap-4">
                                         <FormField
                                             control={form.control}
-                                            name="nome_contato"
+                                            name="contato_responsavel"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Contato</FormLabel>
+                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Contato Responsável</FormLabel>
                                                     <FormControl>
                                                         <Input {...field} value={field.value || ''} placeholder="Nome da pessoa" />
                                                     </FormControl>
@@ -687,10 +703,10 @@ export default function SalesFunnel() {
                                         />
                                         <FormField
                                             control={form.control}
-                                            name="telefone"
+                                            name="telefone_responsavel"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Telefone</FormLabel>
+                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Telefone Responsável</FormLabel>
                                                     <FormControl>
                                                         <Input
                                                             {...field}
@@ -699,6 +715,64 @@ export default function SalesFunnel() {
                                                             maxLength={15}
                                                             onChange={(e) => field.onChange(formatPhone(e.target.value))}
                                                         />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="email_responsavel"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Email Responsável</FormLabel>
+                                                    <FormControl>
+                                                        <Input {...field} value={field.value || ''} type="email" placeholder="email@exemplo.com" />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+
+                                    {/* Contato Financeiro */}
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="contato_financeiro"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Contato Financeiro</FormLabel>
+                                                    <FormControl>
+                                                        <Input {...field} value={field.value || ''} placeholder="Nome do responsável" />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="telefone_financeiro"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Telefone Financeiro</FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            {...field}
+                                                            value={field.value || ''}
+                                                            placeholder="(00) 00000-0000"
+                                                            maxLength={15}
+                                                            onChange={(e) => field.onChange(formatPhone(e.target.value))}
+                                                        />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="email_financeiro"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Email Financeiro</FormLabel>
+                                                    <FormControl>
+                                                        <Input {...field} value={field.value || ''} type="email" placeholder="financeiro@exemplo.com" />
                                                     </FormControl>
                                                 </FormItem>
                                             )}
@@ -947,8 +1021,12 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
             bairro: card.bairro || '',
             cidade: card.cidade || '',
             cep: card.cep || '',
-            nome_contato: card.nome_contato || '',
-            telefone: card.telefone || '',
+            contato_responsavel: card.contato_responsavel || '',
+            telefone_responsavel: card.telefone_responsavel || '',
+            email_responsavel: card.email_responsavel || '',
+            contato_financeiro: card.contato_financeiro || '',
+            telefone_financeiro: card.telefone_financeiro || '',
+            email_financeiro: card.email_financeiro || '',
             numero_proposta: card.numero_proposta || '',
             valor: card.valor ? formatCurrencyInput(card.valor.toString()) : '',
             data_envio: formatDateForInput(card.data_envio),
@@ -979,8 +1057,12 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
                     bairro: data.bairro || null,
                     cidade: data.cidade || null,
                     cep: data.cep || null,
-                    nome_contato: data.nome_contato || null,
-                    telefone: data.telefone || null,
+                    contato_responsavel: data.contato_responsavel || null,
+                    telefone_responsavel: data.telefone_responsavel || null,
+                    email_responsavel: data.email_responsavel || null,
+                    contato_financeiro: data.contato_financeiro || null,
+                    telefone_financeiro: data.telefone_financeiro || null,
+                    email_financeiro: data.email_financeiro || null,
                     numero_proposta: data.numero_proposta || null,
                     valor: valueInCents,
                     data_envio: data.data_envio || null,
@@ -1161,10 +1243,10 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
 
                     <FormField
                         control={editForm.control}
-                        name="nome_contato"
+                        name="contato_responsavel"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="text-[10px] font-bold uppercase text-muted-foreground">Contato</FormLabel>
+                                <FormLabel className="text-[10px] font-bold uppercase text-muted-foreground">Contato Responsável</FormLabel>
                                 <FormControl><Input {...field} /></FormControl>
                             </FormItem>
                         )}
@@ -1172,10 +1254,10 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
 
                     <FormField
                         control={editForm.control}
-                        name="telefone"
+                        name="telefone_responsavel"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="text-[10px] font-bold uppercase text-muted-foreground">Telefone</FormLabel>
+                                <FormLabel className="text-[10px] font-bold uppercase text-muted-foreground">Telefone Responsável</FormLabel>
                                 <FormControl>
                                     <Input
                                         {...field}
@@ -1183,6 +1265,60 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
                                         onChange={(e) => field.onChange(formatPhone(e.target.value))}
                                     />
                                 </FormControl>
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={editForm.control}
+                        name="email_responsavel"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-[10px] font-bold uppercase text-muted-foreground">Email Responsável</FormLabel>
+                                <FormControl><Input {...field} type="email" /></FormControl>
+                            </FormItem>
+                        )}
+                    />
+
+                    <div className="md:col-span-2 border-t pt-2 mt-2">
+                        <span className="text-xs font-bold uppercase text-muted-foreground">Financeiro</span>
+                    </div>
+
+                    <FormField
+                        control={editForm.control}
+                        name="contato_financeiro"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-[10px] font-bold uppercase text-muted-foreground">Contato Financeiro</FormLabel>
+                                <FormControl><Input {...field} /></FormControl>
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={editForm.control}
+                        name="telefone_financeiro"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-[10px] font-bold uppercase text-muted-foreground">Telefone Financeiro</FormLabel>
+                                <FormControl>
+                                    <Input
+                                        {...field}
+                                        maxLength={15}
+                                        onChange={(e) => field.onChange(formatPhone(e.target.value))}
+                                    />
+                                </FormControl>
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={editForm.control}
+                        name="email_financeiro"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-[10px] font-bold uppercase text-muted-foreground">Email Financeiro</FormLabel>
+                                <FormControl><Input {...field} type="email" /></FormControl>
                             </FormItem>
                         )}
                     />

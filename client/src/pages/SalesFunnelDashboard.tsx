@@ -133,8 +133,8 @@ export default function SalesFunnelDashboard() {
             csvData.push([
                 card.nome_cliente,
                 card.cnpj || '',
-                card.nome_contato || '',
-                card.telefone || '',
+                card.contato_responsavel || '',
+                card.telefone_responsavel || '',
                 card.numero_proposta ? `#${card.numero_proposta}` : '',
                 formatCurrencyForExport(card.valor || 0),
                 formatDateForExport(card.data_envio),
@@ -507,8 +507,8 @@ export default function SalesFunnelDashboard() {
                                                 {card.cnpj && <div className="text-xs text-gray-500">CNPJ: {card.cnpj}</div>}
                                             </td>
                                             <td className="p-3 text-sm text-gray-700">
-                                                {card.nome_contato && <div>{card.nome_contato}</div>}
-                                                {card.telefone && <div className="text-xs text-gray-500">{card.telefone}</div>}
+                                                {card.contato_responsavel && <div>{card.contato_responsavel}</div>}
+                                                {card.telefone_responsavel && <div className="text-xs text-gray-500">{card.telefone_responsavel}</div>}
                                             </td>
                                             <td className="p-3 text-sm text-gray-700">
                                                 {card.numero_proposta ? `#${card.numero_proposta}` : '-'}
