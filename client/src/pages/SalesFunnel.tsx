@@ -112,60 +112,99 @@ const safeFormatDate = (dateValue: any, formatStr: string) => {
     }
 };
 
+// Utility function to calculate days since card creation
+const getDaysSinceCreation = (createdDate: any): number => {
+    if (!createdDate) return 0;
+    try {
+        const created = new Date(createdDate);
+        const now = new Date();
+        const diffTime = Math.abs(now.getTime() - created.getTime());
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays;
+    } catch (e) {
+        return 0;
+    }
+};
+
+// Utility function to get border color based on negotiation time
+const getNegotiationBorderColor = (card: any, columnName: string): string | null => {
+    // Only apply colors to cards in "Negociação" column
+    if (columnName !== "Negociação") return null;
+
+    const days = getDaysSinceCreation(card.criado_em);
+
+    if (days >= 30) {
+        return "#ef4444"; // Red
+    } else if (days >= 20) {
+        return "#fb923c"; // Orange
+    } else if (days >= 10) {
+        return "#fef08a"; // Yellow
+    }
+
+    return null; // No border color for less than 10 days
+};
+
 // Card Content Component (reutilizado para card normal e clone durante drag)
-const CardContent = ({ card, formatCurrency, isDragging = false }: any) => (
-    <div className="space-y-2.5">
-        <div className="flex justify-between items-start gap-2">
-            <h4 className="font-bold text-xs leading-tight line-clamp-2">
-                {card.razao_social}
-            </h4>
-            <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground/30 flex-shrink-0" />
-        </div>
+const CardContent = ({ card, formatCurrency, isDragging = false, columnName = "" }: any) => {
+    const borderColor = getNegotiationBorderColor(card, columnName);
 
-        <div className="space-y-1">
-            {card.cnpj && (
-                <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                    <Building2 className="w-3 h-3 flex-shrink-0" />
-                    <span className="truncate">{card.cnpj}</span>
-                </div>
-            )}
-            {card.contato_responsavel && (
-                <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                    <User className="w-3 h-3 flex-shrink-0" />
-                    <span className="truncate">{card.contato_responsavel}</span>
-                </div>
-            )}
-            {card.telefone_responsavel && (
-                <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                    <Phone className="w-3 h-3 flex-shrink-0" />
-                    <span>{card.telefone_responsavel}</span>
-                </div>
-            )}
+    return (
+        <div
+            className="space-y-2.5"
+            style={borderColor ? { borderLeft: `4px solid ${borderColor}`, paddingLeft: "8px" } : {}}
+        >
+            <div className="flex justify-between items-start gap-2">
+                <h4 className="font-bold text-xs leading-tight line-clamp-2">
+                    {card.razao_social}
+                </h4>
+                <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground/30 flex-shrink-0" />
+            </div>
 
-            <div className="pt-1.5 space-y-1 border-t border-border/20 mt-1">
-                <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground font-medium">
-                    <Calendar className="w-2.5 h-2.5 flex-shrink-0" />
-                    <span>Enviado em: {safeFormatDate(card.data_envio, 'dd/MM/yyyy')}</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground/70">
-                    <Clock className="w-2.5 h-2.5 flex-shrink-0" />
-                    <span>Criado em: {safeFormatDate(card.criado_em, 'dd/MM/yyyy HH:mm')}</span>
+            <div className="space-y-1">
+                {card.cnpj && (
+                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                        <Building2 className="w-3 h-3 flex-shrink-0" />
+                        <span className="truncate">{card.cnpj}</span>
+                    </div>
+                )}
+                {card.contato_responsavel && (
+                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                        <User className="w-3 h-3 flex-shrink-0" />
+                        <span className="truncate">{card.contato_responsavel}</span>
+                    </div>
+                )}
+                {card.telefone_responsavel && (
+                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                        <Phone className="w-3 h-3 flex-shrink-0" />
+                        <span>{card.telefone_responsavel}</span>
+                    </div>
+                )}
+
+                <div className="pt-1.5 space-y-1 border-t border-border/20 mt-1">
+                    <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground font-medium">
+                        <Calendar className="w-2.5 h-2.5 flex-shrink-0" />
+                        <span>Enviado em: {safeFormatDate(card.data_envio, 'dd/MM/yyyy')}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground/70">
+                        <Clock className="w-2.5 h-2.5 flex-shrink-0" />
+                        <span>Criado em: {safeFormatDate(card.criado_em, 'dd/MM/yyyy HH:mm')}</span>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div className="flex items-center justify-between pt-2 border-t border-border/30">
-            <span className="text-xs font-black text-green-600">
-                {formatCurrency(card.valor)}
-            </span>
-            {card.numero_proposta && (
-                <span className="text-[10px] font-bold px-1.5 py-0.5 bg-primary/5 text-primary rounded border border-primary/10">
-                    #{card.numero_proposta}
+            <div className="flex items-center justify-between pt-2 border-t border-border/30">
+                <span className="text-xs font-black text-green-600">
+                    {formatCurrency(card.valor)}
                 </span>
-            )}
+                {card.numero_proposta && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 bg-primary/5 text-primary rounded border border-primary/10">
+                        #{card.numero_proposta}
+                    </span>
+                )}
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 // Funnel Column Component
 function FunnelColumn({ title, id, cards, onAddCard, onCardClick, color, totalValue }: any) {
@@ -187,7 +226,7 @@ function FunnelColumn({ title, id, cards, onAddCard, onCardClick, color, totalVa
                 ref={provided.innerRef}
                 className="bg-card p-3.5 rounded-xl border-2 border-primary shadow-2xl ring-4 ring-primary/30 w-80 cursor-grabbing"
             >
-                <CardContent card={card} formatCurrency={formatCurrency} isDragging={true} />
+                <CardContent card={card} formatCurrency={formatCurrency} isDragging={true} columnName={title} />
             </div>
         );
     };
@@ -240,7 +279,7 @@ function FunnelColumn({ title, id, cards, onAddCard, onCardClick, color, totalVa
                                         className={`bg-card p-3.5 rounded-xl border border-border/50 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md hover:border-primary/20 transition-all ${snapshot.isDragging ? "opacity-30" : ""
                                             }`}
                                     >
-                                        <CardContent card={card} formatCurrency={formatCurrency} isDragging={snapshot.isDragging} />
+                                        <CardContent card={card} formatCurrency={formatCurrency} isDragging={snapshot.isDragging} columnName={title} />
                                     </div>
                                 )}
                             </Draggable>
