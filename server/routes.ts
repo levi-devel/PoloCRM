@@ -627,6 +627,33 @@ export async function registerRoutes(
     res.json(card);
   });
 
+  // Update card title
+  app.patch("/api/cards/:id/title", async (req, res) => {
+    try {
+      const cardId = Number(req.params.id);
+      const { titulo } = req.body;
+
+      // Validate title
+      if (!titulo || titulo.trim().length === 0) {
+        return res.status(400).json({ message: "Título não pode ser vazio" });
+      }
+
+      if (titulo.trim().length < 3) {
+        return res.status(400).json({ message: "Título deve ter no mínimo 3 caracteres" });
+      }
+
+      if (titulo.length > 255) {
+        return res.status(400).json({ message: "Título deve ter no máximo 255 caracteres" });
+      }
+
+      const card = await storage.updateCard(cardId, { titulo: titulo.trim() });
+      res.json(card);
+    } catch (error: any) {
+      console.error("Error updating card title:", error);
+      res.status(500).json({ message: error.message || "Falha ao atualizar título do card" });
+    }
+  });
+
   // Delete card (only for Gerente role)
   app.delete("/api/cards/:id", isAuthenticated, async (req, res) => {
     try {

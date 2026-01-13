@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, MoreHorizontal, Calendar, FileText, Settings, Trash2, Search, ArrowLeft, Upload, Eye, Download, X } from "lucide-react";
+import { Plus, MoreHorizontal, Calendar, FileText, Settings, Trash2, Search, ArrowLeft, Upload, Eye, Download, X, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { dateToInputValue, inputValueToDate } from "@/lib/date-utils";
@@ -24,6 +24,7 @@ import { PhoneInput } from "@/components/ui/phone-input";
 import { Textarea } from "@/components/ui/textarea";
 import { KanbanSettings } from "@/components/kanban/KanbanSettings";
 import { MultiUserSelect } from "@/components/MultiUserSelect";
+import { useToast } from "@/hooks/use-toast";
 
 // Client Selector Component
 interface ClientSelectorProps {
@@ -663,6 +664,10 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
   const [editableDueDate, setEditableDueDate] = React.useState(
     dateToInputValue(card.data_prazo)
   );
+  const [editableTitle, setEditableTitle] = React.useState(card.titulo || '');
+  const [isEditingTitle, setIsEditingTitle] = React.useState(false);
+  const { toast } = useToast();
+
 
   // IMPORTANT: Load from SERVER first, then merge with localStorage
   // This ensures all users see the same data (especially file attachments)
@@ -802,6 +807,68 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
     }
   };
 
+  const handleTitleUpdate = async () => {
+    // Validate title
+    if (!editableTitle || editableTitle.trim().length === 0) {
+      toast({
+        title: "Erro",
+        description: "Título não pode ser vazio",
+        variant: "destructive",
+      });
+      setEditableTitle(card.titulo); // Reset to original
+      setIsEditingTitle(false);
+      return;
+    }
+
+    if (editableTitle.trim().length < 3) {
+      toast({
+        title: "Erro",
+        description: "Título deve ter no mínimo 3 caracteres",
+        variant: "destructive",
+      });
+      setEditableTitle(card.titulo); // Reset to original
+      setIsEditingTitle(false);
+      return;
+    }
+
+    // Only update if changed
+    if (editableTitle.trim() === card.titulo) {
+      setIsEditingTitle(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/cards/${card.id}/title`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ titulo: editableTitle.trim() }),
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Falha ao atualizar título');
+      }
+
+      toast({
+        title: "Sucesso",
+        description: "Título atualizado com sucesso",
+      });
+
+      setIsEditingTitle(false);
+      onUpdate(); // Refresh card data
+    } catch (error: any) {
+      console.error('Error updating title:', error);
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao atualizar título",
+        variant: "destructive",
+      });
+      setEditableTitle(card.titulo); // Reset to original
+      setIsEditingTitle(false);
+    }
+  };
+
   const handleFileUpload = async (fieldId: number, file: File) => {
     const formData = new FormData();
     formData.append('file', file);
@@ -926,6 +993,45 @@ function CardEditForm({ card, onClose, onUpdate }: CardEditFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Editable Title */}
+      <div className="pb-4 border-b">
+        <label className="text-sm font-semibold text-muted-foreground mb-2 block">Título do Card</label>
+        <div className="flex items-center gap-2">
+          {isEditingTitle ? (
+            <Input
+              value={editableTitle}
+              onChange={(e) => setEditableTitle(e.target.value)}
+              onBlur={handleTitleUpdate}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleTitleUpdate();
+                } else if (e.key === 'Escape') {
+                  setEditableTitle(card.titulo);
+                  setIsEditingTitle(false);
+                }
+              }}
+              autoFocus
+              className="flex-1 text-lg font-semibold"
+              placeholder="Digite o título do card"
+            />
+          ) : (
+            <>
+              <h3 className="flex-1 text-lg font-semibold text-gray-900">{editableTitle}</h3>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-gray-400 hover:text-blue-600"
+                onClick={() => setIsEditingTitle(true)}
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+
       {/* Card Basic Info - Editable */}
       <div className="space-y-4 pb-4 border-b">
         <div className="grid grid-cols-2 gap-4">
