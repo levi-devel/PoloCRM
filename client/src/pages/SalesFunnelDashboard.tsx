@@ -125,13 +125,23 @@ export default function SalesFunnelDashboard() {
             [`Dashboard Funil de Vendas - Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`],
             [`Período: ${getFilterDescription()}`],
             [], // Linha vazia
+            ['=== RESUMO DE KPIs ==='],
+            ['Total de Negócios', stats.totalDeals],
+            ['Valor Total', formatCurrencyForExport(stats.totalValue)],
+            ['Taxa de Conversão', `${stats.conversionRate || 0}%`],
+            ['Ticket Médio', formatCurrencyForExport(stats.averageValue)],
+            ['Software', stats.softwareCount || 0],
+            ['Produtos Físicos', stats.produtosFisicosCount || 0],
+            ['Desenvolvimento', stats.desenvolvimentoCount || 0],
+            [], // Linha vazia
+            ['=== DETALHES DOS NEGÓCIOS ==='],
             ['Empresa', 'CNPJ', 'Contato', 'Telefone', 'Proposta', 'Valor', 'Data Envio', 'Status']
         ];
 
         stats.allCards.forEach((card: any) => {
             const column = stats.columnStats.find((c: any) => c.id_coluna === card.id_coluna);
             csvData.push([
-                card.nome_cliente,
+                card.razao_social || card.nome_cliente,
                 card.cnpj || '',
                 card.contato_responsavel || '',
                 card.telefone_responsavel || '',
@@ -266,7 +276,7 @@ export default function SalesFunnelDashboard() {
 
                 {/* Main Content */}
                 <div className="space-y-6">
-                    {/* KPI Cards - Moved to Top */}
+                    {/* KPI Cards - First Row: Main KPIs */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         {/* Total de Negócios */}
                         <Card className="p-5 bg-white border border-gray-100 shadow-sm">
@@ -319,6 +329,51 @@ export default function SalesFunnelDashboard() {
                                     <div className="text-xs text-gray-400 mt-1">Valor médio por negócio</div>
                                 </div>
                                 <div className="text-gray-400">
+                                    <BarChart3 className="w-6 h-6" />
+                                </div>
+                            </div>
+                        </Card>
+                    </div>
+
+                    {/* KPI Cards - Second Row: Category KPIs */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* Software */}
+                        <Card className="p-5 bg-white border border-blue-200 shadow-sm">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <div className="text-sm text-blue-600 mb-1 font-semibold">💻 Software</div>
+                                    <div className="text-3xl font-bold text-blue-700">{stats.softwareCount || 0}</div>
+                                    <div className="text-xs text-gray-400 mt-1">PABX e Plataformas</div>
+                                </div>
+                                <div className="text-blue-400">
+                                    <BarChart3 className="w-6 h-6" />
+                                </div>
+                            </div>
+                        </Card>
+
+                        {/* Produtos Físicos */}
+                        <Card className="p-5 bg-white border border-green-200 shadow-sm">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <div className="text-sm text-green-600 mb-1 font-semibold">📦 Produtos Físicos</div>
+                                    <div className="text-3xl font-bold text-green-700">{stats.produtosFisicosCount || 0}</div>
+                                    <div className="text-xs text-gray-400 mt-1">Gateways e Aparelhos</div>
+                                </div>
+                                <div className="text-green-400">
+                                    <BarChart3 className="w-6 h-6" />
+                                </div>
+                            </div>
+                        </Card>
+
+                        {/* Desenvolvimento */}
+                        <Card className="p-5 bg-white border border-purple-200 shadow-sm">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <div className="text-sm text-purple-600 mb-1 font-semibold">⚙️ Desenvolvimento</div>
+                                    <div className="text-3xl font-bold text-purple-700">{stats.desenvolvimentoCount || 0}</div>
+                                    <div className="text-xs text-gray-400 mt-1">Sistemas e APIs</div>
+                                </div>
+                                <div className="text-purple-400">
                                     <BarChart3 className="w-6 h-6" />
                                 </div>
                             </div>

@@ -1664,6 +1664,54 @@ export class DatabaseStorage implements IStorage {
                 return acc;
             }, [] as Array<{ specificProduct: string; count: number; totalValue: number }>);
 
+        // New KPIs: Category Statistics
+        // 1. Software - filter by 'produto' field
+        const softwareProducts = [
+            'Plataforma 360 OMNI',
+            'IPPolo Omni Business',
+            'IPPolo Omni Enterprise',
+            'IPPolo Omni Profissional',
+            'Pabx 3CX',
+            'PABX HIBRIDO',
+            'Pabx IPPolo Business',
+            'Pabx IPPolo Cloud',
+            'Pabx IPPolo Enterprise',
+            'Pabx IPPolo Profissional'
+        ];
+        const softwareCount = allCards
+            .filter(card => card.produto && softwareProducts.some(p =>
+                card.produto!.toLowerCase().includes(p.toLowerCase())
+            ))
+            .length;
+
+        // 2. Produtos Físicos - filter by 'produto_especifico' field
+        const produtosFisicos = [
+            'Gateway GSM',
+            'Gateway FXS',
+            'Gateway FXO',
+            'Gateway E1',
+            'Aparelho IP',
+            'Headset'
+        ];
+        const produtosFisicosCount = allCards
+            .filter(card => card.produto_especifico && produtosFisicos.some(p =>
+                card.produto_especifico!.toLowerCase().includes(p.toLowerCase())
+            ))
+            .length;
+
+        // 3. Desenvolvimento - filter by 'produto' field
+        const desenvolvimentoProducts = [
+            'Desenvolvimento de Sistema',
+            'Desenvolvimento de Agente IA',
+            'Desenvolvimento de API',
+            'Setup de desenvolvimento'
+        ];
+        const desenvolvimentoCount = allCards
+            .filter(card => card.produto && desenvolvimentoProducts.some(p =>
+                card.produto!.toLowerCase().includes(p.toLowerCase())
+            ))
+            .length;
+
         return {
             columnStats,
             totalDeals,
@@ -1674,6 +1722,10 @@ export class DatabaseStorage implements IStorage {
             contractTypeStats,
             productStats,
             specificProductStats,
+            // New KPIs - Count of deals by category
+            softwareCount,
+            produtosFisicosCount,
+            desenvolvimentoCount,
         };
     }
 }
