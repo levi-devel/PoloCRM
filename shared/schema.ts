@@ -497,9 +497,25 @@ export const cartoes_funil_vendas = mysqlTable("cartoes_funil_vendas", {
   quantidade_produto: int("quantidade_produto"), // Quantidade de produtos ofertados
   tipo_contrato: text("tipo_contrato"), // Tipo de contrato: Novo, UPSELL, CROSSELL
   data_assinatura_contrato: date("data_assinatura_contrato"), // Data da assinatura do contrato
+  notificacoes_enviadas: json("notificacoes_enviadas").$type<number[]>(), // Array de dias em que notificações foram enviadas [10, 20, 30]
   criado_por: varchar("criado_por", { length: 255 }).references(() => users.id),
   criado_em: timestamp("criado_em").defaultNow(),
 });
+
+// Configurações do Sistema de Cores de Negociação
+export const configuracoes_cores_negociacao = mysqlTable("configuracoes_cores_negociacao", {
+  id: int("id").primaryKey().autoincrement(),
+  dias_amarelo: int("dias_amarelo").notNull().default(10),
+  cor_amarelo: varchar("cor_amarelo", { length: 50 }).default("#fef08a"),
+  dias_laranja: int("dias_laranja").notNull().default(20),
+  cor_laranja: varchar("cor_laranja", { length: 50 }).default("#fb923c"),
+  dias_vermelho: int("dias_vermelho").notNull().default(30),
+  cor_vermelho: varchar("cor_vermelho", { length: 50 }).default("#ef4444"),
+  ativo: boolean("ativo").default(true).notNull(),
+  atualizado_em: timestamp("atualizado_em").defaultNow(),
+  atualizado_por: varchar("atualizado_por", { length: 255 }), // References usuarios.id but no FK constraint
+});
+
 
 // Sales Funnel Relations
 export const colunasFunilVendasRelations = relations(colunas_funil_vendas, ({ many }) => ({
@@ -527,15 +543,16 @@ export const tarefasInternasRelations = relations(tarefas_internas, ({ one }) =>
 
 export const insertColunaFunilVendasSchema = createInsertSchema(colunas_funil_vendas).omit({ id: true });
 export const insertCartaoFunilVendasSchema = createInsertSchema(cartoes_funil_vendas).omit({ id: true, criado_em: true });
+export const insertConfiguracaoCoresNegociacaoSchema = createInsertSchema(configuracoes_cores_negociacao).omit({ id: true, atualizado_em: true });
 
 export type ColunaFunilVendas = typeof colunas_funil_vendas.$inferSelect;
 export type InsertColunaFunilVendas = z.infer<typeof insertColunaFunilVendasSchema>;
 export type CartaoFunilVendas = typeof cartoes_funil_vendas.$inferSelect;
 export type InsertCartaoFunilVendas = z.infer<typeof insertCartaoFunilVendasSchema>;
+export type ConfiguracaoCoresNegociacao = typeof configuracoes_cores_negociacao.$inferSelect;
+export type InsertConfiguracaoCoresNegociacao = z.infer<typeof insertConfiguracaoCoresNegociacaoSchema>;
 
 // ✨ EXEMPLO: Schemas e types da nova tabela
 export const insertTarefaInternaSchema = createInsertSchema(tarefas_internas).omit({ id: true, criado_em: true });
-export type TarefaInterna = typeof tarefas_internas.$inferSelect;
-export type InsertTarefaInterna = z.infer<typeof insertTarefaInternaSchema>;
 export type TarefaInterna = typeof tarefas_internas.$inferSelect;
 export type InsertTarefaInterna = z.infer<typeof insertTarefaInternaSchema>;

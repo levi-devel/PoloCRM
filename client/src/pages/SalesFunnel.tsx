@@ -19,20 +19,24 @@ import {
     Calendar,
     Trash2,
     Clock,
-    ArrowUpRight
+    ArrowUpRight,
+    Settings
 } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import React, { useState, useMemo } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import React, { useEffect, useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSalesFunnelColorConfig, useUpdateSalesFunnelColorConfig } from "@/hooks/use-sales-funnel-color-config";
 
 // Utility functions for input masks
 const formatCNPJ = (value: string): string => {
@@ -126,29 +130,68 @@ const getDaysSinceCreation = (createdDate: any): number => {
     }
 };
 
+// Utility function to get tooltip message
+const getTooltipMessage = (card: any, columnName: string, config: any): { message: string; alert: string | null } | null => {
+    if (columnName !== "Negociação") return null;
+
+    const days = getDaysSinceCreation(card.criado_em);
+
+    let message = "";
+    let alert = null;
+
+    if (days === 0) {
+        message = "Card criado hoje";
+    } else if (days === 1) {
+        message = "Card criado há 1 dia";
+    } else {
+        message = `Card criado há ${days} dias`;
+    }
+
+    // Add alert message based on thresholds
+    const vermelho = config?.dias_vermelho || 30;
+    const laranja = config?.dias_laranja || 20;
+    const amarelo = config?.dias_amarelo || 10;
+
+    if (days >= vermelho) {
+        alert = "⚠️ Atenção urgente necessária";
+    } else if (days >= laranja) {
+        alert = "⚡ Requer ação prioritária";
+    } else if (days >= amarelo) {
+        alert = "⏰ Iniciando período de alerta";
+    }
+
+    return { message, alert };
+};
+
 // Utility function to get border color based on negotiation time
-const getNegotiationBorderColor = (card: any, columnName: string): string | null => {
+const getNegotiationBorderColor = (card: any, columnName: string, config: any): string | null => {
     // Only apply colors to cards in "Negociação" column
     if (columnName !== "Negociação") return null;
 
     const days = getDaysSinceCreation(card.criado_em);
 
-    if (days >= 30) {
-        return "#ef4444"; // Red
-    } else if (days >= 20) {
-        return "#fb923c"; // Orange
-    } else if (days >= 10) {
-        return "#fef08a"; // Yellow
+    // Use dynamic configuration or defaults
+    const vermelho = config?.dias_vermelho || 30;
+    const laranja = config?.dias_laranja || 20;
+    const amarelo = config?.dias_amarelo || 10;
+
+    if (days >= vermelho) {
+        return config?.cor_vermelho || "#ef4444"; // Red
+    } else if (days >= laranja) {
+        return config?.cor_laranja || "#fb923c"; // Orange
+    } else if (days >= amarelo) {
+        return config?.cor_amarelo || "#fef08a"; // Yellow
     }
 
-    return null; // No border color for less than 10 days
+    return null; // No border color for less than threshold
 };
 
 // Card Content Component (reutilizado para card normal e clone durante drag)
-const CardContent = ({ card, formatCurrency, isDragging = false, columnName = "" }: any) => {
-    const borderColor = getNegotiationBorderColor(card, columnName);
+const CardContent = ({ card, formatCurrency, isDragging = false, columnName = "", config = null }: any) => {
+    const borderColor = getNegotiationBorderColor(card, columnName, config);
+    const tooltipInfo = getTooltipMessage(card, columnName, config);
 
-    return (
+    const cardInner = (
         <div
             className="space-y-2.5"
             style={borderColor ? { borderLeft: `4px solid ${borderColor}`, paddingLeft: "8px" } : {}}
@@ -204,10 +247,31 @@ const CardContent = ({ card, formatCurrency, isDragging = false, columnName = ""
             </div>
         </div>
     );
+
+    // If has tooltip and not dragging, wrap with Tooltip
+    if (tooltipInfo && !isDragging) {
+        return (
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    {cardInner}
+                </TooltipTrigger>
+                <TooltipContent side="top" className="bg-popover text-popover-foreground">
+                    <p className="text-xs font-medium">{tooltipInfo.message}</p>
+                    {tooltipInfo.alert && (
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                            {tooltipInfo.alert}
+                        </p>
+                    )}
+                </TooltipContent>
+            </Tooltip>
+        );
+    }
+
+    return cardInner;
 };
 
 // Funnel Column Component
-function FunnelColumn({ title, id, cards, onAddCard, onCardClick, color, totalValue }: any) {
+function FunnelColumn({ title, id, cards, onAddCard, onCardClick, color, totalValue, config }: any) {
     const formatCurrency = (value: number | null | undefined) => {
         if (!value) return "R$ 0,00";
         return new Intl.NumberFormat('pt-BR', {
@@ -226,7 +290,7 @@ function FunnelColumn({ title, id, cards, onAddCard, onCardClick, color, totalVa
                 ref={provided.innerRef}
                 className="bg-card p-3.5 rounded-xl border-2 border-primary shadow-2xl ring-4 ring-primary/30 w-80 cursor-grabbing"
             >
-                <CardContent card={card} formatCurrency={formatCurrency} isDragging={true} columnName={title} />
+                <CardContent card={card} formatCurrency={formatCurrency} isDragging={true} columnName={title} config={config} />
             </div>
         );
     };
@@ -279,7 +343,7 @@ function FunnelColumn({ title, id, cards, onAddCard, onCardClick, color, totalVa
                                         className={`bg-card p-3.5 rounded-xl border border-border/50 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md hover:border-primary/20 transition-all ${snapshot.isDragging ? "opacity-30" : ""
                                             }`}
                                     >
-                                        <CardContent card={card} formatCurrency={formatCurrency} isDragging={snapshot.isDragging} columnName={title} />
+                                        <CardContent card={card} formatCurrency={formatCurrency} isDragging={snapshot.isDragging} columnName={title} config={config} />
                                     </div>
                                 )}
                             </Draggable>
@@ -335,10 +399,52 @@ const cardSchema = z.object({
 export default function SalesFunnel() {
     const { data: columns } = useSalesFunnelColumns();
     const { data: cards } = useSalesFunnelCards();
+    const { data: colorConfig, refetch: refetchConfig } = useSalesFunnelColorConfig();
+    const updateColorConfig = useUpdateSalesFunnelColorConfig();
     const moveSalesFunnelCard = useMoveSalesFunnelCard();
     const createSalesFunnelCard = useCreateSalesFunnelCard();
     const updateSalesFunnelCard = useUpdateSalesFunnelCard();
+    const deleteSalesFunnelCard = useDeleteSalesFunnelCard();
 
+    // Settings dialog state
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [settingsForm, setSettingsForm] = useState({
+        dias_amarelo: 10,
+        cor_amarelo: "#fef08a",
+        dias_laranja: 20,
+        cor_laranja: "#fb923c",
+        dias_vermelho: 30,
+        cor_vermelho: "#ef4444"
+    });
+
+    // Load current config into form when dialog opens
+    useEffect(() => {
+        if (colorConfig && isSettingsOpen) {
+            setSettingsForm({
+                dias_amarelo: colorConfig.dias_amarelo || 10,
+                cor_amarelo: colorConfig.cor_amarelo || "#fef08a",
+                dias_laranja: colorConfig.dias_laranja || 20,
+                cor_laranja: colorConfig.cor_laranja || "#fb923c",
+                dias_vermelho: colorConfig.dias_vermelho || 30,
+                cor_vermelho: colorConfig.cor_vermelho || "#ef4444"
+            });
+        }
+    }, [colorConfig, isSettingsOpen]);
+
+    const handleSaveSettings = async () => {
+        if (!colorConfig?.id) return;
+
+        try {
+            await updateColorConfig.mutateAsync({
+                id: colorConfig.id,
+                ...settingsForm
+            });
+            await refetchConfig();
+            setIsSettingsOpen(false);
+        } catch (error) {
+            console.error("Failed to update color config:", error);
+        }
+    };
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [selectedCard, setSelectedCard] = useState<any>(null);
     const [isCardModalOpen, setIsCardModalOpen] = useState(false);
@@ -497,20 +603,31 @@ export default function SalesFunnel() {
             <div className="space-y-6">
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-card border rounded-2xl shadow-sm">
-                    <div>
-                        <h1 className="text-3xl font-extrabold tracking-tight mb-1 font-display">
-                            Funil de Vendas
-                        </h1>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <span className="font-bold text-primary">{filteredCardsList.length} Negócios</span>
-                            <span className="w-1 h-1 rounded-full bg-border" />
-                            <span className="font-bold text-green-600">
-                                {new Intl.NumberFormat('pt-BR', {
-                                    style: 'currency',
-                                    currency: 'BRL'
-                                }).format(totalValue / 100)}
-                            </span>
+                    <div className="flex items-center gap-4">
+                        <div>
+                            <h1 className="text-3xl font-extrabold tracking-tight mb-1 font-display">
+                                Funil de Vendas
+                            </h1>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                <span className="font-bold text-primary">{filteredCardsList.length} Negócios</span>
+                                <span className="w-1 h-1 rounded-full bg-border" />
+                                <span className="font-bold text-green-600">
+                                    {new Intl.NumberFormat('pt-BR', {
+                                        style: 'currency',
+                                        currency: 'BRL'
+                                    }).format(totalValue / 100)}
+                                </span>
+                            </div>
                         </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setIsSettingsOpen(true)}
+                            className="flex items-center gap-2"
+                        >
+                            <Settings className="w-4 h-4" />
+                            Ajustes de Tempo
+                        </Button>
                     </div>
 
                     <div className="relative group">
@@ -526,28 +643,31 @@ export default function SalesFunnel() {
                 </div>
 
                 {/* Kanban Board Container */}
-                <DragDropContext onDragEnd={onDragEnd}>
-                    <div className="overflow-x-auto custom-scrollbar pb-6 px-1">
-                        <div className="flex gap-4 min-w-max">
-                            {columns.map(col => {
-                                const colCards = filteredCardsList.filter(c => c.id_coluna === col.id);
-                                const colTotal = colCards.reduce((sum, c) => sum + (c.valor || 0), 0);
-                                return (
-                                    <FunnelColumn
-                                        key={col.id}
-                                        id={col.id}
-                                        title={col.nome}
-                                        cards={colCards}
-                                        onAddCard={handleAddCard}
-                                        onCardClick={handleCardClick}
-                                        color={col.cor || "#3b82f6"}
-                                        totalValue={colTotal}
-                                    />
-                                );
-                            })}
+                <TooltipProvider delayDuration={300}>
+                    <DragDropContext onDragEnd={onDragEnd}>
+                        <div className="overflow-x-auto custom-scrollbar pb-6 px-1">
+                            <div className="flex gap-4 min-w-max">
+                                {columns.map(col => {
+                                    const colCards = filteredCardsList.filter(c => c.id_coluna === col.id);
+                                    const colTotal = colCards.reduce((sum, c) => sum + (c.valor || 0), 0);
+                                    return (
+                                        <FunnelColumn
+                                            key={col.id}
+                                            id={col.id}
+                                            title={col.nome}
+                                            cards={colCards}
+                                            onAddCard={handleAddCard}
+                                            onCardClick={handleCardClick}
+                                            color={col.cor || "#3b82f6"}
+                                            totalValue={colTotal}
+                                            config={colorConfig}
+                                        />
+                                    );
+                                })}
+                            </div>
                         </div>
-                    </div>
-                </DragDropContext>
+                    </DragDropContext>
+                </TooltipProvider>
 
                 {/* Add Card Modal */}
                 <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
@@ -1031,8 +1151,139 @@ export default function SalesFunnel() {
                         )}
                     </DialogContent>
                 </Dialog>
+
+                {/* Settings Dialog */}
+                <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+                    <DialogContent className="sm:max-w-[500px]">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <Settings className="w-5 h-5" />
+                                Ajustes de Tempo - Sistema de Cores
+                            </DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-6 py-4">
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="dias-amarelo">Dias para Amarelo</Label>
+                                        <Input
+                                            id="dias-amarelo"
+                                            type="number"
+                                            min="1"
+                                            value={settingsForm.dias_amarelo}
+                                            onChange={(e) => setSettingsForm({ ...settingsForm, dias_amarelo: parseInt(e.target.value) || 10 })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="cor-amarelo">Cor Amarelo</Label>
+                                        <div className="flex gap-2">
+                                            <Input
+                                                id="cor-amarelo"
+                                                type="color"
+                                                value={settingsForm.cor_amarelo}
+                                                onChange={(e) => setSettingsForm({ ...settingsForm, cor_amarelo: e.target.value })}
+                                                className="w-16 h-10 p-1 cursor-pointer"
+                                            />
+                                            <Input
+                                                type="text"
+                                                value={settingsForm.cor_amarelo}
+                                                onChange={(e) => setSettingsForm({ ...settingsForm, cor_amarelo: e.target.value })}
+                                                className="flex-1"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="dias-laranja">Dias para Laranja</Label>
+                                        <Input
+                                            id="dias-laranja"
+                                            type="number"
+                                            min="1"
+                                            value={settingsForm.dias_laranja}
+                                            onChange={(e) => setSettingsForm({ ...settingsForm, dias_laranja: parseInt(e.target.value) || 20 })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="cor-laranja">Cor Laranja</Label>
+                                        <div className="flex gap-2">
+                                            <Input
+                                                id="cor-laranja"
+                                                type="color"
+                                                value={settingsForm.cor_laranja}
+                                                onChange={(e) => setSettingsForm({ ...settingsForm, cor_laranja: e.target.value })}
+                                                className="w-16 h-10 p-1 cursor-pointer"
+                                            />
+                                            <Input
+                                                type="text"
+                                                value={settingsForm.cor_laranja}
+                                                onChange={(e) => setSettingsForm({ ...settingsForm, cor_laranja: e.target.value })}
+                                                className="flex-1"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="dias-vermelho">Dias para Vermelho</Label>
+                                        <Input
+                                            id="dias-vermelho"
+                                            type="number"
+                                            min="1"
+                                            value={settingsForm.dias_vermelho}
+                                            onChange={(e) => setSettingsForm({ ...settingsForm, dias_vermelho: parseInt(e.target.value) || 30 })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="cor-vermelho">Cor Vermelho</Label>
+                                        <div className="flex gap-2">
+                                            <Input
+                                                id="cor-vermelho"
+                                                type="color"
+                                                value={settingsForm.cor_vermelho}
+                                                onChange={(e) => setSettingsForm({ ...settingsForm, cor_vermelho: e.target.value })}
+                                                className="w-16 h-10 p-1 cursor-pointer"
+                                            />
+                                            <Input
+                                                type="text"
+                                                value={settingsForm.cor_vermelho}
+                                                onChange={(e) => setSettingsForm({ ...settingsForm, cor_vermelho: e.target.value })}
+                                                className="flex-1"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-muted/30 p-4 rounded-lg space-y-2">
+                                <p className="text-sm font-medium">Pré-visualização:</p>
+                                <div className="flex gap-2">
+                                    <div className="flex-1 p-3 rounded border-l-4" style={{ borderLeftColor: settingsForm.cor_amarelo }}>
+                                        <p className="text-xs font-medium">Amarelo ({settingsForm.dias_amarelo}+ dias)</p>
+                                    </div>
+                                    <div className="flex-1 p-3 rounded border-l-4" style={{ borderLeftColor: settingsForm.cor_laranja }}>
+                                        <p className="text-xs font-medium">Laranja ({settingsForm.dias_laranja}+ dias)</p>
+                                    </div>
+                                    <div className="flex-1 p-3 rounded border-l-4" style={{ borderLeftColor: settingsForm.cor_vermelho }}>
+                                        <p className="text-xs font-medium">Vermelho ({settingsForm.dias_vermelho}+ dias)</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsSettingsOpen(false)}>
+                                Cancelar
+                            </Button>
+                            <Button onClick={handleSaveSettings}>
+                                Salvar Configurações
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
-        </Layout>
+        </Layout >
     );
 }
 

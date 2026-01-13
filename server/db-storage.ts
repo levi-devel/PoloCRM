@@ -18,6 +18,7 @@ import {
     pausas_polo_projeto,
     colunas_funil_vendas,
     cartoes_funil_vendas,
+    configuracoes_cores_negociacao,
     type User,
     type UpsertUser,
     type InsertCliente,
@@ -1727,5 +1728,39 @@ export class DatabaseStorage implements IStorage {
             produtosFisicosCount,
             desenvolvimentoCount,
         };
+    }
+
+    // Sales Funnel Color Configuration
+    async getSalesFunnelColorConfig() {
+        const configs = await db
+            .select()
+            .from(configuracoes_cores_negociacao)
+            .where(eq(configuracoes_cores_negociacao.ativo, true))
+            .limit(1);
+
+        // If no config exists, create default
+        if (!configs[0]) {
+            await db.insert(configuracoes_cores_negociacao).values({
+                dias_amarelo: 10,
+                dias_laranja: 20,
+                dias_vermelho: 30,
+                cor_amarelo: "#fef08a",
+                cor_laranja: "#fb923c",
+                cor_vermelho: "#ef4444",
+                ativo: true,
+            });
+            return await this.getSalesFunnelColorConfig();
+        }
+
+        return configs[0];
+    }
+
+    async updateSalesFunnelColorConfig(id: number, updates: Partial<typeof configuracoes_cores_negociacao.$inferInsert>) {
+        await db
+            .update(configuracoes_cores_negociacao)
+            .set({ ...updates, atualizado_em: new Date() })
+            .where(eq(configuracoes_cores_negociacao.id, id));
+
+        return await this.getSalesFunnelColorConfig();
     }
 }

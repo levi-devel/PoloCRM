@@ -995,6 +995,25 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/sales-funnel/stats", async (req, res) => {
+    const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
+    const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
+    const stats = await storage.getSalesFunnelStats(startDate, endDate);
+    res.json(stats);
+  });
+
+  // Sales Funnel Color Configuration
+  app.get("/api/sales-funnel/config-cores", async (_req, res) => {
+    const config = await storage.getSalesFunnelColorConfig();
+    res.json(config);
+  });
+
+  app.put("/api/sales-funnel/config-cores/:id", async (req, res) => {
+    const id = parseInt(req.params.id);
+    const updates = req.body;
+    const updated = await storage.updateSalesFunnelColorConfig(id, updates);
+    res.json(updated);
+  });
 
   // Polo Projects
   app.get(api.polo_projetos.list.path, async (req, res) => {
