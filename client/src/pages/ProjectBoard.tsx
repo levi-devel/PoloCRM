@@ -539,7 +539,10 @@ export default function ProjectBoard() {
 
         {/* Card Edit Modal */}
         <Dialog open={isCardModalOpen} onOpenChange={setIsCardModalOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent
+            className="max-w-4xl max-h-[90vh] overflow-y-auto"
+            onInteractOutside={(e) => e.preventDefault()}
+          >
             <DialogHeader>
               <DialogTitle className="text-2xl font-display">
                 {selectedCard?.titulo || "Carregando..."}
