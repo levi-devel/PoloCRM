@@ -50,7 +50,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-type TrendPeriod = 'week' | 'month' | 'year';
+
 
 export default function Dashboard() {
   const { data: projects } = useProjects();
@@ -65,7 +65,7 @@ export default function Dashboard() {
   const [selectedProjectId, setSelectedProjectId] = useState<string>("all");
   const [selectedPeriod, setSelectedPeriod] = useState<string>("month");
   const [selectedTechnicianId, setSelectedTechnicianId] = useState<string>("all");
-  const [trendPeriod, setTrendPeriod] = useState<TrendPeriod>('week');
+
   const [customStartDate, setCustomStartDate] = useState<Date | undefined>();
   const [customEndDate, setCustomEndDate] = useState<Date | undefined>();
   const [confirmedStartDate, setConfirmedStartDate] = useState<Date | undefined>();
@@ -123,23 +123,7 @@ export default function Dashboard() {
     },
   });
 
-  // Fetch completion trend
-  const { data: completionTrend = [] } = useQuery({
-    queryKey: ['/api/dashboard/completion-trend', selectedProjectId, selectedTechnicianId, trendPeriod],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (selectedProjectId !== "all") {
-        params.append("projectId", selectedProjectId);
-      }
-      if (selectedTechnicianId !== "all") {
-        params.append("technicianId", selectedTechnicianId);
-      }
-      params.append("period", trendPeriod);
-      const res = await fetch(`/api/dashboard/completion-trend?${params}`, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch completion trend");
-      return res.json();
-    },
-  });
+
 
   // Fetch project technician stats
   const { data: projectTechnicianStats = [] } = useQuery({
@@ -492,88 +476,8 @@ export default function Dashboard() {
 
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Evolution Chart */}
+          {/* Status Distribution Chart */}
           <div className="lg:col-span-2 space-y-4">
-            <Card className="shadow-sm border-border/60">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Evolução de Conclusões</CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Concluídos por {trendPeriod === 'week' ? 'semana' : trendPeriod === 'month' ? 'mês' : 'ano'} (últimos 12 períodos)
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant={trendPeriod === 'week' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setTrendPeriod('week')}
-                    >
-                      Semanal
-                    </Button>
-                    <Button
-                      variant={trendPeriod === 'month' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setTrendPeriod('month')}
-                    >
-                      Mensal
-                    </Button>
-                    <Button
-                      variant={trendPeriod === 'year' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setTrendPeriod('year')}
-                    >
-                      Anual
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={completionTrend}>
-                    <defs>
-                      <linearGradient id="colorCompleted" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                    <XAxis
-                      dataKey="period"
-                      stroke="hsl(var(--muted-foreground))"
-                      fontSize={12}
-                      tickLine={false}
-                      axisLine={false}
-                    />
-                    <YAxis
-                      stroke="hsl(var(--muted-foreground))"
-                      fontSize={12}
-                      tickLine={false}
-                      axisLine={false}
-                    />
-                    <Tooltip
-                      cursor={{ stroke: 'hsl(var(--primary))', strokeWidth: 1 }}
-                      contentStyle={{
-                        borderRadius: '8px',
-                        border: 'none',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                        backgroundColor: 'hsl(var(--background))'
-                      }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="completed"
-                      stroke="hsl(var(--primary))"
-                      strokeWidth={2}
-                      fillOpacity={1}
-                      fill="url(#colorCompleted)"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            {/* Status Distribution Chart */}
             <Card className="shadow-sm border-border/60">
               <CardHeader>
                 <CardTitle>Distribuição de Status do Projeto</CardTitle>
