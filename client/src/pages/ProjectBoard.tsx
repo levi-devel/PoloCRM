@@ -452,7 +452,7 @@ export default function ProjectBoard() {
 
         <DragDropContext onDragEnd={onDragEnd}>
           <div className="flex-1 overflow-x-auto pb-4">
-            <div className="flex gap-4 min-w-max h-full">
+            <div className="flex gap-4 min-w-max h-full" style={{ transform: 'scale(0.90)', transformOrigin: 'top left', width: '111%' }}>
               {columns.map(col => (
                 <KanbanColumn
                   key={col.id}
