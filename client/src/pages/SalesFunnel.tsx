@@ -603,22 +603,23 @@ export default function SalesFunnel() {
             <div className="space-y-6">
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-card border rounded-2xl shadow-sm">
-                    <div className="flex items-center gap-4">
-                        <div>
-                            <h1 className="text-3xl font-extrabold tracking-tight mb-1 font-display">
-                                Funil de Vendas
-                            </h1>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                <span className="font-bold text-primary">{filteredCardsList.length} Negócios</span>
-                                <span className="w-1 h-1 rounded-full bg-border" />
-                                <span className="font-bold text-green-600">
-                                    {new Intl.NumberFormat('pt-BR', {
-                                        style: 'currency',
-                                        currency: 'BRL'
-                                    }).format(totalValue / 100)}
-                                </span>
-                            </div>
+                    <div>
+                        <h1 className="text-3xl font-extrabold tracking-tight mb-1 font-display">
+                            Funil de Vendas
+                        </h1>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <span className="font-bold text-primary">{filteredCardsList.length} Negócios</span>
+                            <span className="w-1 h-1 rounded-full bg-border" />
+                            <span className="font-bold text-green-600">
+                                {new Intl.NumberFormat('pt-BR', {
+                                    style: 'currency',
+                                    currency: 'BRL'
+                                }).format(totalValue / 100)}
+                            </span>
                         </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
                         <Button
                             variant="outline"
                             size="sm"
@@ -628,17 +629,17 @@ export default function SalesFunnel() {
                             <Settings className="w-4 h-4" />
                             Ajustes de Tempo
                         </Button>
-                    </div>
 
-                    <div className="relative group">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                        <Input
-                            type="text"
-                            placeholder="Buscar cliente, proposta..."
-                            value={searchText}
-                            onChange={(e) => setSearchText(e.target.value)}
-                            className="pl-10 w-full md:w-[350px] bg-accent/5"
-                        />
+                        <div className="relative group">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                            <Input
+                                type="text"
+                                placeholder="Buscar cliente, proposta..."
+                                value={searchText}
+                                onChange={(e) => setSearchText(e.target.value)}
+                                className="pl-10 w-full md:w-[350px] bg-accent/5"
+                            />
+                        </div>
                     </div>
                 </div>
 
