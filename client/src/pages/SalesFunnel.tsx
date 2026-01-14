@@ -1135,7 +1135,10 @@ export default function SalesFunnel() {
 
                 {/* Card Detail Modal - Editable */}
                 <Dialog open={isCardModalOpen} onOpenChange={setIsCardModalOpen}>
-                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
+                    <DialogContent
+                        className="max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar"
+                        onInteractOutside={(e) => e.preventDefault()}
+                    >
                         <DialogHeader className="border-b pb-4 mb-4">
                             <DialogTitle className="text-2xl font-black font-display text-primary">
                                 {selectedCard?.razao_social || "Detalhes do Negócio"}
